@@ -58,8 +58,11 @@ class DatabaseManager:
         """
         with DatabaseConnection.get_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute(sql, params or {})
-                record = cursor.fetchone()
+                if params:
+                    cursor.execute(sql, params)
+                else:
+                    cursor.execute(sql)
+                record = cursor.fetchall()
         
         return record
         
@@ -69,14 +72,17 @@ class DatabaseManager:
         """
         with DatabaseConnection.get_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute(sql, params or {})
+                if params:
+                    cursor.execute(sql, params)
+                else:
+                    cursor.execute(sql)
                 connection.commit()
 
     # =========================================================
     # FETCHALL
     # =========================================================
 
-    def fetchall(self, params: dict[str, Any] | None = None, sql: str | None = None,):
+    def fetchall(self, sql: str | None = None, params: dict[str, Any] | None = None, data_model: bool = True):
         """
         Ejecuta una consulta y devuelve todos los registros.
         Si no se informa sql, se utiliza _select_query().
@@ -85,15 +91,20 @@ class DatabaseManager:
 
         with DatabaseConnection.get_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute(final_sql, params or {})
+                if params:
+                    cursor.execute(sql, params)
+                else:
+                    cursor.execute(sql)
                 records = cursor.fetchall()
 
-        return self.after_fetchall(records)
+        return self.after_fetchall(records, data_model)
 
-    def after_fetchall(self, records: list[dict[str, Any]],):
+    def after_fetchall(self, records: list[dict[str, Any]], data_model: bool = True):
         """
         Hook posterior a fetchall.
         """
+        if not data_model:
+            return records
         if self.model_class is None:
             return records
 
@@ -103,7 +114,7 @@ class DatabaseManager:
     # FETCHONE
     # =========================================================
 
-    def fetchone(self, params: dict[str, Any] | None = None, sql: str | None = None,):
+    def fetchone(self, sql: str | None = None, params: dict[str, Any] | None = None, data_model: bool = True):
         """
         Ejecuta una consulta y devuelve un único registro.
         Si no se informa sql, se utiliza _select_query().
@@ -112,18 +123,23 @@ class DatabaseManager:
 
         with DatabaseConnection.get_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute(final_sql, params or {})
+                if params:
+                    cursor.execute(sql, params)
+                else:
+                    cursor.execute(sql)
                 record = cursor.fetchone()
 
-        return self.after_fetchone(record)
+        return self.after_fetchone(record, data_model)
 
-    def after_fetchone(self, record: dict[str, Any] | None,):
+    def after_fetchone(self, record: dict[str, Any] | None, data_model: bool = True):
         """
         Hook posterior a fetchone.
         """
         if record is None:
             return None
 
+        if not data_model:
+            return record
         if self.model_class is None:
             return record
 
@@ -133,7 +149,7 @@ class DatabaseManager:
     # GET BY ID
     # =========================================================
 
-    def get_by_id(self, record_id: Any,):
+    def get_by_id(self, record_id: Any, data_model: bool = True):
         """
         Recupera un registro por su clave primaria utilizando _select_query().
         La consulta definida en _select_query() debe ser compatible con:
@@ -141,10 +157,11 @@ class DatabaseManager:
         o con el nombre definido en self.primary_key.
         """
         return self.fetchone(
-            params={self.primary_key: record_id}
+            params={self.primary_key: record_id}, 
+            data_model=data_model
         )
 
-    def get_list(self, params: dict = None) :
+    def get_list(self, params: dict = None, data_model: bool = True) -> dict:
         """
         Recupera una lista de registros de base de datos con/sin filtrado, se
         basa en la consulta principal asignada al manager
@@ -159,6 +176,7 @@ class DatabaseManager:
         sql_base = self._select_query()
         response = {}
         result = []
+        count_rows = None
 
         try:
             start_time = time.perf_counter()
@@ -168,17 +186,18 @@ class DatabaseManager:
                 query_count = get_query_row_count(query_filter)
 
                 count_rows = self.execute_query(query_count, query_params)
-                result = self.fetchall(sql=query_filter, params=query_params)
+                result = self.fetchall(sql=query_filter, params=query_params, data_model=data_model)
 
             else:
+                query_count = get_query_row_count(sql_base)
                 count_rows = self.execute_query(query_count)
-                result = self.fetchall(sql_base)
+                result = self.fetchall(sql=sql_base, data_model=data_model)
 
             end_time = time.perf_counter()
 
             response = {
                 "data": result,
-                "rows": count_rows,
+                "rows": count_rows[0].get("rows"),
                 "time": round(end_time - start_time, 6)
             }
 
@@ -188,7 +207,7 @@ class DatabaseManager:
             print(e)
             raise e
 
-    def get_list_page(self, params: dict = None, page: int = 1) :
+    def get_list_page(self, params: dict = None, page: int = 1, data_model: bool = True) -> dict:
         """
         Recupera una lista de registros de base de datos con/sin filtrado, se
         basa en la consulta principal asignada al manager
@@ -217,24 +236,24 @@ class DatabaseManager:
                 query_params["paginator_query_limit"] = pages.get("limit")
                 query_params["paginator_query_offset"] = pages.get("offset")
 
-                result = self.fetchall(sql=query_paginate, params=query_params)
+                result = self.fetchall(sql=query_paginate, params=query_params, data_model=data_model)
             else:
                 query_count = get_query_row_count(sql_base)
-                query_paginate = get_query_paginator(sql_base)
                 
                 count_rows = self.execute_query(query_count)
+                query_paginate = get_query_paginator(sql_base)
 
                 pages = self._calculate_page(page)
                 query_params["paginator_query_limit"] = pages.get("limit")
                 query_params["paginator_query_offset"] = pages.get("offset")
 
-                result = self.fetchall(query_paginate, query_params)
+                result = self.fetchall(sql=query_paginate, params=query_params, data_model=data_model)
 
             end_time = time.perf_counter()
 
             response = {
                 "data": result,
-                "rows": count_rows,
+                "rows": count_rows[0].get("rows"),
                 "page": page,
                 "time": round(end_time - start_time, 6)
             }
