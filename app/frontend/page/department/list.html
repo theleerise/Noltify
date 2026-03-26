@@ -1,16 +1,12 @@
 {% extends "base.html" %}
+{% from 'macro/component.jinja2' import mac_list_title %}
 
 {% block title %}
  - Departamentos
 {% endblock %}
 
-
 {% block content %}
 
-<div class="text-center">
-    <h1 class="display-4 mb-3">
-        Estamos dentro de Listado de Departamentos
-    </h1>
-</div>
+{{ mac_list_title("Departments") }}
 
 {% endblock %}
