@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, ClassVar
+from enum import Enum
+from typing import Any, ClassVar, Union, get_args, get_origin
 
 from pydantic import BaseModel, ConfigDict
+from pydantic.fields import PydanticUndefined
 
 
 class EntityModel(BaseModel):
@@ -16,9 +18,7 @@ class EntityModel(BaseModel):
         - Permitir poblar modelos desde diccionarios.
         - Facilitar la conversión a dict/JSON para views y managers.
         - Ofrecer utilidades comunes para inserción, actualización y filtros.
-
-    Esta clase está pensada para ser heredada por los modelos concretos,
-    por ejemplo: DepartmentModel, UserModel, RoleModel, etc.
+        - Exponer una configuración de campos consumible por el frontend.
     """
 
     model_config = ConfigDict(
@@ -71,8 +71,11 @@ class EntityModel(BaseModel):
         """
         Convierte la entidad a un diccionario seguro para serialización JSON.
         """
-        json_ready_data = self.model_dump(mode="json", exclude_none=True, by_alias=True)
-        return json_ready_data
+        return self.model_dump(
+            mode="json",
+            exclude_none=True,
+            by_alias=True,
+        )
 
     def get_primary_key_value(self) -> Any:
         """
@@ -94,7 +97,8 @@ class EntityModel(BaseModel):
         """
         Devuelve un diccionario pensado para operaciones de inserción.
 
-        Por defecto excluye campos nulos para evitar enviar columnas vacías a la capa de persistencia.
+        Por defecto excluye campos nulos para evitar enviar columnas vacías
+        a la capa de persistencia.
         """
         return self.to_dict(exclude_none=True)
 
@@ -116,8 +120,8 @@ class EntityModel(BaseModel):
         """
         Normaliza un diccionario de filtros eliminando claves no válidas.
 
-        Esta utilidad es útil para managers que construyen consultas dinámicas a partir
-        de todos los campos posibles del modelo.
+        Esta utilidad es útil para managers que construyen consultas dinámicas
+        a partir de todos los campos posibles del modelo.
         """
         if not data:
             return {}
@@ -164,6 +168,9 @@ class EntityModel(BaseModel):
         if isinstance(value, BaseModel):
             return value.model_dump(mode="json", exclude_none=True)
 
+        if isinstance(value, Enum):
+            return value.value
+
         if isinstance(value, list):
             return [EntityModel.serialize_value(item) for item in value]
 
@@ -200,3 +207,157 @@ class EntityModel(BaseModel):
             return []
 
         return [cls.serialize_record(record) for record in records]
+
+    @classmethod
+    def config(cls) -> dict[str, dict[str, Any]]:
+        """
+        Devuelve la configuración de los campos del modelo en formato dict.
+
+        La salida está pensada para frontend dinámico, formularios automáticos,
+        tablas, filtros o validación adicional en cliente.
+
+        Reglas principales:
+            - required = False si el campo:
+                * es PK
+                * acepta None
+                * tiene default
+            - cualquier atributo extra definido en Field(...) se conserva
+            - si existe ui={...}, se incluye como bloque anidado
+        """
+        result: dict[str, dict[str, Any]] = {}
+
+        for field_name, field_info in cls.model_fields.items():
+
+            extra_config = dict(field_info.json_schema_extra or {})
+
+            is_primary_key = bool(extra_config.get("pk", False))
+            is_nullable = cls._is_nullable(field_info.annotation)
+            has_default = cls._has_default(field_info.default, field_info.default_factory)
+
+            field_config: dict[str, Any] = {
+                "type": cls._map_python_type(field_info.annotation),
+                "title": field_info.title or cls._build_default_title(field_name),
+                "description": field_info.description,
+                "required": cls._calculate_required(
+                    is_primary_key=is_primary_key,
+                    is_nullable=is_nullable,
+                    has_default=has_default,
+                ),
+            }
+
+            if has_default and field_info.default is not PydanticUndefined:
+                field_config["default"] = cls.serialize_value(field_info.default)
+
+            if is_primary_key:
+                field_config["pk"] = True
+
+            for extra_key, extra_value in extra_config.items():
+                if extra_key not in field_config:
+                    field_config[extra_key] = extra_value
+
+            result[field_name] = {
+                key: cls.serialize_value(value)
+                for key, value in field_config.items()
+                if value is not None
+            }
+
+        return result
+
+    @staticmethod
+    def _calculate_required(
+        *,
+        is_primary_key: bool,
+        is_nullable: bool,
+        has_default: bool,
+    ) -> bool:
+        """
+        Determina si un campo debe considerarse obligatorio para entrada.
+
+        Regla:
+            - PK -> no requerido
+            - nullable -> no requerido
+            - default definido -> no requerido
+            - resto -> requerido
+        """
+        if is_primary_key:
+            return False
+
+        if is_nullable:
+            return False
+
+        if has_default:
+            return False
+
+        return True
+
+    @staticmethod
+    def _has_default(default: Any, default_factory: Any) -> bool:
+        """
+        Indica si el campo tiene un valor por defecto.
+        """
+        if default is not PydanticUndefined:
+            return True
+
+        if default_factory is not None:
+            return True
+
+        return False
+
+    @staticmethod
+    def _is_nullable(annotation: Any) -> bool:
+        """
+        Indica si la anotación acepta None.
+        """
+        origin = get_origin(annotation)
+
+        if origin is Union:
+            return type(None) in get_args(annotation)
+
+        return False
+
+    @staticmethod
+    def _map_python_type(annotation: Any) -> str:
+        """
+        Traduce el tipo Python/Pydantic a un tipo genérico de configuración.
+        """
+        resolved_annotation = EntityModel._unwrap_optional(annotation)
+        origin = get_origin(resolved_annotation)
+
+        if origin in (list, tuple, set):
+            return "array"
+
+        if origin is dict:
+            return "object"
+
+        type_map = {
+            int: "integer",
+            float: "number",
+            Decimal: "decimal",
+            str: "string",
+            bool: "boolean",
+            datetime: "datetime",
+            date: "date",
+        }
+
+        return type_map.get(resolved_annotation, "string")
+
+    @staticmethod
+    def _unwrap_optional(annotation: Any) -> Any:
+        """
+        Si la anotación es Optional[T] o T | None, devuelve T.
+        """
+        origin = get_origin(annotation)
+
+        if origin is Union:
+            valid_types = [item for item in get_args(annotation) if item is not type(None)]
+            if len(valid_types) == 1:
+                return valid_types[0]
+
+        return annotation
+
+    @staticmethod
+    def _build_default_title(field_name: str) -> str:
+        """
+        Genera un título por defecto legible a partir del nombre del campo.
+        """
+        return field_name.replace("_", " ").strip().title()
