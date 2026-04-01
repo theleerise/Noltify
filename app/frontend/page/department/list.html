@@ -9,8 +9,94 @@
 
 {{ mac_list_title("Departments") }}
 
-<script>
-    window.configEntity = {{ entity_model|safe }};
+<div>
+    <div filters_name="department-filters" class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <a class="btn btn-sm btn-outline-secondary"
+            data-bs-toggle="collapse"
+            href="#department-filters-collapse">
+            Filtros
+            </a>
+            <div filters_actions="department-filters-actions"></div>
+        </div>
+        <div class="collapse" id="department-filters-collapse">
+            <div class="card-body">
+                <div filters_form="department-filters-form"></div>
+            </div>
+        </div>
+    </div>
+
+    <div summary_name="department-table-summary"></div>
+    <div table_name="department-table"></div>
+    <div pagination_name="department-table-pagination"></div>
+</div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import RenderTableFilters from "/static/js/render-table-filters.js";
+
+    const entityConfig = {{ entity_model|safe }};
+
+    console.log(entityConfig)
+
+    const visibleColumns = [
+        "code",
+        "name",
+        "description",
+        "is_active",
+        "created_at",
+        "updated_at"
+    ];
+
+    const entityConfigButtons = {
+        edit: {
+            position: "start",
+            title: "Editar",
+            className: "btn-outline-primary",
+            ButtonIconClass: "bi bi-pencil-square",
+            action: (row) => {
+                console.log(row);
+                window.formMgr.openEdit(row.id);
+            }
+        },
+        del: {
+            position: "end",
+            title: "Eliminar",
+            className: "btn-outline-danger",
+            ButtonIconClass: "bi bi-trash",
+            action: (row) => {
+                window.entityModalDelete.open(row.id);
+            }
+        }
+    };
+
+    const table = new RenderPaginateTable({
+        tableName: "department-table",
+        paginationContainerName: "department-table-pagination",
+        summaryContainerName: "department-table-summary",
+        entityConfig: entityConfig,
+        columns: visibleColumns,
+        buttons: entityConfigButtons,
+        url: "/department/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const filters = new RenderTableFilters({
+        filtersName: "department-filters",
+        entityConfig: entityConfig,
+        columns: visibleColumns,
+        onSubmit: (currentFilters) => {
+            table.applyFilters(currentFilters);
+        },
+        onReset: () => {
+            table.applyFilters({});
+        }
+    });
+
+    filters.render();
+    table.load();
 </script>
 
 {% endblock %}

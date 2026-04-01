@@ -10,7 +10,6 @@ from backend.models.department_model import DepartmentModel
 
 @require_http_methods(["GET"])
 def list_view(request):
-    
     context_page = {
         "entity_model": json.dumps(DepartmentModel.config())
     }
@@ -24,12 +23,19 @@ def list_view(request):
 def data(request):
     try:
         request_data = request.GET.dict()
-        filters = request_data.get("filters", {})
-        page = request_data.get("page", 1)
+
+        raw_filters = request_data.get("filters", "{}")
+        filters = json.loads(raw_filters) if raw_filters else {}
+        page = int(request_data.get("page", 1))
 
         mgr = DepartmentManager()
-        records = mgr.get_list_page(params=filters, page=int(page), data_model=False)
-
+        records = mgr.get_list_page(
+            params=filters,
+            page=page,
+            data_model=False
+        )
+        
+        print(records)
         return JsonResponse(records, status=200)
 
     except Exception as e:

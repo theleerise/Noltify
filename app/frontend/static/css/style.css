@@ -1,47 +1,74 @@
-* {
-    box-sizing: border-box;
+.rt-wrapper {
+    width: 100%;
+    overflow-x: auto;
 }
 
-body {
-    margin: 0;
-    min-height: 100vh;
-    font-family: "Segoe UI", sans-serif;
-    background: linear-gradient(135deg, #f4f7fb 0%, #dfe9f3 100%);
-    color: #1f2937;
+.rt-table {
+    width: 100%;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    background-color: #ffffff;
+    overflow: hidden;
 }
 
-.hero {
-    min-height: 100vh;
+.rt-table__row {
     display: grid;
-    place-items: center;
-    padding: 24px;
+    align-items: stretch;
 }
 
-.hero__card {
-    width: min(560px, 100%);
-    padding: 40px;
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+.rt-table__header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+}
+
+.rt-table__row--body {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.rt-table__row--body:last-child {
+    border-bottom: none;
+}
+
+.rt-table__th,
+.rt-table__td {
+    padding: 0.75rem 1rem;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.rt-table__th {
+    font-size: 0.95rem;
+}
+
+.rt-table__td {
+    font-size: 0.92rem;
+}
+
+.rt-table__td--actions,
+.rt-table__th--actions {
     text-align: center;
 }
 
-.hero__eyebrow {
-    margin: 0 0 12px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #2563eb;
+.rt-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
-.hero__card h1 {
-    margin: 0;
-    font-size: clamp(2.5rem, 8vw, 4rem);
+.rt-table__empty {
+    padding: 1rem;
+    text-align: center;
+    color: #6c757d;
+    background-color: #ffffff;
 }
 
-.hero__text {
-    margin: 16px 0 0;
-    font-size: 1.05rem;
-    line-height: 1.6;
+.rt-summary {
+    margin-bottom: 0.75rem;
+}
+
+.rt-pagination {
+    margin-top: 1rem;
 }

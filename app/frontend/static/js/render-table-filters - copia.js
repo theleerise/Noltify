@@ -1,0 +1,589 @@
+export class RenderTableFilters {
+
+    constructor(options = {}) {
+        this.filtersName = options.filtersName || null;
+        this.entityConfig = options.entityConfig || {};
+        this.columns = Array.isArray(options.columns) ? options.columns : [];
+
+        this.onSubmit = typeof options.onSubmit === "function"
+            ? options.onSubmit
+            : null;
+
+        this.onReset = typeof options.onReset === "function"
+            ? options.onReset
+            : null;
+
+        this.submitText = options.submitText || "Buscar";
+        this.resetText = options.resetText || "Limpiar";
+        this.formClassName = options.formClassName || "rt-filters";
+        this.gridClassName = options.gridClassName || "d-flex flex-column gap-3";
+        // this.rowClassName = options.rowClassName || "row g-2 align-items-center";
+        this.rowClassName = "row g-2 align-items-center mb-1";
+
+        this.container = this._resolveContainer();
+        this.form = null;
+    }
+
+    _resolveContainer() {
+        if (!this.filtersName) {
+            throw new Error("Debes informar 'filtersName'.");
+        }
+
+        const container = document.querySelector(
+            `[filters_name="${this.filtersName}"]`
+        );
+
+        if (!container) {
+            throw new Error(
+                `No existe ningún contenedor con filters_name="${this.filtersName}".`
+            );
+        }
+
+        return container;
+    }
+
+    render() {
+        this.container.innerHTML = "";
+
+        this.form = document.createElement("form");
+        this.form.className = this.formClassName;
+
+        const grid = document.createElement("div");
+        grid.className = this.gridClassName;
+
+        const filterableColumns = this._getFilterableColumns();
+
+        for (const columnName of filterableColumns) {
+            const columnConfig = this.entityConfig[columnName] || {};
+
+            grid.appendChild(
+                this._buildFilterField(columnName, columnConfig)
+            );
+        }
+
+        this.form.appendChild(grid);
+        this.form.appendChild(this._buildActions());
+
+        this.form.addEventListener("submit", (event) => {
+            event.preventDefault();
+
+            const filters = this.getFilters();
+
+            if (this.onSubmit) {
+                this.onSubmit(filters, this);
+            }
+        });
+
+        this.container.appendChild(this.form);
+
+        return this;
+    }
+
+    getFilters() {
+        if (!this.form) {
+            return {};
+        }
+
+        const filters = {};
+        const filterableColumns = this._getFilterableColumns();
+
+        for (const columnName of filterableColumns) {
+            const columnConfig = this.entityConfig[columnName] || {};
+
+            const operator = this.form.querySelector(
+                `[name="${columnName}__operator"]`
+            )?.value;
+
+            if (!operator) {
+                continue;
+            }
+
+            const normalizedType = this._normalizeFilterType(columnConfig.type);
+
+            if (operator === "BETWEEN") {
+                const startValueRaw = this.form.querySelector(
+                    `[name="${columnName}__start"]`
+                )?.value;
+
+                const endValueRaw = this.form.querySelector(
+                    `[name="${columnName}__end"]`
+                )?.value;
+
+                const startValue = this._normalizeInputValue(
+                    startValueRaw,
+                    columnConfig
+                );
+
+                const endValue = this._normalizeInputValue(
+                    endValueRaw,
+                    columnConfig
+                );
+
+                if (this._isEmptyValue(startValue) && this._isEmptyValue(endValue)) {
+                    continue;
+                }
+
+                filters[columnName.toUpperCase()] = {
+                    type: normalizedType,
+                    filter: operator,
+                    values: [
+                        this._isEmptyValue(startValue) ? null : startValue,
+                        this._isEmptyValue(endValue) ? null : endValue
+                    ]
+                };
+
+                continue;
+            }
+
+            const input = this.form.querySelector(
+                `[name="${columnName}"]`
+            );
+
+            if (!input) {
+                continue;
+            }
+
+            const value = this._normalizeInputValue(
+                input.value,
+                columnConfig
+            );
+
+            if (this._isEmptyValue(value)) {
+                continue;
+            }
+
+            filters[columnName.toUpperCase()] = {
+                type: normalizedType,
+                filter: operator,
+                values: value
+            };
+        }
+
+        return filters;
+    }
+
+    reset() {
+        if (!this.form) {
+            return;
+        }
+
+        this.form.reset();
+
+        const filterableColumns = this._getFilterableColumns();
+
+        for (const columnName of filterableColumns) {
+            const columnConfig = this.entityConfig[columnName] || {};
+            const operatorSelect = this.form.querySelector(
+                `[name="${columnName}__operator"]`
+            );
+
+            const inputContainer = this.form.querySelector(
+                `[data-filter-input-container="${columnName}"]`
+            );
+
+            if (operatorSelect && inputContainer) {
+                this._renderInput(
+                    columnName,
+                    columnConfig,
+                    operatorSelect.value,
+                    inputContainer
+                );
+            }
+        }
+
+        if (this.onReset) {
+            this.onReset(this);
+        }
+    }
+
+    _buildFilterField(columnName, columnConfig) {
+        const wrapper = document.createElement("div");
+        wrapper.className = this.rowClassName;
+
+        const labelColumn = document.createElement("div");
+        labelColumn.className = columnConfig.filter?.labelColumnClassName || "col-12 col-lg-3";
+
+        const operatorColumn = document.createElement("div");
+        operatorColumn.className = columnConfig.filter?.operatorColumnClassName || "col-12 col-lg-3";
+
+        const valueColumn = document.createElement("div");
+        valueColumn.className = columnConfig.filter?.valueColumnClassName || "col-12 col-lg-6";
+
+        const label = document.createElement("label");
+        // label.className = columnConfig.filter?.labelClassName || "form-label mb-0";
+        label.className = "form-label mb-0 fw-semibold";
+        label.textContent = columnConfig.title || columnName;
+
+        const operatorSelect = this._buildOperatorSelect(columnName, columnConfig);
+
+        const inputContainer = document.createElement("div");
+        inputContainer.setAttribute("data-filter-input-container", columnName);
+
+        labelColumn.appendChild(label);
+        operatorColumn.appendChild(operatorSelect);
+        valueColumn.appendChild(inputContainer);
+
+        wrapper.appendChild(labelColumn);
+        wrapper.appendChild(operatorColumn);
+        wrapper.appendChild(valueColumn);
+
+        this._renderInput(
+            columnName,
+            columnConfig,
+            operatorSelect.value,
+            inputContainer
+        );
+
+        operatorSelect.addEventListener("change", () => {
+            this._renderInput(
+                columnName,
+                columnConfig,
+                operatorSelect.value,
+                inputContainer
+            );
+        });
+
+        return wrapper;
+    }
+
+    _buildOperatorSelect(columnName, columnConfig) {
+        const select = document.createElement("select");
+        select.className = columnConfig.filter?.operatorClassName || "form-select";
+        select.name = `${columnName}__operator`;
+
+        const operators = columnConfig.filter?.operators
+            || this._getDefaultOperators(columnConfig.type);
+
+        for (const operator of operators) {
+            const option = document.createElement("option");
+            option.value = operator;
+            option.textContent = this._getOperatorLabel(operator);
+            select.appendChild(option);
+        }
+
+        return select;
+    }
+
+    _renderInput(columnName, columnConfig, operator, container) {
+        container.innerHTML = "";
+
+        if (operator === "BETWEEN") {
+            container.appendChild(
+                this._buildBetweenRange(columnName, columnConfig)
+            );
+            return;
+        }
+
+        if (columnConfig.type === "boolean") {
+            container.appendChild(
+                this._buildBooleanSelect(columnName, columnConfig)
+            );
+            return;
+        }
+
+        container.appendChild(
+            this._buildSingleInput(
+                columnName,
+                columnConfig,
+                this._resolveInputType(columnConfig)
+            )
+        );
+    }
+
+    _buildSingleInput(columnName, columnConfig, inputType) {
+        const input = document.createElement("input");
+        input.className = this._getInputClassName(columnConfig);
+        input.name = columnName;
+        input.type = inputType;
+        input.placeholder = this._getPlaceholder(columnConfig);
+
+        if (columnConfig.filter?.attrs) {
+            for (const [attrName, attrValue] of Object.entries(columnConfig.filter.attrs)) {
+                if (attrValue !== null && attrValue !== undefined) {
+                    input.setAttribute(attrName, String(attrValue));
+                }
+            }
+        }
+
+        return input;
+    }
+
+    _buildBetweenRange(columnName, columnConfig) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "row g-2";
+
+        const startColumn = document.createElement("div");
+        startColumn.className = "col-12 col-xl-6";
+
+        const endColumn = document.createElement("div");
+        endColumn.className = "col-12 col-xl-6";
+
+        const startInput = document.createElement("input");
+        startInput.className = this._getInputClassName(columnConfig);
+        startInput.name = `${columnName}__start`;
+        startInput.type = this._resolveInputType(columnConfig);
+        startInput.placeholder = "Desde";
+
+        const endInput = document.createElement("input");
+        endInput.className = this._getInputClassName(columnConfig);
+        endInput.name = `${columnName}__end`;
+        endInput.type = this._resolveInputType(columnConfig);
+        endInput.placeholder = "Hasta";
+
+        if (columnConfig.filter?.attrs) {
+            for (const [attrName, attrValue] of Object.entries(columnConfig.filter.attrs)) {
+                if (attrValue !== null && attrValue !== undefined) {
+                    startInput.setAttribute(attrName, String(attrValue));
+                    endInput.setAttribute(attrName, String(attrValue));
+                }
+            }
+        }
+
+        startColumn.appendChild(startInput);
+        endColumn.appendChild(endInput);
+
+        wrapper.appendChild(startColumn);
+        wrapper.appendChild(endColumn);
+
+        return wrapper;
+    }
+
+    _buildBooleanSelect(columnName, columnConfig) {
+        const select = document.createElement("select");
+        select.className = this._getInputClassName(columnConfig, "form-select");
+        select.name = columnName;
+
+        const options = columnConfig.filter?.options || [
+            { value: "", label: "Todos" },
+            { value: "true", label: "Sí" },
+            { value: "false", label: "No" }
+        ];
+
+        for (const optionConfig of options) {
+            const option = document.createElement("option");
+            option.value = optionConfig.value;
+            option.textContent = optionConfig.label;
+            select.appendChild(option);
+        }
+
+        return select;
+    }
+
+    _buildActions() {
+        const wrapper = document.createElement("div");
+        wrapper.className = "d-flex gap-2 mt-3";
+
+        const submitButton = document.createElement("button");
+        submitButton.type = "submit";
+        submitButton.className = "btn btn-primary";
+        submitButton.textContent = this.submitText;
+
+        const resetButton = document.createElement("button");
+        resetButton.type = "button";
+        resetButton.className = "btn btn-outline-secondary";
+        resetButton.textContent = this.resetText;
+
+        resetButton.addEventListener("click", () => {
+            this.reset();
+        });
+
+        wrapper.appendChild(submitButton);
+        wrapper.appendChild(resetButton);
+
+        return wrapper;
+    }
+
+    _getDefaultOperators(type) {
+        const operatorsMap = {
+            string: [
+                "LIKE_CONTAINS",
+                "LIKE_STARTS_WITH",
+                "LIKE_ENDS_WITH",
+                "EQUAL"
+            ],
+            integer: [
+                "EQUAL",
+                "GREATER_THAN",
+                "GREATER_EQUAL",
+                "LESS_THAN",
+                "LESS_EQUAL",
+                "BETWEEN"
+            ],
+            number: [
+                "EQUAL",
+                "GREATER_THAN",
+                "GREATER_EQUAL",
+                "LESS_THAN",
+                "LESS_EQUAL",
+                "BETWEEN"
+            ],
+            decimal: [
+                "EQUAL",
+                "GREATER_THAN",
+                "GREATER_EQUAL",
+                "LESS_THAN",
+                "LESS_EQUAL",
+                "BETWEEN"
+            ],
+            float: [
+                "EQUAL",
+                "GREATER_THAN",
+                "GREATER_EQUAL",
+                "LESS_THAN",
+                "LESS_EQUAL",
+                "BETWEEN"
+            ],
+            date: [
+                "EQUAL",
+                "GREATER_THAN",
+                "GREATER_EQUAL",
+                "LESS_THAN",
+                "LESS_EQUAL",
+                "BETWEEN"
+            ],
+            datetime: [
+                "EQUAL",
+                "GREATER_THAN",
+                "GREATER_EQUAL",
+                "LESS_THAN",
+                "LESS_EQUAL",
+                "BETWEEN"
+            ],
+            boolean: [
+                "EQUAL"
+            ]
+        };
+
+        return operatorsMap[type] || operatorsMap.string;
+    }
+
+    _getOperatorLabel(operator) {
+        const labels = {
+            LIKE_CONTAINS: "Contiene",
+            LIKE_STARTS_WITH: "Empieza por",
+            LIKE_ENDS_WITH: "Termina por",
+            EQUAL: "Igual",
+            GREATER_THAN: "Mayor que",
+            GREATER_EQUAL: "Mayor o igual",
+            LESS_THAN: "Menor que",
+            LESS_EQUAL: "Menor o igual",
+            BETWEEN: "Entre",
+            NOT_EQUAL: "Distinto"
+        };
+
+        return labels[operator] || operator;
+    }
+
+    _getFilterableColumns() {
+        const columns = this._getConfiguredColumns();
+
+        return columns.filter((columnName) => {
+            const columnConfig = this.entityConfig[columnName] || {};
+            return columnConfig.nofilter !== true;
+        });
+    }
+
+    _getConfiguredColumns() {
+        if (Array.isArray(this.columns) && this.columns.length > 0) {
+            return this.columns.filter((columnName) => {
+                return Object.prototype.hasOwnProperty.call(this.entityConfig, columnName);
+            });
+        }
+
+        return Object.keys(this.entityConfig || {});
+    }
+
+    _getInputClassName(columnConfig, defaultClassName = "form-control") {
+        return columnConfig.filter?.className || defaultClassName;
+    }
+
+    _getPlaceholder(columnConfig) {
+        return columnConfig.filter?.placeholder || "";
+    }
+
+    _resolveInputType(columnConfig) {
+        if (columnConfig.filter?.input) {
+            return columnConfig.filter.input;
+        }
+
+        switch (columnConfig.type) {
+            case "integer":
+            case "number":
+            case "decimal":
+            case "float":
+                return "number";
+            case "date":
+                return "date";
+            case "datetime":
+                return "datetime-local";
+            default:
+                return "text";
+        }
+    }
+
+    _normalizeFilterType(fieldType) {
+        if (fieldType === "datetime") {
+            return "date";
+        }
+
+        if (fieldType === "number" || fieldType === "decimal") {
+            return "float";
+        }
+
+        return fieldType || "string";
+    }
+
+    _normalizeInputValue(value, columnConfig) {
+        if (value === undefined || value === null) {
+            return "";
+        }
+
+        const trimmedValue = String(value).trim();
+
+        if (trimmedValue === "") {
+            return "";
+        }
+
+        if (columnConfig.type === "boolean") {
+            return trimmedValue;
+        }
+
+        if (columnConfig.type === "integer") {
+            return parseInt(trimmedValue, 10);
+        }
+
+        if (
+            columnConfig.type === "number" ||
+            columnConfig.type === "decimal" ||
+            columnConfig.type === "float"
+        ) {
+            return parseFloat(trimmedValue);
+        }
+
+        if (columnConfig.type === "datetime") {
+            return this._normalizeDateTimeLocal(trimmedValue);
+        }
+
+        return trimmedValue;
+    }
+
+    _normalizeDateTimeLocal(value) {
+        if (!value) {
+            return value;
+        }
+
+        const normalizedValue = value.replace("T", " ");
+
+        if (normalizedValue.length === 16) {
+            return `${normalizedValue}:00`;
+        }
+
+        return normalizedValue;
+    }
+
+    _isEmptyValue(value) {
+        return value === undefined || value === null || String(value).trim() === "";
+    }
+}
+
+export default RenderTableFilters;
