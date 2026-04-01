@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
+from types import UnionType
 from typing import Any, ClassVar, Union, get_args, get_origin
 
 from pydantic import BaseModel, ConfigDict
@@ -310,7 +311,7 @@ class EntityModel(BaseModel):
         """
         origin = get_origin(annotation)
 
-        if origin is Union:
+        if origin in (Union, UnionType):
             return type(None) in get_args(annotation)
 
         return False
@@ -348,7 +349,7 @@ class EntityModel(BaseModel):
         """
         origin = get_origin(annotation)
 
-        if origin is Union:
+        if origin in (Union, UnionType):
             valid_types = [item for item in get_args(annotation) if item is not type(None)]
             if len(valid_types) == 1:
                 return valid_types[0]
