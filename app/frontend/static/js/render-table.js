@@ -1,3 +1,6 @@
+import { DateFormatter } from "./formater.js";
+
+
 export default class RenderTable {
 
     constructor(options = {}) {
@@ -359,6 +362,18 @@ export default class RenderTable {
 
         if (value === null || value === undefined) {
             return "";
+        }
+
+        // Aplicar formateos a los campos de tipo fecha.
+        if (
+            columnConfig.type === "date" ||
+            columnConfig.type === "datetime" ||
+            columnConfig.type === "time"
+        ) {
+            return DateFormatter.format(
+                value,
+                columnConfig.type
+            );
         }
 
         if (columnConfig.type === "boolean") {

@@ -1,5 +1,6 @@
 import RenderTable from "./render-table.js";
 
+
 export class RenderPaginateTable extends RenderTable {
     constructor(options = {}) {
         super(options);
