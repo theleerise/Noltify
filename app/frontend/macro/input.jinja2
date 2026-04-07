@@ -1,0 +1,163 @@
+{% macro _build_attrs(field_name, field_config={}, extra_class='') -%}
+    name="{{ field_name }}"
+    id="id_{{ field_name }}"
+    class="form-control{% if extra_class %} {{ extra_class }}{% endif %}{% if field_config.className %} {{ field_config.className }}{% endif %}"
+    {% if field_config.placeholder %}placeholder="{{ field_config.placeholder }}"{% endif %}
+    {% if field_config.required %}required{% endif %}
+    {% if field_config.readonly %}disabled{% endif %}
+    {% if field_config.maxlength %}maxlength="{{ field_config.maxlength }}"{% endif %}
+    {% if field_config.minlength %}minlength="{{ field_config.minlength }}"{% endif %}
+    {% if field_config.min is not none %}min="{{ field_config.min }}"{% endif %}
+    {% if field_config.max is not none %}max="{{ field_config.max }}"{% endif %}
+    {% if field_config.step is not none %}step="{{ field_config.step }}"{% endif %}
+{%- endmacro %}
+
+{% macro mac_label(field_name, field_config={}) %}
+    <label for="id_{{ field_name }}" class="form-label">
+        {{ field_config.title or field_name|replace('_', ' ')|title }}
+        {% if field_config.required %}
+            <span class="text-danger">*</span>
+        {% endif %}
+    </label>
+{% endmacro %}
+
+{% macro mac_input_text(field_name, field_config={}, value='') %}
+    <div class="mb-3">
+        {{ mac_label(field_name, field_config) }}
+        <input
+            type="text"
+            value="{{ value }}"
+            {{ _build_attrs(field_name, field_config) }}
+        >
+        {% if field_config.description %}
+            <div class="form-text">{{ field_config.description }}</div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro mac_input_number(field_name, field_config={}, value='') %}
+    <div class="mb-3">
+        {{ mac_label(field_name, field_config) }}
+        <input
+            type="number"
+            value="{{ value }}"
+            {{ _build_attrs(field_name, field_config) }}
+        >
+        {% if field_config.description %}
+            <div class="form-text">{{ field_config.description }}</div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro mac_input_date(field_name, field_config={}, value='') %}
+    <div class="mb-3">
+        {{ mac_label(field_name, field_config) }}
+        <input
+            type="date"
+            value="{{ value }}"
+            {{ _build_attrs(field_name, field_config) }}
+        >
+        {% if field_config.description %}
+            <div class="form-text">{{ field_config.description }}</div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro mac_input_datetime(field_name, field_config={}, value='') %}
+    <div class="mb-3">
+        {{ mac_label(field_name, field_config) }}
+        <input
+            type="datetime-local"
+            value="{{ value }}"
+            {{ _build_attrs(field_name, field_config) }}
+        >
+        {% if field_config.description %}
+            <div class="form-text">{{ field_config.description }}</div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro mac_input_time(field_name, field_config={}, value='') %}
+    <div class="mb-3">
+        {{ mac_label(field_name, field_config) }}
+        <input
+            type="time"
+            value="{{ value }}"
+            {{ _build_attrs(field_name, field_config) }}
+        >
+        {% if field_config.description %}
+            <div class="form-text">{{ field_config.description }}</div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro mac_textarea(field_name, field_config={}, value='') %}
+    <div class="mb-3">
+        {{ mac_label(field_name, field_config) }}
+        <textarea
+            {{ _build_attrs(field_name, field_config) }}
+            rows="{{ field_config.rows or 3 }}"
+        >{{ value }}</textarea>
+        {% if field_config.description %}
+            <div class="form-text">{{ field_config.description }}</div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro mac_checkbox(field_name, field_config={}, checked=false) %}
+    <div class="mb-3 form-check">
+        <input
+            type="checkbox"
+            class="form-check-input{% if field_config.className %} {{ field_config.className }}{% endif %}"
+            name="{{ field_name }}"
+            id="id_{{ field_name }}"
+            value="1"
+            {% if checked %}checked{% endif %}
+            {% if field_config.readonly %}disabled{% endif %}
+        >
+        <label class="form-check-label" for="id_{{ field_name }}">
+            {{ field_config.title or field_name|replace('_', ' ')|title }}
+        </label>
+        {% if field_config.description %}
+            <div class="form-text">{{ field_config.description }}</div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro mac_select(field_name, field_config={}, options=[], value='') %}
+    <div class="mb-3">
+        {{ mac_label(field_name, field_config) }}
+        <select {{ _build_attrs(field_name, field_config) }}>
+            <option value="">Seleccione...</option>
+            {% for option in options %}
+                <option
+                    value="{{ option.value }}"
+                    {% if option.value == value %}selected{% endif %}
+                >
+                    {{ option.label }}
+                </option>
+            {% endfor %}
+        </select>
+        {% if field_config.description %}
+            <div class="form-text">{{ field_config.description }}</div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro mac_render_field(field_name, field_config={}, value='', options=[]) %}
+    {% if field_config.type == 'integer' or field_config.type == 'number' or field_config.type == 'decimal' %}
+        {{ mac_input_number(field_name, field_config, value) }}
+    {% elif field_config.type == 'date' %}
+        {{ mac_input_date(field_name, field_config, value) }}
+    {% elif field_config.type == 'datetime' %}
+        {{ mac_input_datetime(field_name, field_config, value) }}
+    {% elif field_config.type == 'time' %}
+        {{ mac_input_time(field_name, field_config, value) }}
+    {% elif field_config.type == 'boolean' %}
+        {{ mac_checkbox(field_name, field_config, value) }}
+    {% elif field_config.widget == 'textarea' %}
+        {{ mac_textarea(field_name, field_config, value) }}
+    {% else %}
+        {{ mac_input_text(field_name, field_config, value) }}
+    {% endif %}
+{% endmacro %}
