@@ -1,0 +1,12 @@
+{% from 'macro/input.jinja2' import mac_render_field %}
+
+<form id="department-form" novalidate>
+    {{ mac_render_field('code', entity_model.code) }}
+    {{ mac_render_field('name', entity_model.name) }}
+    {{ mac_render_field('description', entity_model.description) }}
+    {{ mac_render_field('is_active', entity_model.is_active) }}
+</form>
+
+<script>
+    console.log("Formulario cargado correctamente dentro del modal");
+</script>

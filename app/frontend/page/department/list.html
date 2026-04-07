@@ -31,13 +31,19 @@
     <div pagination_name="department-table-pagination"></div>
 </div>
 
+<div id="department-modal-container"></div>
+
 <script type="module">
     import RenderPaginateTable from "/static/js/render-paginate-table.js";
     import RenderTableFilters from "/static/js/render-table-filters.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
 
     const entityConfig = {{ entity_model|safe }};
-
     console.log(entityConfig)
+
+    //////////////////////////
+    // Entity Table //////////
+    //////////////////////////
 
     const visibleColumns = [
         "code",
@@ -56,7 +62,7 @@
             ButtonIconClass: "bi bi-pencil-square",
             action: (row) => {
                 console.log(row);
-                window.formMgr.openEdit(row.id);
+                window.entityFormMgr.openEdit(row.id);
             }
         },
         del: {
@@ -65,7 +71,8 @@
             className: "btn-outline-danger",
             ButtonIconClass: "bi bi-trash",
             action: (row) => {
-                window.entityModalDelete.open(row.id);
+                console.log(row);
+                // window.entityModalDelete.open(row.id);
             }
         }
     };
@@ -97,6 +104,40 @@
 
     filters.render();
     table.load();
+
+    //////////////////////////
+    // Entity Form ///////////
+    //////////////////////////
+
+    window.entityFormMgr = new ModalFormManager({
+        containerName: "department-modal-container",
+        entityConfig: entityConfig,
+        formUrl: "/department/form/",
+        dataUrls: {
+            new: "/department/new/",
+            edit: (id) => `/department/edit/${id}/`
+        },
+        submitUrl: (mode, id) => {
+            if (mode === "new") {
+                return "/department/create/";
+            }
+            return `/department/update/${id}/`;
+        },
+        modal: {
+            titleNew: "Nuevo departamento",
+            titleEdit: "Editar departamento",
+            titleShow: "Detalle del departamento",
+            size: "modal-lg"
+        },
+        onSuccess: (response, manager) => {
+            manager.close();
+            console.log(response);
+            // table.load();
+        },
+        onError: (error) => {
+            console.error(error);
+        }
+    });
 </script>
 
 {% endblock %}
