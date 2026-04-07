@@ -156,7 +156,15 @@ class DatabaseManager:
             WHERE id = %(id)s
         o con el nombre definido en self.primary_key.
         """
+
+        sql_base = self._select_query()
+        sql_filter = f"""
+            {sql_base}
+            AND {self.primary_key} = %({self.primary_key})s
+        """
+
         return self.fetchone(
+            sql=sql_filter,
             params={self.primary_key: record_id}, 
             data_model=data_model
         )
