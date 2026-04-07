@@ -1,0 +1,708 @@
+export default class ModalFormManager {
+    constructor(options = {}) {
+        this.containerName = options.containerName;
+        this.container = document.querySelector(`#${this.containerName}`);
+
+        if (!this.containerName || !this.container) {
+            throw new Error("Debes indicar un containerName válido");
+        }
+
+        this.entityConfig = options.entityConfig || {};
+        this.formUrl = options.formUrl || null;
+        this.dataUrls = options.dataUrls || {};
+        this.submitUrl = options.submitUrl || null;
+        this.headers = options.headers || {};
+        this.mode = options.mode || "new";
+
+        this.modal = null;
+        this.modalElement = null;
+        this.formElement = null;
+        this.currentId = null;
+        this.initialData = {};
+
+        this.onLoad = options.onLoad || null;
+        this.onAfterHtmlLoad = options.onAfterHtmlLoad || null;
+        this.onAfterPrefill = options.onAfterPrefill || null;
+        this.onBeforeSubmit = options.onBeforeSubmit || null;
+        this.onSuccess = options.onSuccess || null;
+        this.onError = options.onError || null;
+        this.onClose = options.onClose || null;
+
+        this.modalConfig = Object.assign(
+            {
+                id: `${this.containerName}-modal`,
+                titleNew: "Nuevo registro",
+                titleEdit: "Editar registro",
+                titleShow: "Detalle",
+                size: "modal-lg",
+                backdrop: "static",
+                keyboard: false,
+                saveButtonText: "Guardar",
+                closeButtonText: "Cerrar",
+                resetButtonText: "Limpiar",
+                showFooter: true
+            },
+            options.modal || {}
+        );
+
+        this._ensureModal();
+    }
+
+    async openNew(paramsUrl = null) {
+        this.mode = "new";
+        this.currentId = null;
+
+        await this._loadFormHtml(paramsUrl);
+        this._applyConfigToForm();
+
+        const data = await this._loadData("new");
+        if (data) {
+            this.setData(data);
+        } else {
+            this._applyDefaults();
+        }
+
+        this._snapshotInitialData();
+        this._updateModalTitle();
+        this._toggleFooterByMode();
+        this._showModal();
+    }
+
+    async openEdit(id, paramsUrl = null) {
+        this.mode = "edit";
+        this.currentId = id;
+
+        await this._loadFormHtml(paramsUrl);
+        this._applyConfigToForm();
+
+        const data = await this._loadData("edit", id);
+        if (data) {
+            this.setData(data);
+        }
+
+        this._snapshotInitialData();
+        this._updateModalTitle();
+        this._toggleFooterByMode();
+        this._showModal();
+    }
+
+    async openShow(id, paramsUrl = null) {
+        this.mode = "show";
+        this.currentId = id;
+
+        await this._loadFormHtml(paramsUrl);
+        this._applyConfigToForm();
+
+        const data = await this._loadData("show", id);
+        if (data) {
+            this.setData(data);
+        }
+
+        this.setReadOnly(true);
+        this._snapshotInitialData();
+        this._updateModalTitle();
+        this._toggleFooterByMode();
+        this._showModal();
+    }
+
+    close() {
+        if (this.modal) {
+            this.modal.hide();
+        }
+    }
+
+    reset() {
+        if (!this.formElement) return;
+        this.setData(this.initialData);
+        this.formElement.classList.remove("was-validated");
+    }
+
+    setReadOnly(flag = true) {
+        if (!this.formElement) return;
+
+        const elements = this.formElement.querySelectorAll("input, select, textarea, button");
+        elements.forEach((element) => {
+            if (element.dataset.ignoreReadonly === "true") {
+                return;
+            }
+
+            if (element.tagName === "BUTTON") {
+                if (element.type === "submit" || element.dataset.role === "save") {
+                    element.disabled = flag;
+                }
+                return;
+            }
+
+            if (flag) {
+                element.setAttribute("disabled", "disabled");
+            } else {
+                const fieldName = element.name;
+                const fieldConfig = this.entityConfig[fieldName] || {};
+
+                if (fieldConfig.readonly) {
+                    element.setAttribute("disabled", "disabled");
+                } else {
+                    element.removeAttribute("disabled");
+                }
+            }
+        });
+    }
+
+    setData(data = {}) {
+        if (!this.formElement) return;
+
+        Object.entries(data).forEach(([fieldName, fieldValue]) => {
+            const input = this._findField(fieldName);
+            if (!input) return;
+
+            this._writeFieldValue(input, fieldValue);
+        });
+
+        if (typeof this.onAfterPrefill === "function") {
+            this.onAfterPrefill(data, this.mode, this);
+        }
+    }
+
+    getData() {
+        if (!this.formElement) return {};
+
+        const data = {};
+        const fields = this.formElement.querySelectorAll("[name]");
+
+        fields.forEach((field) => {
+            const fieldName = field.name;
+            if (!fieldName) return;
+
+            if (field.type === "radio") {
+                if (!Object.prototype.hasOwnProperty.call(data, fieldName)) {
+                    data[fieldName] = this._readFieldValue(field);
+                }
+                return;
+            }
+
+            data[fieldName] = this._readFieldValue(field);
+        });
+
+        return this._normalizeDataByConfig(data);
+    }
+
+    hasChanges() {
+        const currentData = this.getData();
+        return JSON.stringify(currentData) !== JSON.stringify(this.initialData);
+    }
+
+    async save(method = null) {
+        try {
+            if (!this.formElement) {
+                throw new Error("No hay formulario cargado");
+            }
+
+            if (!this.formElement.checkValidity()) {
+                this.formElement.classList.add("was-validated");
+                return;
+            }
+
+            let payload = this.getData();
+
+            if (typeof this.onBeforeSubmit === "function") {
+                const modifiedPayload = await this.onBeforeSubmit(payload, this.mode, this.currentId, this);
+                if (modifiedPayload === false) {
+                    return;
+                }
+                if (modifiedPayload && typeof modifiedPayload === "object") {
+                    payload = modifiedPayload;
+                }
+            }
+
+            const finalUrl = typeof this.submitUrl === "function"
+                ? this.submitUrl(this.mode, this.currentId)
+                : this.submitUrl;
+
+            if (!finalUrl) {
+                throw new Error("No se ha definido submitUrl");
+            }
+
+            const finalMethod = method || (this.mode === "new" ? "POST" : "PUT");
+
+            const response = await fetch(finalUrl, {
+                method: finalMethod,
+                headers: {
+                    "Content-Type": "application/json",
+                    ...this.headers
+                },
+                body: JSON.stringify({
+                    mode: this.mode,
+                    id: this.currentId,
+                    data: payload
+                })
+            });
+
+            const json = await this._safeJson(response);
+
+            if (!response.ok) {
+                throw new Error(json?.error || json?.message || `Error HTTP ${response.status}`);
+            }
+
+            this._snapshotInitialData();
+
+            if (typeof this.onSuccess === "function") {
+                this.onSuccess(json, this);
+            }
+
+            return json;
+        } catch (error) {
+            if (typeof this.onError === "function") {
+                this.onError(error, this);
+            } else {
+                console.error(error);
+            }
+            throw error;
+        }
+    }
+
+    async _loadFormHtml(paramsUrl = null) {
+        if (!this.formUrl) {
+            throw new Error("No se ha definido formUrl");
+        }
+
+        let url = this.formUrl;
+
+        if (paramsUrl) {
+            const queryString = new URLSearchParams(paramsUrl).toString();
+            url = `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
+        }
+
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Accept": "text/html"
+            },
+            credentials: "include"
+        });
+
+        if (!response.ok) {
+            throw new Error(`No se pudo cargar el formulario. HTTP ${response.status}`);
+        }
+
+        const html = await response.text();
+        const modalBody = this.modalElement.querySelector(".modal-body");
+
+        modalBody.innerHTML = html;
+
+        await this._executeEmbeddedScripts(modalBody);
+
+        this.formElement = modalBody.querySelector("form") || modalBody;
+
+        this._bindInternalEvents();
+
+        if (typeof this.onAfterHtmlLoad === "function") {
+            this.onAfterHtmlLoad(html, this);
+        }
+
+        if (typeof this.onLoad === "function") {
+            this.onLoad(this.mode, this.currentId, this);
+        }
+    }
+
+    async _executeEmbeddedScripts(scopeElement) {
+        const scripts = Array.from(scopeElement.querySelectorAll("script"));
+
+        for (const oldScript of scripts) {
+            const newScript = document.createElement("script");
+
+            for (const attribute of Array.from(oldScript.attributes)) {
+                newScript.setAttribute(attribute.name, attribute.value);
+            }
+
+            if (oldScript.src) {
+                await new Promise((resolve, reject) => {
+                    newScript.onload = resolve;
+                    newScript.onerror = reject;
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+            } else {
+                newScript.textContent = oldScript.textContent;
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            }
+        }
+    }
+
+    async _loadData(mode, id = null) {
+        let url = null;
+
+        if (mode === "new" && this.dataUrls.new) {
+            url = typeof this.dataUrls.new === "function"
+                ? this.dataUrls.new()
+                : this.dataUrls.new;
+        }
+
+        if ((mode === "edit" || mode === "show") && this.dataUrls.edit) {
+            url = typeof this.dataUrls.edit === "function"
+                ? this.dataUrls.edit(id)
+                : this.dataUrls.edit;
+        }
+
+        if (!url) {
+            return null;
+        }
+
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            },
+            credentials: "include"
+        });
+
+        const json = await this._safeJson(response);
+
+        if (!response.ok) {
+            throw new Error(json?.error || json?.message || `No se pudo cargar el registro. HTTP ${response.status}`);
+        }
+
+        return json?.data || json;
+    }
+
+    _applyConfigToForm() {
+        if (!this.formElement) return;
+
+        Object.entries(this.entityConfig).forEach(([fieldName, fieldConfig]) => {
+            const field = this._findField(fieldName);
+            if (!field) return;
+
+            if (fieldConfig.required === true) {
+                field.setAttribute("required", "required");
+            } else {
+                field.removeAttribute("required");
+            }
+
+            if (fieldConfig.readonly === true) {
+                field.setAttribute("disabled", "disabled");
+            }
+
+            if (fieldConfig.placeholder) {
+                field.setAttribute("placeholder", fieldConfig.placeholder);
+            }
+
+            if (fieldConfig.maxlength) {
+                field.setAttribute("maxlength", fieldConfig.maxlength);
+            }
+
+            if (fieldConfig.minlength) {
+                field.setAttribute("minlength", fieldConfig.minlength);
+            }
+
+            if (fieldConfig.min !== undefined) {
+                field.setAttribute("min", fieldConfig.min);
+            }
+
+            if (fieldConfig.max !== undefined) {
+                field.setAttribute("max", fieldConfig.max);
+            }
+
+            if (fieldConfig.step !== undefined) {
+                field.setAttribute("step", fieldConfig.step);
+            }
+
+            if (field.tagName === "TEXTAREA" && fieldConfig.rows) {
+                field.setAttribute("rows", fieldConfig.rows);
+            }
+
+            if (fieldConfig.className) {
+                field.classList.add(...fieldConfig.className.split(" "));
+            }
+
+            if (fieldConfig.type === "boolean" && field.type !== "checkbox") {
+                console.warn(`El campo ${fieldName} está configurado como boolean pero no es checkbox`);
+            }
+        });
+    }
+
+    _applyDefaults() {
+        if (!this.formElement) return;
+
+        Object.entries(this.entityConfig).forEach(([fieldName, fieldConfig]) => {
+            if (!Object.prototype.hasOwnProperty.call(fieldConfig, "default")) {
+                return;
+            }
+
+            const field = this._findField(fieldName);
+            if (!field) return;
+
+            this._writeFieldValue(field, fieldConfig.default);
+        });
+    }
+
+    _normalizeDataByConfig(data) {
+        const normalized = {};
+
+        Object.entries(data).forEach(([fieldName, value]) => {
+            const fieldConfig = this.entityConfig[fieldName] || {};
+            const fieldType = fieldConfig.type || "string";
+
+            if (value === "" || value === undefined) {
+                normalized[fieldName] = null;
+                return;
+            }
+
+            switch (fieldType) {
+                case "integer":
+                    normalized[fieldName] = Number.isFinite(Number(value)) ? parseInt(value, 10) : null;
+                    break;
+
+                case "number":
+                case "decimal":
+                    normalized[fieldName] = Number.isFinite(Number(value)) ? Number(value) : null;
+                    break;
+
+                case "boolean":
+                    normalized[fieldName] = !!value;
+                    break;
+
+                case "date":
+                case "datetime":
+                case "time":
+                    normalized[fieldName] = value;
+                    break;
+
+                default:
+                    normalized[fieldName] = value;
+                    break;
+            }
+        });
+
+        return normalized;
+    }
+
+    _findField(fieldName) {
+        if (!this.formElement) return null;
+
+        return this.formElement.querySelector(`[name="${fieldName}"]`)
+            || this.formElement.querySelector(`[data-field="${fieldName}"]`)
+            || this.formElement.querySelector(`#id_${fieldName}`);
+    }
+
+    _readFieldValue(field) {
+        if (!field) return null;
+
+        const tagName = field.tagName.toLowerCase();
+        const type = (field.type || "").toLowerCase();
+
+        if (tagName === "input") {
+            if (type === "checkbox") {
+                return field.checked;
+            }
+
+            if (type === "radio") {
+                const checked = this.formElement.querySelector(`input[name="${field.name}"]:checked`);
+                return checked ? checked.value : null;
+            }
+
+            return field.value;
+        }
+
+        if (tagName === "select") {
+            if (field.multiple) {
+                return Array.from(field.selectedOptions).map((option) => option.value);
+            }
+            return field.value;
+        }
+
+        if (tagName === "textarea") {
+            return field.value;
+        }
+
+        return null;
+    }
+
+    _writeFieldValue(field, value) {
+        const tagName = field.tagName.toLowerCase();
+        const type = (field.type || "").toLowerCase();
+
+        if (tagName === "input") {
+            if (type === "checkbox") {
+                field.checked = !!value;
+                return;
+            }
+
+            if (type === "radio") {
+                const radio = this.formElement.querySelector(`input[name="${field.name}"][value="${value}"]`);
+                if (radio) {
+                    radio.checked = true;
+                }
+                return;
+            }
+
+            if (type === "datetime-local") {
+                field.value = this._toDatetimeLocal(value);
+                return;
+            }
+
+            field.value = value ?? "";
+            return;
+        }
+
+        if (tagName === "select") {
+            if (field.multiple && Array.isArray(value)) {
+                Array.from(field.options).forEach((option) => {
+                    option.selected = value.includes(option.value);
+                });
+            } else {
+                field.value = value ?? "";
+            }
+
+            field.dispatchEvent(new Event("change", { bubbles: true }));
+            return;
+        }
+
+        if (tagName === "textarea") {
+            field.value = value ?? "";
+        }
+    }
+
+    _toDatetimeLocal(value) {
+        if (!value) return "";
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return "";
+        }
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    _snapshotInitialData() {
+        this.initialData = this.getData();
+    }
+
+    _bindInternalEvents() {
+        if (!this.formElement) return;
+
+        this.formElement.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            await this.save();
+        });
+
+        const resetButtons = this.modalElement.querySelectorAll('[data-role="reset"]');
+        resetButtons.forEach((button) => {
+            button.onclick = () => this.reset();
+        });
+
+        const saveButtons = this.modalElement.querySelectorAll('[data-role="save"]');
+        saveButtons.forEach((button) => {
+            button.onclick = async () => {
+                await this.save();
+            };
+        });
+    }
+
+    _toggleFooterByMode() {
+        const footer = this.modalElement.querySelector(".modal-footer");
+        const saveButton = this.modalElement.querySelector('[data-role="save"]');
+        const resetButton = this.modalElement.querySelector('[data-role="reset"]');
+
+        if (!footer) return;
+
+        if (this.modalConfig.showFooter === false) {
+            footer.classList.add("d-none");
+            return;
+        }
+
+        footer.classList.remove("d-none");
+
+        if (this.mode === "show") {
+            if (saveButton) saveButton.classList.add("d-none");
+            if (resetButton) resetButton.classList.add("d-none");
+        } else {
+            if (saveButton) saveButton.classList.remove("d-none");
+            if (resetButton) resetButton.classList.remove("d-none");
+        }
+    }
+
+    _updateModalTitle() {
+        const titleElement = this.modalElement.querySelector(".modal-title");
+        if (!titleElement) return;
+
+        if (this.mode === "new") {
+            titleElement.textContent = this.modalConfig.titleNew;
+            return;
+        }
+
+        if (this.mode === "edit") {
+            titleElement.textContent = this.modalConfig.titleEdit;
+            return;
+        }
+
+        if (this.mode === "show") {
+            titleElement.textContent = this.modalConfig.titleShow;
+        }
+    }
+
+    _showModal() {
+        this.modal.show();
+    }
+
+    _ensureModal() {
+        if (document.getElementById(this.modalConfig.id)) {
+            this.modalElement = document.getElementById(this.modalConfig.id);
+            this.modal = bootstrap.Modal.getOrCreateInstance(this.modalElement, {
+                backdrop: this.modalConfig.backdrop,
+                keyboard: this.modalConfig.keyboard
+            });
+            return;
+        }
+
+        const html = `
+            <div class="modal fade" id="${this.modalConfig.id}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog ${this.modalConfig.size}">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <div class="modal-body"></div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-role="reset">
+                                ${this.modalConfig.resetButtonText}
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                ${this.modalConfig.closeButtonText}
+                            </button>
+                            <button type="button" class="btn btn-primary" data-role="save">
+                                ${this.modalConfig.saveButtonText}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.container.insertAdjacentHTML("beforeend", html);
+
+        this.modalElement = document.getElementById(this.modalConfig.id);
+        this.modal = new bootstrap.Modal(this.modalElement, {
+            backdrop: this.modalConfig.backdrop,
+            keyboard: this.modalConfig.keyboard
+        });
+
+        this.modalElement.addEventListener("hidden.bs.modal", () => {
+            if (typeof this.onClose === "function") {
+                this.onClose(this);
+            }
+        });
+    }
+
+    async _safeJson(response) {
+        try {
+            return await response.json();
+        } catch (error) {
+            return null;
+        }
+    }
+}
