@@ -8,7 +8,7 @@ class DepartmentModel(EntityModel):
 
     code: str = Field(..., title="Código", description="Código único del departamento", nullable=False)
     name: str = Field(..., title="Nombre", description="Nombre del departamento", nullable=False)
-    description: str | None = Field(default=None, title="Descripción", description="Descripción del departamento")
+    description: str | None = Field(default=None, title="Descripción", description="Descripción del departamento", widget="textarea")
 
     is_active: bool = Field(default=True, title="Activo", description="Indica si el departamento está activo")
 

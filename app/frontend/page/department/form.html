@@ -1,10 +1,18 @@
 {% from 'macro/input.jinja2' import mac_render_field %}
 
-<form id="department-form" novalidate>
-    {{ mac_render_field('code', entity_model.code) }}
-    {{ mac_render_field('name', entity_model.name) }}
-    {{ mac_render_field('description', entity_model.description) }}
-    {{ mac_render_field('is_active', entity_model.is_active) }}
+<form id="department-form" class="row g-3" novalidate>
+    <div class="col-12 col-md-4">
+        {{ mac_render_field('code', entity_model.code) }}
+    </div>
+    <div class="col-12 col-md-4">
+        {{ mac_render_field('name', entity_model.name) }}
+    </div>
+    <div class="col-12 col-md-4">
+        {{ mac_render_field('is_active', entity_model.is_active) }}
+    </div>
+    <div class="col-12 col-md-12">
+        {{ mac_render_field('description', entity_model.description) }}
+    </div>
 </form>
 
 <script>
