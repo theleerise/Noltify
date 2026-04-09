@@ -121,16 +121,10 @@ def edit_view(request, id: int):
     try:
         mgr = DepartmentManager()
 
-        print("ANTES DE GET_BY_ID")
-        print("ID:", id)
-
         record = mgr.get_by_id(
             record_id=id,
             data_model=False
         )
-
-        print("RECORD DEVUELTO:", record)
-        print("TIPO RECORD:", type(record))
 
         if not record:
             return _get_error_response(
