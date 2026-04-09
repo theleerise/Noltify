@@ -23,84 +23,93 @@
 
 {% macro mac_input_text(field_name, field_config={}, value='') %}
     <div class="mb-3">
-        {{ mac_label(field_name, field_config) }}
-        <input
-            type="text"
-            value="{{ value }}"
-            {{ _build_attrs(field_name, field_config) }}
-        >
-        {% if field_config.description %}
-            <div class="form-text">{{ field_config.description }}</div>
-        {% endif %}
+        <div class="d-flex align-items-center gap-1 mb-1">
+            {{ mac_label(field_name, field_config) }}
+            {% if field_config.description %}
+                <div class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <div class="tooltip-bubble">{{ field_config.description }}</div>
+                </div>
+            {% endif %}
+        </div>
+        <input type="text" value="{{ value }}" {{ _build_attrs(field_name, field_config) }} >
     </div>
 {% endmacro %}
 
 {% macro mac_input_number(field_name, field_config={}, value='') %}
     <div class="mb-3">
-        {{ mac_label(field_name, field_config) }}
-        <input
-            type="number"
-            value="{{ value }}"
-            {{ _build_attrs(field_name, field_config) }}
-        >
-        {% if field_config.description %}
-            <div class="form-text">{{ field_config.description }}</div>
-        {% endif %}
+        <div class="d-flex align-items-center gap-1 mb-1">
+            {{ mac_label(field_name, field_config) }}
+            {% if field_config.description %}
+                <div class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <div class="tooltip-bubble">{{ field_config.description }}</div>
+                </div>
+            {% endif %}
+        </div>
+        <input type="number" value="{{ value }}" {{ _build_attrs(field_name, field_config) }} >
     </div>
 {% endmacro %}
 
 {% macro mac_input_date(field_name, field_config={}, value='') %}
     <div class="mb-3">
-        {{ mac_label(field_name, field_config) }}
-        <input
-            type="date"
-            value="{{ value }}"
-            {{ _build_attrs(field_name, field_config) }}
-        >
-        {% if field_config.description %}
-            <div class="form-text">{{ field_config.description }}</div>
-        {% endif %}
+        <div class="d-flex align-items-center gap-1 mb-1">
+            {{ mac_label(field_name, field_config) }}
+            {% if field_config.description %}
+                <div class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <div class="tooltip-bubble">{{ field_config.description }}</div>
+                </div>
+            {% endif %}
+        </div>
+        <input type="date" value="{{ value }}" {{ _build_attrs(field_name, field_config) }} >
     </div>
 {% endmacro %}
 
 {% macro mac_input_datetime(field_name, field_config={}, value='') %}
     <div class="mb-3">
-        {{ mac_label(field_name, field_config) }}
-        <input
-            type="datetime-local"
-            value="{{ value }}"
-            {{ _build_attrs(field_name, field_config) }}
-        >
-        {% if field_config.description %}
-            <div class="form-text">{{ field_config.description }}</div>
-        {% endif %}
+        <div class="d-flex align-items-center gap-1 mb-1">
+            {{ mac_label(field_name, field_config) }}
+            {% if field_config.description %}
+                <div class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <div class="tooltip-bubble">{{ field_config.description }}</div>
+                </div>
+            {% endif %}
+        </div>
+        <input type="datetime-local" value="{{ value }}" {{ _build_attrs(field_name, field_config) }} >
     </div>
 {% endmacro %}
 
 {% macro mac_input_time(field_name, field_config={}, value='') %}
     <div class="mb-3">
-        {{ mac_label(field_name, field_config) }}
-        <input
-            type="time"
-            value="{{ value }}"
-            {{ _build_attrs(field_name, field_config) }}
-        >
-        {% if field_config.description %}
-            <div class="form-text">{{ field_config.description }}</div>
-        {% endif %}
+        <div class="d-flex align-items-center gap-1 mb-1">
+            {{ mac_label(field_name, field_config) }}
+            {% if field_config.description %}
+                <div class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <div class="tooltip-bubble">{{ field_config.description }}</div>
+                </div>
+            {% endif %}
+        </div>
+        <input type="time" value="{{ value }}" {{ _build_attrs(field_name, field_config) }} >
     </div>
 {% endmacro %}
 
 {% macro mac_textarea(field_name, field_config={}, value='') %}
     <div class="mb-3">
-        {{ mac_label(field_name, field_config) }}
-        <textarea
-            {{ _build_attrs(field_name, field_config) }}
-            rows="{{ field_config.rows or 3 }}"
-        >{{ value }}</textarea>
-        {% if field_config.description %}
-            <div class="form-text">{{ field_config.description }}</div>
-        {% endif %}
+        <div class="d-flex align-items-center gap-1 mb-1">
+            {{ mac_label(field_name, field_config) }}
+            {% if field_config.description %}
+                <div class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <div class="tooltip-bubble">{{ field_config.description }}</div>
+                </div>
+            {% endif %}
+        </div>
+        <textarea {{ _build_attrs(field_name, field_config) }} rows="{{ field_config.rows or 3 }}" > 
+            {{ value }}
+        </textarea>
     </div>
 {% endmacro %}
 
@@ -115,32 +124,39 @@
             {% if checked %}checked{% endif %}
             {% if field_config.readonly %}disabled{% endif %}
         >
-        <label class="form-check-label" for="id_{{ field_name }}">
-            {{ field_config.title or field_name|replace('_', ' ')|title }}
-        </label>
-        {% if field_config.description %}
-            <div class="form-text">{{ field_config.description }}</div>
-        {% endif %}
+        <div class="d-flex align-items-center gap-1">
+            <label class="form-check-label" for="id_{{ field_name }}">
+                {{ field_config.title or field_name|replace('_', ' ')|title }}
+            </label>
+            {% if field_config.description %}
+                <div class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <div class="tooltip-bubble">{{ field_config.description }}</div>
+                </div>
+            {% endif %}
+        </div>
     </div>
 {% endmacro %}
 
 {% macro mac_select(field_name, field_config={}, options=[], value='') %}
     <div class="mb-3">
-        {{ mac_label(field_name, field_config) }}
+        <div class="d-flex align-items-center gap-1 mb-1">
+            {{ mac_label(field_name, field_config) }}
+            {% if field_config.description %}
+                <div class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <div class="tooltip-bubble">{{ field_config.description }}</div>
+                </div>
+            {% endif %}
+        </div>
         <select {{ _build_attrs(field_name, field_config) }}>
             <option value="">Seleccione...</option>
             {% for option in options %}
-                <option
-                    value="{{ option.value }}"
-                    {% if option.value == value %}selected{% endif %}
-                >
+                <option value="{{ option.value }}" {% if option.value == value %}selected{% endif %} >
                     {{ option.label }}
                 </option>
             {% endfor %}
         </select>
-        {% if field_config.description %}
-            <div class="form-text">{{ field_config.description }}</div>
-        {% endif %}
     </div>
 {% endmacro %}
 
