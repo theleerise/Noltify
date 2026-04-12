@@ -121,6 +121,15 @@ export class RenderTableFilters {
 
             const normalizedType = this._normalizeFilterType(columnConfig.type);
 
+            if (operator === "IS_NULL" || operator === "IS_NOT_NULL") {
+                filters[columnName.toUpperCase()] = {
+                    type: normalizedType,
+                    filter: operator,
+                    values: null
+                };
+                continue;
+            }
+
             if (operator === "BETWEEN") {
                 const startValueRaw = this.form.querySelector(`[name="${columnName}__start"]`)?.value;
                 const endValueRaw = this.form.querySelector(`[name="${columnName}__end"]`)?.value;
@@ -255,6 +264,14 @@ export class RenderTableFilters {
     _renderInput(columnName, columnConfig, operator, container) {
         container.innerHTML = "";
 
+        if (operator === "IS_NULL" || operator === "IS_NOT_NULL") {
+            const placeholder = document.createElement("div");
+            placeholder.className = "form-control bg-light";
+            placeholder.textContent = "Este filtro no requiere valor";
+            container.appendChild(placeholder);
+            return;
+        }
+
         if (operator === "BETWEEN") {
             container.appendChild(
                 this._buildBetweenRange(columnName, columnConfig)
@@ -380,7 +397,9 @@ export class RenderTableFilters {
                 "LIKE_CONTAINS",
                 "LIKE_STARTS_WITH",
                 "LIKE_ENDS_WITH",
-                "EQUAL"
+                "EQUAL",
+                "IS_NULL",
+                "IS_NOT_NULL"
             ],
             integer: [
                 "EQUAL",
@@ -388,7 +407,9 @@ export class RenderTableFilters {
                 "GREATER_EQUAL",
                 "LESS_THAN",
                 "LESS_EQUAL",
-                "BETWEEN"
+                "BETWEEN",
+                "IS_NULL",
+                "IS_NOT_NULL"
             ],
             number: [
                 "EQUAL",
@@ -396,7 +417,9 @@ export class RenderTableFilters {
                 "GREATER_EQUAL",
                 "LESS_THAN",
                 "LESS_EQUAL",
-                "BETWEEN"
+                "BETWEEN",
+                "IS_NULL",
+                "IS_NOT_NULL"
             ],
             decimal: [
                 "EQUAL",
@@ -404,7 +427,9 @@ export class RenderTableFilters {
                 "GREATER_EQUAL",
                 "LESS_THAN",
                 "LESS_EQUAL",
-                "BETWEEN"
+                "BETWEEN",
+                "IS_NULL",
+                "IS_NOT_NULL"
             ],
             float: [
                 "EQUAL",
@@ -412,7 +437,9 @@ export class RenderTableFilters {
                 "GREATER_EQUAL",
                 "LESS_THAN",
                 "LESS_EQUAL",
-                "BETWEEN"
+                "BETWEEN",
+                "IS_NULL",
+                "IS_NOT_NULL"
             ],
             date: [
                 "EQUAL",
@@ -420,7 +447,9 @@ export class RenderTableFilters {
                 "GREATER_EQUAL",
                 "LESS_THAN",
                 "LESS_EQUAL",
-                "BETWEEN"
+                "BETWEEN",
+                "IS_NULL",
+                "IS_NOT_NULL"
             ],
             datetime: [
                 "EQUAL",
@@ -428,7 +457,9 @@ export class RenderTableFilters {
                 "GREATER_EQUAL",
                 "LESS_THAN",
                 "LESS_EQUAL",
-                "BETWEEN"
+                "BETWEEN",
+                "IS_NULL",
+                "IS_NOT_NULL"
             ],
             boolean: [
                 "EQUAL"
@@ -459,7 +490,11 @@ export class RenderTableFilters {
             BETWEEN:
                 "Entre",
             NOT_EQUAL:
-                "Distinto"
+                "Distinto",
+            IS_NULL:
+                "Es nulo",
+            IS_NOT_NULL:
+                "No es nulo"
         };
         return labels[operator] || operator;
     }
