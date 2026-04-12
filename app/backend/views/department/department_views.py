@@ -67,7 +67,7 @@ def new_view(request):
     Útil para precargar defaults en frontend si hiciera falta.
     """
     try:
-        model_data = DepartmentModel().to_json_dict()
+        model_data = DepartmentModel.to_json_default_dict()
         return get_success_response(
             data=model_data,
             message="Datos iniciales obtenidos correctamente"
@@ -121,8 +121,8 @@ def create_view(request):
         model = DepartmentModel(**data)
 
         mgr = DepartmentManager()
-        result = mgr.create(
-            params=model.to_insert_dict()
+        result = mgr.insert_query(
+            model.to_insert_dict()
         )
 
         return get_success_response(
@@ -132,6 +132,8 @@ def create_view(request):
         )
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return get_error_response(str(e))
 
 
