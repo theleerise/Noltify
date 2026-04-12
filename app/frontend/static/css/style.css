@@ -80,6 +80,98 @@
 }
 
 /*
+==========================
+== Bootstrap Table Tune ==
+==========================
+*/
+
+[table_name] .table-responsive {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    background-color: var(--bs-body-bg);
+    overflow: hidden;
+}
+
+[table_name] .table {
+    margin-bottom: 0;
+    vertical-align: middle;
+}
+
+[table_name] .table thead th {
+    background-color: var(--bs-tertiary-bg);
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--bs-border-color);
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+}
+
+[table_name] .table tbody td {
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color-translucent);
+}
+
+[table_name] .table tbody tr:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.04);
+}
+
+[table_name] .table td,
+[table_name] .table th {
+    vertical-align: middle;
+}
+
+[table_name] .table td.text-end,
+[table_name] .table th.text-end {
+    white-space: nowrap;
+}
+
+[table_name] .table td.text-center,
+[table_name] .table th.text-center {
+    white-space: nowrap;
+}
+
+[table_name] .table tbody td .btn.btn-sm {
+    padding: 0.25rem 0.45rem;
+    line-height: 1.1;
+}
+
+[table_name] .table tbody td .btn + .btn {
+    margin-left: 0.25rem;
+}
+
+[table_name] .table tbody td {
+    word-break: break-word;
+}
+
+[table_name] .table tbody tr:last-child td {
+    border-bottom-width: 0;
+}
+
+/* Estado vacío */
+[table_name] .table tbody td.text-center.text-muted {
+    padding: 1.25rem;
+    font-style: italic;
+}
+
+/* Mejora visual en pantallas pequeñas */
+@media (max-width: 768px) {
+    [table_name] .table {
+        font-size: 0.875rem;
+    }
+
+    [table_name] .table thead th,
+    [table_name] .table tbody td {
+        padding-left: 0.65rem;
+        padding-right: 0.65rem;
+    }
+}
+
+
+/*
 ====================
 == Tooltip inputs ==
 ====================
@@ -158,4 +250,14 @@
 
 .tooltip-wrap:hover .tooltip-bubble {
     opacity: 1;
+}
+
+/*
+===========
+== UTILS ==
+===========
+*/
+
+.text-nowrap {
+    white-space: nowrap;
 }

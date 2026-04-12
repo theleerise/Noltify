@@ -68,7 +68,8 @@ export default class RenderTable {
         wrapper.className = "table-responsive";
 
         this.tableElement = document.createElement("table");
-        this.tableElement.className = "table table-sm table-striped table-hover";
+        this.tableElement.className = "table table-sm table-striped table-hover align-middle";
+        // this.tableElement.className = "table table-sm table-striped table-hover";
 
         const thead = document.createElement("thead");
         const tbody = document.createElement("tbody");
