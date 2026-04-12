@@ -51,6 +51,31 @@ class EntityModel(BaseModel):
 
         return [cls.from_dict(item) for item in items]
 
+    @classmethod
+    def to_json_default_dict(cls) -> dict[str, Any]:
+        """
+        Devuelve un diccionario JSON-safe con todos los campos del modelo.
+
+        Reglas:
+            - Si el campo tiene default, se usa ese valor.
+            - Si el campo tiene default_factory, se ejecuta.
+            - Si no tiene default, se asigna None.
+        """
+        result: dict[str, Any] = {}
+
+        for field_name, field_info in cls.model_fields.items():
+
+            if field_info.default is not PydanticUndefined:
+                value = field_info.default
+            elif field_info.default_factory is not None:
+                value = field_info.default_factory()
+            else:
+                value = None
+
+            result[field_name] = cls.serialize_value(value)
+
+        return result
+
     def to_dict(
         self,
         *,
