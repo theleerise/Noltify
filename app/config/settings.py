@@ -104,7 +104,7 @@ ASGI_APPLICATION = "config.asgi.application"
 # BASE DE DATOS
 # ---------------------------------------------------------
 
-USE_POSTGRES = os.getenv("USE_POSTGRES", "0") == "1"
+USE_POSTGRES = os.getenv("USE_POSTGRES", "0") == "0"
 
 if USE_POSTGRES:
     DATABASES = {

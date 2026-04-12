@@ -113,6 +113,9 @@
         containerName: "department-modal-container",
         entityConfig: entityConfig,
         formUrl: "/department/form/",
+        headers: {
+            "X-CSRFToken": getCookie("csrftoken")
+        },
         dataUrls: {
             new: "/department/new/",
             edit: (id) => `/department/edit/${id}/`
@@ -132,7 +135,7 @@
         onSuccess: (response, manager) => {
             manager.close();
             console.log(response);
-            // table.load();
+            table.load();
         },
         onError: (error) => {
             console.error(error);

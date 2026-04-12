@@ -4,14 +4,27 @@
     <div class="col-12 col-md-4">
         {{ mac_render_field('code', entity_model.code) }}
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-6">
         {{ mac_render_field('name', entity_model.name) }}
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-2">
         {{ mac_render_field('is_active', entity_model.is_active) }}
     </div>
     <div class="col-12 col-md-12">
         {{ mac_render_field('description', entity_model.description) }}
+    </div>
+
+    <!-- Datos ocultos -->
+    <div hidden>
+        <div class="col-12 col-md-2">
+            {{ mac_render_field('id', entity_model.id) }}
+        </div>
+        <div class="col-12 col-md-6">
+            {{ mac_render_field('created_at', entity_model.created_at) }}
+        </div>
+        <div class="col-12 col-md-6">
+            {{ mac_render_field('updated_at', entity_model.updated_at) }}
+        </div>
     </div>
 </form>
 
