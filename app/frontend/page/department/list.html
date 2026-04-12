@@ -43,7 +43,7 @@
     import { deleteModal } from "/static/js/modals.js";
 
     const entityConfig = {{ entity_model|safe }};
-    console.log(entityConfig)
+    console.log(entityConfig);
 
     //////////////////////////
     // Entity Table //////////
@@ -117,6 +117,7 @@
             table.applyFilters(currentFilters);
         },
         onReset: () => {
+            table.setOrders({});
             table.applyFilters({});
         }
     });

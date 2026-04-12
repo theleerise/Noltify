@@ -169,7 +169,7 @@ class DatabaseManager:
             data_model=data_model
         )
 
-    def get_list(self, params: dict = None, data_model: bool = True) -> dict:
+    def get_list(self, params: dict | None = None, order_by: dict[str, str] | None = None, data_model: bool = True) -> dict:
         """
         Recupera una lista de registros de base de datos con/sin filtrado, se
         basa en la consulta principal asignada al manager
@@ -188,18 +188,23 @@ class DatabaseManager:
 
         try:
             start_time = time.perf_counter()
+            final_sql = sql_base
+            query_params = {}
 
             if params:
-                query_filter, query_params = self.query_builder.build(sql_base, params)
-                query_count = get_query_row_count(query_filter)
+                final_sql, query_params = self.query_builder.build(sql_base, params)
 
+            if order_by:
+                final_sql = self.query_builder.build_order(final_sql, order_by)
+
+            query_count = get_query_row_count(final_sql)
+
+            if query_params:
                 count_rows = self.execute_query(query_count, query_params)
-                result = self.fetchall(sql=query_filter, params=query_params, data_model=data_model)
-
+                result = self.fetchall(sql=final_sql, params=query_params, data_model=data_model)
             else:
-                query_count = get_query_row_count(sql_base)
                 count_rows = self.execute_query(query_count)
-                result = self.fetchall(sql=sql_base, data_model=data_model)
+                result = self.fetchall(sql=final_sql, data_model=data_model)
 
             end_time = time.perf_counter()
 
@@ -215,7 +220,7 @@ class DatabaseManager:
             print(e)
             raise e
 
-    def get_list_page(self, params: dict = None, page: int = 1, data_model: bool = True) -> dict:
+    def get_list_page(self, params: dict | None = None, order_by: dict[str, str] | None = None, page: int = 1, data_model: bool = True) -> dict:
         """
         Recupera una lista de registros de base de datos con/sin filtrado, se
         basa en la consulta principal asignada al manager
@@ -232,30 +237,27 @@ class DatabaseManager:
 
         try:
             start_time = time.perf_counter()
+            final_sql = sql_base
 
             if params:
-                query_filter, query_params = self.query_builder.build(sql_base, params)
-                query_count = get_query_row_count(query_filter)
-                query_paginate = get_query_paginator(query_filter)
+                final_sql, query_params = self.query_builder.build(sql_base, params)
 
+            if order_by:
+                final_sql = self.query_builder.build_order(final_sql, order_by)
+
+            query_count = get_query_row_count(final_sql)
+            query_paginate = get_query_paginator(final_sql)
+
+            if query_params:
                 count_rows = self.execute_query(query_count, query_params)
-
-                pages = self._calculate_page(page)
-                query_params["paginator_query_limit"] = pages.get("limit")
-                query_params["paginator_query_offset"] = pages.get("offset")
-
-                result = self.fetchall(sql=query_paginate, params=query_params, data_model=data_model)
             else:
-                query_count = get_query_row_count(sql_base)
-                
                 count_rows = self.execute_query(query_count)
-                query_paginate = get_query_paginator(sql_base)
 
-                pages = self._calculate_page(page)
-                query_params["paginator_query_limit"] = pages.get("limit")
-                query_params["paginator_query_offset"] = pages.get("offset")
+            pages = self._calculate_page(page)
+            query_params["paginator_query_limit"] = pages.get("limit")
+            query_params["paginator_query_offset"] = pages.get("offset")
 
-                result = self.fetchall(sql=query_paginate, params=query_params, data_model=data_model)
+            result = self.fetchall(sql=query_paginate, params=query_params, data_model=data_model)
 
             end_time = time.perf_counter()
 

@@ -43,11 +43,14 @@ def data(request):
 
         raw_filters = request_data.get("filters", "{}")
         filters = json.loads(raw_filters) if raw_filters else {}
+        raw_orders = request_data.get("orders", "{}")
+        orders = json.loads(raw_orders) if raw_orders else {}
         page = int(request_data.get("page", 1))
 
         mgr = DepartmentManager()
         records = mgr.get_list_page(
             params=filters,
+            order_by=orders,
             page=page,
             data_model=False
         )

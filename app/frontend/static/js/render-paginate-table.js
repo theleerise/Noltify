@@ -1,4 +1,5 @@
 import RenderTable from "./render-table.js";
+import RenderOrderTable from "./render-order-table.js";
 
 
 export class RenderPaginateTable extends RenderTable {
@@ -13,6 +14,7 @@ export class RenderPaginateTable extends RenderTable {
         this.totalPages = 1;
 
         this.filters = {};
+        this.orders = {};
         this.extraParams = options.extraParams || {};
         this.autoLoad = options.autoLoad !== false;
 
@@ -25,6 +27,11 @@ export class RenderPaginateTable extends RenderTable {
 
         this.paginationContainer = this._resolveOptionalContainer("pagination_name", this.paginationContainerName);
         this.summaryContainer = this._resolveOptionalContainer("summary_name", this.summaryContainerName);
+
+        this.orderManager = new RenderOrderTable({
+            table: this,
+            mode: "single"
+        });
 
         if (!this.url) {
             throw new Error("Debes informar la propiedad 'url' para RenderPaginateTable.");
@@ -48,6 +55,11 @@ export class RenderPaginateTable extends RenderTable {
         return this;
     }
 
+    setOrders(orders = {}) {
+        this.orders = orders || {};
+        return this;
+    }
+
     setPage(page = 1) {
         this.page = Number(page) || 1;
         return this;
@@ -58,13 +70,17 @@ export class RenderPaginateTable extends RenderTable {
         return this;
     }
 
-    async load({ page = null, filters = null, extraParams = null } = {}) {
+    async load({ page = null, filters = null, orders = null, extraParams = null } = {}) {
         if (page !== null) {
             this.page = Number(page) || 1;
         }
 
         if (filters !== null) {
             this.filters = filters || {};
+        }
+
+        if (orders !== null) {
+            this.orders = orders || {};
         }
 
         if (extraParams !== null) {
@@ -86,6 +102,9 @@ export class RenderPaginateTable extends RenderTable {
             this.totalPages = Math.max(1, Math.ceil(this.rows / this.rowsPerPage));
 
             this.render();
+            this.orderManager.setOrders(this.orders);
+            this.orderManager.bind();
+
             this.renderPagination();
             this.renderSummary();
 
@@ -121,6 +140,7 @@ export class RenderPaginateTable extends RenderTable {
         return this.load({
             page: this.page,
             filters: this.filters,
+            orders: this.orders,
             extraParams: this.extraParams
         });
     }
@@ -148,6 +168,16 @@ export class RenderPaginateTable extends RenderTable {
         return this.load({
             page: 1,
             filters: this.filters
+        });
+    }
+
+    async applyOrders(orders = {}) {
+        this.orders = orders || {};
+        this.page = 1;
+
+        return this.load({
+            page: 1,
+            orders: this.orders
         });
     }
 
@@ -187,6 +217,10 @@ export class RenderPaginateTable extends RenderTable {
             urlObject.searchParams.set("filters", JSON.stringify(mergedPayload.filters));
         }
 
+        if (mergedPayload.orders) {
+            urlObject.searchParams.set("orders", JSON.stringify(mergedPayload.orders));
+        }
+
         for (const [paramName, paramValue] of Object.entries(this.extraParams || {})) {
             if (paramValue === null || paramValue === undefined) {
                 continue;
@@ -201,6 +235,7 @@ export class RenderPaginateTable extends RenderTable {
     _buildPayload() {
         return {
             filters: this.filters || {},
+            orders: this.orders || {},
             page: this.page,
             ...this.extraParams
         };

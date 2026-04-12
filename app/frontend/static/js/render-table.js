@@ -101,7 +101,13 @@ export default class RenderTable {
             }
 
             const th = document.createElement("th");
-            th.textContent = columnConfig.title || columnName;
+            const columnTitle = columnConfig.title || columnName;
+
+            th.textContent = columnTitle;
+            th.setAttribute("data-column-name", columnName.toUpperCase());
+            th.setAttribute("data-column-title", columnTitle);
+            th.style.cursor = "pointer";
+            th.title = "Doble click para ordenar";
 
             this._applyColumnAttributes(
                 th,

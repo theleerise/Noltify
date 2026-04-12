@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+
 def get_query_row_count(sql: str) -> str:
     query = f"""
         SELECT COUNT(*) AS ROWS
@@ -51,13 +52,16 @@ class QueryBuilder:
     FILTER_IS_NULL = "IS_NULL"
     FILTER_IS_NOT_NULL = "IS_NOT_NULL"
 
+    ORDER_ASC = "ASC"
+    ORDER_DESC = "DESC"
+
     TYPE_STRING = "string"
     TYPE_INTEGER = "integer"
     TYPE_FLOAT = "float"
     TYPE_DATE = "date"
     TYPE_BOOLEAN = "boolean"
 
-    def build(self, base_sql: str, filters: dict[str, dict[str, Any]] | None = None) -> tuple[str, dict[str, Any]]:
+    def build(self, base_sql: str, filters: dict[str, dict[str, Any]] | None = None ) -> tuple[str, dict[str, Any]]:
         filters = filters or {}
 
         sql_lines = [base_sql.strip()]
@@ -90,6 +94,41 @@ class QueryBuilder:
         final_sql = "\n".join(sql_lines)
 
         return final_sql, query_params
+
+    def build_order(
+        self,
+        base_sql: str,
+        order_by: dict[str, str] | None = None
+    ) -> str:
+        order_by = order_by or {}
+
+        sql_lines = [base_sql.strip()]
+        order_clauses: list[str] = []
+
+        for column_name, direction in order_by.items():
+            if self._is_empty(column_name) or self._is_empty(direction):
+                continue
+
+            normalized_column = str(column_name).upper().strip()
+            normalized_direction = str(direction).upper().strip()
+
+            if normalized_direction not in (self.ORDER_ASC, self.ORDER_DESC):
+                raise ValueError(
+                    f"La dirección de orden '{direction}' no es válida para la columna '{column_name}'. "
+                    f"Solo se permite ASC o DESC."
+                )
+
+            if not self._is_safe_sql_identifier(normalized_column):
+                raise ValueError(
+                    f"El nombre de columna '{column_name}' no es válido para ORDER BY."
+                )
+
+            order_clauses.append(f"{normalized_column} {normalized_direction}")
+
+        if order_clauses:
+            sql_lines.append(f"ORDER BY {', '.join(order_clauses)}")
+
+        return "\n".join(sql_lines)
 
     def _build_condition(
         self,
@@ -299,3 +338,15 @@ class QueryBuilder:
             return True
 
         return False
+
+    def _is_safe_sql_identifier(self, value: str) -> bool:
+        allowed_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
+
+        if not value:
+            return False
+
+        for current_char in value:
+            if current_char not in allowed_chars:
+                return False
+
+        return True
