@@ -107,26 +107,68 @@
                 </div>
             {% endif %}
         </div>
-        <textarea {{ _build_attrs(field_name, field_config) }} rows="{{ field_config.rows or 3 }}" > 
+        <textarea {{ _build_attrs(field_name, field_config) }} rows="{{ field_config.rows or 3 }}" >
             {{ value }}
         </textarea>
     </div>
 {% endmacro %}
 
-{% macro mac_checkbox(field_name, field_config={}, checked=false) %}
-    <div class="mb-3 form-check">
-        <input
-            type="checkbox"
-            class="form-check-input{% if field_config.className %} {{ field_config.className }}{% endif %}"
-            name="{{ field_name }}"
-            id="id_{{ field_name }}"
-            value="1"
-            {% if checked %}checked{% endif %}
-            {% if field_config.readonly %}disabled{% endif %}
-        >
-        <div class="d-flex align-items-center gap-1">
+{% macro mac_checkbox(field_name, field_config={}, value=None) %}
+
+    {# =============================
+       Boolean config handling
+       ============================= #}
+
+    {% set boolean_config = field_config.boolean_config or {} %}
+
+    {% set true_value =
+        boolean_config.values.true
+        if boolean_config.values and boolean_config.values.true is not none
+        else true
+    %}
+
+    {% set false_value =
+        boolean_config.values.false
+        if boolean_config.values and boolean_config.values.false is not none
+        else false
+    %}
+
+    {% set display_true =
+        boolean_config.display.true
+        if boolean_config.display and boolean_config.display.true
+        else "Sí"
+    %}
+
+    {% set display_false =
+        boolean_config.display.false
+        if boolean_config.display and boolean_config.display.false
+        else "No"
+    %}
+
+    {% set checked =
+        value == true_value
+        or value == true
+        or value == 1
+        or value == "1"
+    %}
+
+    <div class="mb-3">
+        <div class="form-check">
+            <input
+                type="checkbox"
+                class="form-check-input{% if field_config.className %} {{ field_config.className }}{% endif %}"
+                name="{{ field_name }}"
+                id="id_{{ field_name }}"
+                value="{{ true_value }}"
+                {% if checked %}checked{% endif %}
+                {% if field_config.readonly %}disabled{% endif %}
+            >
+
             <label class="form-check-label" for="id_{{ field_name }}">
                 {{ field_config.title or field_name|replace('_', ' ')|title }}
+                <small class="text-muted ms-1">
+                    ({{ display_true }} / {{ display_false }})
+                </small>
             </label>
             {% if field_config.description %}
                 <div class="tooltip-wrap">
