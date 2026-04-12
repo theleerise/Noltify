@@ -129,12 +129,8 @@ class EntityModel(BaseModel):
         return self.to_dict(exclude_none=True)
 
     def to_update_dict(self, *, include_primary_key: bool = False) -> dict[str, Any]:
-        """
-        Devuelve un diccionario pensado para operaciones de actualización.
 
-        Por defecto excluye la clave primaria, porque normalmente no debe modificarse.
-        """
-        update_data = self.to_dict(exclude_none=True)
+        update_data = self.to_dict(exclude_none=False)
 
         if not include_primary_key and self.__primary_key__ in update_data:
             update_data.pop(self.__primary_key__, None)
@@ -259,9 +255,10 @@ class EntityModel(BaseModel):
             is_primary_key = bool(extra_config.get("pk", False))
             is_nullable = cls._is_nullable(field_info.annotation)
             has_default = cls._has_default(field_info.default, field_info.default_factory)
+            field_type = cls._map_python_type(field_info.annotation)
 
             field_config: dict[str, Any] = {
-                "type": cls._map_python_type(field_info.annotation),
+                "type": field_type,
                 "title": field_info.title or cls._build_default_title(field_name),
                 "description": field_info.description,
                 "required": cls._calculate_required(
@@ -280,6 +277,11 @@ class EntityModel(BaseModel):
             for extra_key, extra_value in extra_config.items():
                 if extra_key not in field_config:
                     field_config[extra_key] = extra_value
+
+            if field_type == "boolean":
+                field_config["boolean_config"] = cls._normalize_boolean_config(
+                    field_config.get("boolean_config")
+                )
 
             result[field_name] = {
                 key: cls.serialize_value(value)
@@ -387,3 +389,46 @@ class EntityModel(BaseModel):
         Genera un título por defecto legible a partir del nombre del campo.
         """
         return field_name.replace("_", " ").strip().title()
+
+    @staticmethod
+    def _normalize_boolean_config(boolean_config: dict[str, Any] | None) -> dict[str, Any]:
+        """
+        Normaliza la configuración booleana del campo.
+
+        Estructura soportada:
+            boolean_config = {
+                "values": {"true": True, "false": False},
+                "display": {"true": "Si", "false": "No"}
+            }
+
+        Si no se informa, se genera una configuración por defecto.
+        """
+        default_config = {
+            "values": {
+                "true": True,
+                "false": False
+            },
+            "display": {
+                "true": "Sí",
+                "false": "No"
+            }
+        }
+
+        if not isinstance(boolean_config, dict):
+            return default_config
+
+        values = boolean_config.get("values") or {}
+        display = boolean_config.get("display") or {}
+
+        normalized_config = {
+            "values": {
+                "true": values.get("true", default_config["values"]["true"]),
+                "false": values.get("false", default_config["values"]["false"]),
+            },
+            "display": {
+                "true": display.get("true", default_config["display"]["true"]),
+                "false": display.get("false", default_config["display"]["false"]),
+            }
+        }
+
+        return normalized_config

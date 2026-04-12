@@ -46,6 +46,11 @@ def data(request):
         raw_orders = request_data.get("orders", "{}")
         orders = json.loads(raw_orders) if raw_orders else {}
         page = int(request_data.get("page", 1))
+        
+        print("#"*120)
+        print(filters)
+        print(orders)
+        print("#"*120)
 
         mgr = DepartmentManager()
         records = mgr.get_list_page(

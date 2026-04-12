@@ -13,7 +13,15 @@ class DepartmentModel(EntityModel):
     name: str = Field(..., title="Nombre", description="Nombre del departamento", nullable=False)
     description: str | None = Field(default=None, title="Descripción", description="Descripción del departamento", widget="textarea", rows=5)
 
-    is_active: bool = Field(default=True, title="Activo", description="Indica si el departamento está activo")
+    is_active: bool = Field(
+        default=True, 
+        title="Activo", 
+        description="Indica si el departamento está activo", 
+        boolean_config= {
+            "values": {"true": True, "false": False},
+            "display": {"true": "Si", "false": "No"}
+        }
+    )
 
     created_at: datetime | None = Field(default=None, title="Fec. Creación", description="Fecha de creación del departamento", readonly=True)
     updated_at: datetime | None = Field(default=None, title="Fec. Actualización", description="Fecha de actualización del departamento", readonly=True)

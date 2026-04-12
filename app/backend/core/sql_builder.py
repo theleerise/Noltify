@@ -74,6 +74,7 @@ class QueryBuilder:
             field_type = filter_config.get("type")
             filter_operator = filter_config.get("filter")
             filter_values = filter_config.get("values")
+            boolean_config = filter_config.get("boolean_config")
 
             if not filter_operator:
                 continue
@@ -82,7 +83,8 @@ class QueryBuilder:
                 column_name=column_name,
                 field_type=field_type,
                 filter_operator=filter_operator,
-                filter_values=filter_values
+                filter_values=filter_values,
+                boolean_config=boolean_config
             )
 
             if not sql_condition:
@@ -135,7 +137,8 @@ class QueryBuilder:
         column_name: str,
         field_type: str | None,
         filter_operator: str,
-        filter_values: Any
+        filter_values: Any,
+        boolean_config: dict[str, Any] | None = None
     ) -> tuple[str | None, dict[str, Any]]:
         normalized_operator = str(filter_operator).upper()
         normalized_column = column_name.upper()
@@ -153,55 +156,97 @@ class QueryBuilder:
         if normalized_operator == self.FILTER_EQUAL:
             return (
                 f"{normalized_column} = %({normalized_param})s",
-                {normalized_param: self._convert_value(field_type, filter_values)}
+                {
+                    normalized_param: self._convert_value(
+                        field_type,
+                        filter_values,
+                        boolean_config=boolean_config
+                    )
+                }
             )
 
         if normalized_operator == self.FILTER_NOT_EQUAL:
             return (
                 f"{normalized_column} <> %({normalized_param})s",
-                {normalized_param: self._convert_value(field_type, filter_values)}
+                {
+                    normalized_param: self._convert_value(
+                        field_type,
+                        filter_values,
+                        boolean_config=boolean_config
+                    )
+                }
             )
 
         if normalized_operator == self.FILTER_LIKE_CONTAINS:
             return (
                 f"{normalized_column} LIKE %({normalized_param})s",
-                {normalized_param: f"%{self._convert_value(field_type, filter_values)}%"}
+                {
+                    normalized_param: f"%{self._convert_value(field_type, filter_values, boolean_config=boolean_config)}%"
+                }
             )
 
         if normalized_operator == self.FILTER_LIKE_STARTS_WITH:
             return (
                 f"{normalized_column} LIKE %({normalized_param})s",
-                {normalized_param: f"{self._convert_value(field_type, filter_values)}%"}
+                {
+                    normalized_param: f"{self._convert_value(field_type, filter_values, boolean_config=boolean_config)}%"
+                }
             )
 
         if normalized_operator == self.FILTER_LIKE_ENDS_WITH:
             return (
                 f"{normalized_column} LIKE %({normalized_param})s",
-                {normalized_param: f"%{self._convert_value(field_type, filter_values)}"}
+                {
+                    normalized_param: f"%{self._convert_value(field_type, filter_values, boolean_config=boolean_config)}"
+                }
             )
 
         if normalized_operator == self.FILTER_GREATER_THAN:
             return (
                 f"{normalized_column} > %({normalized_param})s",
-                {normalized_param: self._convert_value(field_type, filter_values)}
+                {
+                    normalized_param: self._convert_value(
+                        field_type,
+                        filter_values,
+                        boolean_config=boolean_config
+                    )
+                }
             )
 
         if normalized_operator == self.FILTER_GREATER_EQUAL:
             return (
                 f"{normalized_column} >= %({normalized_param})s",
-                {normalized_param: self._convert_value(field_type, filter_values)}
+                {
+                    normalized_param: self._convert_value(
+                        field_type,
+                        filter_values,
+                        boolean_config=boolean_config
+                    )
+                }
             )
 
         if normalized_operator == self.FILTER_LESS_THAN:
             return (
                 f"{normalized_column} < %({normalized_param})s",
-                {normalized_param: self._convert_value(field_type, filter_values)}
+                {
+                    normalized_param: self._convert_value(
+                        field_type,
+                        filter_values,
+                        boolean_config=boolean_config
+                    )
+                }
             )
 
         if normalized_operator == self.FILTER_LESS_EQUAL:
             return (
                 f"{normalized_column} <= %({normalized_param})s",
-                {normalized_param: self._convert_value(field_type, filter_values)}
+                {
+                    normalized_param: self._convert_value(
+                        field_type,
+                        filter_values,
+                        boolean_config=boolean_config
+                    )
+                }
             )
 
         if normalized_operator == self.FILTER_BETWEEN:
@@ -216,8 +261,16 @@ class QueryBuilder:
             return (
                 f"{normalized_column} BETWEEN %({start_param})s AND %({end_param})s",
                 {
-                    start_param: self._convert_value(field_type, filter_values[0]),
-                    end_param: self._convert_value(field_type, filter_values[1]),
+                    start_param: self._convert_value(
+                        field_type,
+                        filter_values[0],
+                        boolean_config=boolean_config
+                    ),
+                    end_param: self._convert_value(
+                        field_type,
+                        filter_values[1],
+                        boolean_config=boolean_config
+                    ),
                 }
             )
 
@@ -227,7 +280,8 @@ class QueryBuilder:
                 param_name=normalized_param,
                 field_type=field_type,
                 filter_values=filter_values,
-                is_not_in=False
+                is_not_in=False,
+                boolean_config=boolean_config
             )
 
         if normalized_operator == self.FILTER_NOT_IN:
@@ -236,7 +290,8 @@ class QueryBuilder:
                 param_name=normalized_param,
                 field_type=field_type,
                 filter_values=filter_values,
-                is_not_in=True
+                is_not_in=True,
+                boolean_config=boolean_config
             )
 
         raise ValueError(
@@ -249,7 +304,8 @@ class QueryBuilder:
         param_name: str,
         field_type: str | None,
         filter_values: Any,
-        is_not_in: bool = False
+        is_not_in: bool = False,
+        boolean_config: dict[str, Any] | None = None
     ) -> tuple[str | None, dict[str, Any]]:
         if not isinstance(filter_values, (tuple, list)) or len(filter_values) == 0:
             return None, {}
@@ -260,7 +316,11 @@ class QueryBuilder:
         for index, item_value in enumerate(filter_values):
             current_param_name = f"{param_name}_{index}"
             sql_placeholders.append(f"%({current_param_name})s")
-            sql_params[current_param_name] = self._convert_value(field_type, item_value)
+            sql_params[current_param_name] = self._convert_value(
+                field_type,
+                item_value,
+                boolean_config=boolean_config
+            )
 
         operator = "NOT IN" if is_not_in else "IN"
 
@@ -269,7 +329,12 @@ class QueryBuilder:
             sql_params
         )
 
-    def _convert_value(self, field_type: str | None, value: Any) -> Any:
+    def _convert_value(
+        self,
+        field_type: str | None,
+        value: Any,
+        boolean_config: dict[str, Any] | None = None
+    ) -> Any:
         if value is None:
             return None
 
@@ -288,26 +353,93 @@ class QueryBuilder:
             return float(value)
 
         if normalized_type == self.TYPE_BOOLEAN:
-            return self._convert_boolean(value)
+            return self._convert_boolean(
+                value,
+                boolean_config=boolean_config
+            )
 
         if normalized_type == self.TYPE_DATE:
             return self._convert_date(value)
 
         return value
 
-    def _convert_boolean(self, value: Any) -> bool:
+    def _convert_boolean(
+        self,
+        value: Any,
+        boolean_config: dict[str, Any] | None = None
+    ) -> Any:
+        if boolean_config:
+            normalized_config = self._normalize_boolean_config(boolean_config)
+
+            if self._matches_boolean_true(value, normalized_config):
+                return normalized_config["values"]["true"]
+
+            if self._matches_boolean_false(value, normalized_config):
+                return normalized_config["values"]["false"]
+
         if isinstance(value, bool):
             return value
 
         normalized_value = str(value).strip().lower()
 
-        if normalized_value in ("true", "1", "yes", "y", "si", "sí"):
+        if normalized_value in ("true", "1", "yes", "y", "s", "si", "sí"):
             return True
 
         if normalized_value in ("false", "0", "no", "n"):
             return False
 
         raise ValueError(f"No se puede convertir el valor '{value}' a boolean.")
+
+    def _matches_boolean_true(
+        self,
+        value: Any,
+        boolean_config: dict[str, Any]
+    ) -> bool:
+        return (
+            value is True
+            or self._same_value(value, boolean_config["values"]["true"])
+            or str(value).strip().lower() == "true"
+        )
+
+    def _matches_boolean_false(
+        self,
+        value: Any,
+        boolean_config: dict[str, Any]
+    ) -> bool:
+        return (
+            value is False
+            or self._same_value(value, boolean_config["values"]["false"])
+            or str(value).strip().lower() == "false"
+        )
+
+    def _normalize_boolean_config(
+        self,
+        boolean_config: dict[str, Any] | None
+    ) -> dict[str, Any]:
+        boolean_config = boolean_config or {}
+
+        values = boolean_config.get("values") or {}
+        display = boolean_config.get("display") or {}
+
+        return {
+            "values": {
+                "true": values.get("true", True),
+                "false": values.get("false", False),
+            },
+            "display": {
+                "true": display.get("true", "Sí"),
+                "false": display.get("false", "No"),
+            }
+        }
+
+    def _same_value(self, left_value: Any, right_value: Any) -> bool:
+        if left_value == right_value:
+            return True
+
+        if left_value is None or right_value is None:
+            return False
+
+        return str(left_value).strip().lower() == str(right_value).strip().lower()
 
     def _convert_date(self, value: Any) -> datetime:
         if isinstance(value, datetime):

@@ -120,12 +120,14 @@ export class RenderTableFilters {
             }
 
             const normalizedType = this._normalizeFilterType(columnConfig.type);
+            const booleanConfig = this._getBooleanConfig(columnConfig);
 
             if (operator === "IS_NULL" || operator === "IS_NOT_NULL") {
                 filters[columnName.toUpperCase()] = {
                     type: normalizedType,
                     filter: operator,
-                    values: null
+                    values: null,
+                    boolean_config: columnConfig.type === "boolean" ? booleanConfig : undefined
                 };
                 continue;
             }
@@ -140,7 +142,7 @@ export class RenderTableFilters {
                     continue;
                 }
 
-                filters[columnName.toUpperCase()] = {
+                const filterConfig = {
                     type: normalizedType,
                     filter: operator,
                     values: [
@@ -148,6 +150,12 @@ export class RenderTableFilters {
                         this._isEmptyValue(endValue) ? null : endValue
                     ]
                 };
+
+                if (columnConfig.type === "boolean") {
+                    filterConfig.boolean_config = booleanConfig;
+                }
+
+                filters[columnName.toUpperCase()] = filterConfig;
                 continue;
             }
 
@@ -163,11 +171,17 @@ export class RenderTableFilters {
                 continue;
             }
 
-            filters[columnName.toUpperCase()] = {
+            const filterConfig = {
                 type: normalizedType,
                 filter: operator,
                 values: value
             };
+
+            if (columnConfig.type === "boolean") {
+                filterConfig.boolean_config = booleanConfig;
+            }
+
+            filters[columnName.toUpperCase()] = filterConfig;
         }
         return filters;
     }
@@ -355,7 +369,7 @@ export class RenderTableFilters {
         select.className = this._getInputClassName(columnConfig, "form-select");
         select.name = columnName;
 
-        const options = columnConfig.filter?.options || [{ value: "", label: "Todos" }, { value: "true", label: "Sí" }, { value: "false", label: "No" }];
+        const options = columnConfig.filter?.options || this._getDefaultBooleanOptions(columnConfig);
 
         for (const optionConfig of options) {
             const option = document.createElement("option");
@@ -574,7 +588,7 @@ export class RenderTableFilters {
             return "";
         }
         if (columnConfig.type === "boolean") {
-            return trimmedValue;
+            return this._mapBooleanLogicalValueToCrudValue(trimmedValue, columnConfig);
         }
         if (columnConfig.type === "integer") {
             return parseInt(trimmedValue, 10);
@@ -598,6 +612,53 @@ export class RenderTableFilters {
             return `${normalizedValue}:00`;
         }
         return normalizedValue;
+    }
+
+    _getDefaultBooleanOptions(columnConfig = {}) {
+        const booleanConfig = this._getBooleanConfig(columnConfig);
+
+        return [
+            { value: "", label: "Todos" },
+            { value: "true", label: booleanConfig.display.true },
+            { value: "false", label: booleanConfig.display.false }
+        ];
+    }
+
+    _mapBooleanLogicalValueToCrudValue(logicalValue, columnConfig = {}) {
+        const booleanConfig = this._getBooleanConfig(columnConfig);
+
+        if (logicalValue === "true") {
+            return booleanConfig.values.true;
+        }
+
+        if (logicalValue === "false") {
+            return booleanConfig.values.false;
+        }
+
+        return logicalValue;
+    }
+
+    _getBooleanConfig(columnConfig = {}) {
+        const booleanConfig = columnConfig.boolean_config || {};
+
+        return {
+            values: {
+                true: Object.prototype.hasOwnProperty.call(booleanConfig?.values || {}, "true")
+                    ? booleanConfig.values.true
+                    : true,
+                false: Object.prototype.hasOwnProperty.call(booleanConfig?.values || {}, "false")
+                    ? booleanConfig.values.false
+                    : false
+            },
+            display: {
+                true: Object.prototype.hasOwnProperty.call(booleanConfig?.display || {}, "true")
+                    ? booleanConfig.display.true
+                    : "Sí",
+                false: Object.prototype.hasOwnProperty.call(booleanConfig?.display || {}, "false")
+                    ? booleanConfig.display.false
+                    : "No"
+            }
+        };
     }
 
     _isEmptyValue(value) {

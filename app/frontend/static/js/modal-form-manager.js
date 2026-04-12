@@ -155,7 +155,7 @@ export default class ModalFormManager {
             const input = this._findField(fieldName);
             if (!input) return;
 
-            this._writeFieldValue(input, fieldValue);
+            this._writeFieldValue(input, fieldValue, fieldName);
         });
 
         if (typeof this.onAfterPrefill === "function") {
@@ -175,12 +175,12 @@ export default class ModalFormManager {
 
             if (field.type === "radio") {
                 if (!Object.prototype.hasOwnProperty.call(data, fieldName)) {
-                    data[fieldName] = this._readFieldValue(field);
+                    data[fieldName] = this._readFieldValue(field, fieldName);
                 }
                 return;
             }
 
-            data[fieldName] = this._readFieldValue(field);
+            data[fieldName] = this._readFieldValue(field, fieldName);
         });
 
         return this._normalizeDataByConfig(data);
@@ -412,8 +412,8 @@ export default class ModalFormManager {
                 field.classList.add(...fieldConfig.className.split(" "));
             }
 
-            if (fieldConfig.type === "boolean" && field.type !== "checkbox") {
-                console.warn(`El campo ${fieldName} está configurado como boolean pero no es checkbox`);
+            if (fieldConfig.type === "boolean") {
+                this._applyBooleanFieldConfig(field, fieldName, fieldConfig);
             }
         });
     }
@@ -429,7 +429,7 @@ export default class ModalFormManager {
             const field = this._findField(fieldName);
             if (!field) return;
 
-            this._writeFieldValue(field, fieldConfig.default);
+            this._writeFieldValue(field, fieldConfig.default, fieldName);
         });
     }
 
@@ -456,7 +456,7 @@ export default class ModalFormManager {
                     break;
 
                 case "boolean":
-                    normalized[fieldName] = !!value;
+                    normalized[fieldName] = this._normalizeBooleanValue(value, fieldConfig);
                     break;
 
                 case "date":
@@ -482,20 +482,29 @@ export default class ModalFormManager {
             || this.formElement.querySelector(`#id_${fieldName}`);
     }
 
-    _readFieldValue(field) {
+    _readFieldValue(field, fieldName = null) {
         if (!field) return null;
 
         const tagName = field.tagName.toLowerCase();
         const type = (field.type || "").toLowerCase();
+        const fieldConfig = this.entityConfig[fieldName || field.name] || {};
 
         if (tagName === "input") {
             if (type === "checkbox") {
-                return field.checked;
+                return this._normalizeBooleanValue(field.checked, fieldConfig);
             }
 
             if (type === "radio") {
                 const checked = this.formElement.querySelector(`input[name="${field.name}"]:checked`);
-                return checked ? checked.value : null;
+                if (!checked) {
+                    return null;
+                }
+
+                if (fieldConfig.type === "boolean") {
+                    return this._normalizeBooleanValue(checked.value, fieldConfig);
+                }
+
+                return checked.value;
             }
 
             return field.value;
@@ -505,6 +514,11 @@ export default class ModalFormManager {
             if (field.multiple) {
                 return Array.from(field.selectedOptions).map((option) => option.value);
             }
+
+            if (fieldConfig.type === "boolean") {
+                return this._normalizeBooleanValue(field.value, fieldConfig);
+            }
+
             return field.value;
         }
 
@@ -515,18 +529,23 @@ export default class ModalFormManager {
         return null;
     }
 
-    _writeFieldValue(field, value) {
+    _writeFieldValue(field, value, fieldName = null) {
         const tagName = field.tagName.toLowerCase();
         const type = (field.type || "").toLowerCase();
+        const fieldConfig = this.entityConfig[fieldName || field.name] || {};
 
         if (tagName === "input") {
             if (type === "checkbox") {
-                field.checked = !!value;
+                field.checked = this._resolveBooleanLogicalValue(value, fieldConfig) === "true";
                 return;
             }
 
             if (type === "radio") {
-                const radio = this.formElement.querySelector(`input[name="${field.name}"][value="${value}"]`);
+                const logicalValue = fieldConfig.type === "boolean"
+                    ? this._resolveBooleanLogicalValue(value, fieldConfig)
+                    : value;
+
+                const radio = this.formElement.querySelector(`input[name="${field.name}"][value="${logicalValue}"]`);
                 if (radio) {
                     radio.checked = true;
                 }
@@ -548,7 +567,12 @@ export default class ModalFormManager {
                     option.selected = value.includes(option.value);
                 });
             } else {
-                field.value = value ?? "";
+                if (fieldConfig.type === "boolean") {
+                    const logicalValue = this._resolveBooleanLogicalValue(value, fieldConfig);
+                    field.value = logicalValue ?? "";
+                } else {
+                    field.value = value ?? "";
+                }
             }
 
             field.dispatchEvent(new Event("change", { bubbles: true }));
@@ -704,5 +728,178 @@ export default class ModalFormManager {
         } catch (error) {
             return null;
         }
+    }
+
+    _applyBooleanFieldConfig(field, fieldName, fieldConfig) {
+        const tagName = field.tagName.toLowerCase();
+        const type = (field.type || "").toLowerCase();
+        const booleanConfig = this._getBooleanConfig(fieldConfig);
+
+        if (tagName === "select") {
+            this._populateBooleanSelectOptions(field, booleanConfig);
+            return;
+        }
+
+        if (tagName === "input" && type === "radio") {
+            this._normalizeBooleanRadioValues(fieldName);
+            return;
+        }
+    }
+
+    _populateBooleanSelectOptions(selectElement, booleanConfig) {
+        if (!selectElement) return;
+
+        const preserveExistingOptions = selectElement.options.length > 0;
+
+        if (preserveExistingOptions) {
+            Array.from(selectElement.options).forEach((option) => {
+                if (option.value === "true") {
+                    option.textContent = booleanConfig.display.true;
+                }
+                if (option.value === "false") {
+                    option.textContent = booleanConfig.display.false;
+                }
+            });
+
+            return;
+        }
+
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = "";
+        selectElement.appendChild(emptyOption);
+
+        const trueOption = document.createElement("option");
+        trueOption.value = "true";
+        trueOption.textContent = booleanConfig.display.true;
+        selectElement.appendChild(trueOption);
+
+        const falseOption = document.createElement("option");
+        falseOption.value = "false";
+        falseOption.textContent = booleanConfig.display.false;
+        selectElement.appendChild(falseOption);
+    }
+
+    _normalizeBooleanRadioValues(fieldName) {
+        const radios = this.formElement.querySelectorAll(`input[name="${fieldName}"]`);
+
+        radios.forEach((radio) => {
+            const normalizedLogicalValue = this._normalizeBooleanLogicalValue(radio.value);
+
+            if (normalizedLogicalValue === "true" || normalizedLogicalValue === "false") {
+                radio.value = normalizedLogicalValue;
+            }
+        });
+    }
+
+    _normalizeBooleanValue(value, fieldConfig = {}) {
+        if (value === null || value === undefined || value === "") {
+            return null;
+        }
+
+        const booleanConfig = this._getBooleanConfig(fieldConfig);
+        const logicalValue = this._resolveBooleanLogicalValue(value, fieldConfig);
+
+        if (logicalValue === "true") {
+            return booleanConfig.values.true;
+        }
+
+        if (logicalValue === "false") {
+            return booleanConfig.values.false;
+        }
+
+        return value;
+    }
+
+    _resolveBooleanLogicalValue(value, fieldConfig = {}) {
+        if (value === null || value === undefined || value === "") {
+            return null;
+        }
+
+        const booleanConfig = this._getBooleanConfig(fieldConfig);
+
+        if (value === true) {
+            return "true";
+        }
+
+        if (value === false) {
+            return "false";
+        }
+
+        if (this._isSameValue(value, booleanConfig.values.true)) {
+            return "true";
+        }
+
+        if (this._isSameValue(value, booleanConfig.values.false)) {
+            return "false";
+        }
+
+        return this._normalizeBooleanLogicalValue(value);
+    }
+
+    _normalizeBooleanLogicalValue(value) {
+        if (value === null || value === undefined || value === "") {
+            return null;
+        }
+
+        const normalizedValue = String(value).trim().toLowerCase();
+
+        if ([
+            "true",
+            "1",
+            "yes",
+            "y",
+            "s",
+            "si",
+            "sí"
+        ].includes(normalizedValue)) {
+            return "true";
+        }
+
+        if ([
+            "false",
+            "0",
+            "no",
+            "n"
+        ].includes(normalizedValue)) {
+            return "false";
+        }
+
+        return null;
+    }
+
+    _getBooleanConfig(fieldConfig = {}) {
+        const booleanConfig = fieldConfig.boolean_config || {};
+
+        return {
+            values: {
+                true: Object.prototype.hasOwnProperty.call(booleanConfig?.values || {}, "true")
+                    ? booleanConfig.values.true
+                    : true,
+                false: Object.prototype.hasOwnProperty.call(booleanConfig?.values || {}, "false")
+                    ? booleanConfig.values.false
+                    : false
+            },
+            display: {
+                true: Object.prototype.hasOwnProperty.call(booleanConfig?.display || {}, "true")
+                    ? booleanConfig.display.true
+                    : "Sí",
+                false: Object.prototype.hasOwnProperty.call(booleanConfig?.display || {}, "false")
+                    ? booleanConfig.display.false
+                    : "No"
+            }
+        };
+    }
+
+    _isSameValue(leftValue, rightValue) {
+        if (leftValue === rightValue) {
+            return true;
+        }
+
+        if (leftValue === null || leftValue === undefined || rightValue === null || rightValue === undefined) {
+            return false;
+        }
+
+        return String(leftValue).trim().toLowerCase() === String(rightValue).trim().toLowerCase();
     }
 }

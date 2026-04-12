@@ -384,10 +384,114 @@ export default class RenderTable {
         }
 
         if (columnConfig.type === "boolean") {
-            return value ? "Sí" : "No";
+            return this._formatBooleanValue(value, columnConfig);
         }
 
         return String(value);
+    }
+
+    _formatBooleanValue(value, columnConfig = {}) {
+        const booleanConfig = this._getBooleanConfig(columnConfig);
+
+        const logicalValue = this._resolveBooleanLogicalValue(
+            value,
+            booleanConfig
+        );
+
+        if (logicalValue === "true") {
+            return booleanConfig.display.true;
+        }
+
+        if (logicalValue === "false") {
+            return booleanConfig.display.false;
+        }
+
+        return String(value ?? "");
+    }
+
+    _resolveBooleanLogicalValue(value, booleanConfig = {}) {
+        if (value === null || value === undefined || value === "") {
+            return null;
+        }
+
+        if (value === true) {
+            return "true";
+        }
+
+        if (value === false) {
+            return "false";
+        }
+
+        const configuredTrueValue = booleanConfig.values?.true;
+        const configuredFalseValue = booleanConfig.values?.false;
+
+        if (this._isSameValue(value, configuredTrueValue)) {
+            return "true";
+        }
+
+        if (this._isSameValue(value, configuredFalseValue)) {
+            return "false";
+        }
+
+        const normalizedValue = String(value).trim().toLowerCase();
+
+        if ([
+            "true",
+            "1",
+            "yes",
+            "y",
+            "s",
+            "si",
+            "sí"
+        ].includes(normalizedValue)) {
+            return "true";
+        }
+
+        if ([
+            "false",
+            "0",
+            "no",
+            "n"
+        ].includes(normalizedValue)) {
+            return "false";
+        }
+
+        return null;
+    }
+
+    _getBooleanConfig(columnConfig = {}) {
+        const booleanConfig = columnConfig.boolean_config || {};
+
+        return {
+            values: {
+                true: Object.prototype.hasOwnProperty.call(booleanConfig?.values || {}, "true")
+                    ? booleanConfig.values.true
+                    : true,
+                false: Object.prototype.hasOwnProperty.call(booleanConfig?.values || {}, "false")
+                    ? booleanConfig.values.false
+                    : false
+            },
+            display: {
+                true: Object.prototype.hasOwnProperty.call(booleanConfig?.display || {}, "true")
+                    ? booleanConfig.display.true
+                    : "Sí",
+                false: Object.prototype.hasOwnProperty.call(booleanConfig?.display || {}, "false")
+                    ? booleanConfig.display.false
+                    : "No"
+            }
+        };
+    }
+
+    _isSameValue(leftValue, rightValue) {
+        if (leftValue === rightValue) {
+            return true;
+        }
+
+        if (leftValue === null || leftValue === undefined || rightValue === null || rightValue === undefined) {
+            return false;
+        }
+
+        return String(leftValue).trim().toLowerCase() === String(rightValue).trim().toLowerCase();
     }
 
     _joinClassNames(...classNames) {
