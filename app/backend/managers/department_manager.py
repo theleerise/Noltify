@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from backend.core.database_manager import DatabaseManager
 from backend.models.department_model import DepartmentModel
 
@@ -61,6 +63,12 @@ class DepartmentManager(DatabaseManager):
             WHERE ID = %(id)s
         """
         return query
-        
-        
-        
+    
+    def _before_update(self, data: dict) -> dict:
+        data["updated_at"] = datetime.now()
+        return data
+    
+    def _before_insert(self, data: dict) -> dict:
+        data["created_at"] = datetime.now()
+        data["updated_at"] = datetime.now()
+        return data
