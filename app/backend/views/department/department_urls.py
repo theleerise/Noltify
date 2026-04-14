@@ -12,8 +12,8 @@ urlpatterns = [
     path("new/", department_views.new_view, name="new"),
     path("edit/<int:id>/", department_views.edit_view, name="edit"),
 
-    path("create/", department_views.create_view, name="create"),
-    path("update/<int:id>/", department_views.update_view, name="update"),
+    path("create/", department_views.create, name="create"),
+    path("update/<int:id>/", department_views.update, name="update"),
 
-    path("delete/<int:id>/", department_views.delete_view, name="delete"),
+    path("delete/<int:id>/", department_views.delete, name="delete"),
 ]

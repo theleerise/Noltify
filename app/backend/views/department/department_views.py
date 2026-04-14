@@ -47,11 +47,6 @@ def data(request):
         orders = json.loads(raw_orders) if raw_orders else {}
         page = int(request_data.get("page", 1))
         
-        print("#"*120)
-        print(filters)
-        print(orders)
-        print("#"*120)
-
         mgr = DepartmentManager()
         records = mgr.get_list_page(
             params=filters,
@@ -119,7 +114,7 @@ def edit_view(request, id: int):
 
 
 @require_http_methods(["POST"])
-def create_view(request):
+def create(request):
     """
     Crea un nuevo departamento.
     """
@@ -146,7 +141,7 @@ def create_view(request):
 
 
 @require_http_methods(["PUT"])
-def update_view(request, id: int):
+def update(request, id: int):
 
     try:
         request_data = get_request_json(request)
@@ -171,7 +166,7 @@ def update_view(request, id: int):
 
 
 @require_http_methods(["DELETE"])
-def delete_view(request, id: int):
+def delete(request, id: int):
 
     try:
         mgr = DepartmentManager()
