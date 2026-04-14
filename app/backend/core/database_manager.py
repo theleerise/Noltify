@@ -92,9 +92,9 @@ class DatabaseManager:
         with DatabaseConnection.get_connection() as connection:
             with connection.cursor() as cursor:
                 if params:
-                    cursor.execute(sql, params)
+                    cursor.execute(final_sql)
                 else:
-                    cursor.execute(sql)
+                    cursor.execute(final_sql)
                 records = cursor.fetchall()
 
         return self.after_fetchall(records, data_model)
@@ -124,9 +124,9 @@ class DatabaseManager:
         with DatabaseConnection.get_connection() as connection:
             with connection.cursor() as cursor:
                 if params:
-                    cursor.execute(sql, params)
+                    cursor.execute(final_sql, params)
                 else:
-                    cursor.execute(sql)
+                    cursor.execute(final_sql)
                 record = cursor.fetchone()
 
         return self.after_fetchone(record, data_model)
@@ -149,7 +149,7 @@ class DatabaseManager:
     # GET BY ID
     # =========================================================
 
-    def get_by_id(self, record_id: Any, data_model: bool = True):
+    def get_by_id(self, sql: str | None = None, record_id: Any = None, data_model: bool = True):
         """
         Recupera un registro por su clave primaria utilizando _select_query().
         La consulta definida en _select_query() debe ser compatible con:
@@ -157,7 +157,7 @@ class DatabaseManager:
         o con el nombre definido en self.primary_key.
         """
 
-        sql_base = self._select_query()
+        sql_base = sql or self._select_query()
         sql_filter = f"""
             {sql_base}
             AND {self.primary_key} = %({self.primary_key})s
@@ -169,7 +169,7 @@ class DatabaseManager:
             data_model=data_model
         )
 
-    def get_list(self, params: dict | None = None, order_by: dict[str, str] | None = None, data_model: bool = True) -> dict:
+    def get_list(self, sql: str | None = None, params: dict | None = None, order_by: dict[str, str] | None = None, data_model: bool = True) -> dict:
         """
         Recupera una lista de registros de base de datos con/sin filtrado, se
         basa en la consulta principal asignada al manager
@@ -181,7 +181,7 @@ class DatabaseManager:
             _type_: Lista de objetos o diccionario con los registro de la entidad
         """
 
-        sql_base = self._select_query()
+        sql_base = sql or self._select_query()
         response = {}
         result = []
         count_rows = None
@@ -220,7 +220,7 @@ class DatabaseManager:
             print(e)
             raise e
 
-    def get_list_page(self, params: dict | None = None, order_by: dict[str, str] | None = None, page: int = 1, data_model: bool = True) -> dict:
+    def get_list_page(self, sql: str | None = None, params: dict | None = None, order_by: dict[str, str] | None = None, page: int = 1, data_model: bool = True) -> dict:
         """
         Recupera una lista de registros de base de datos con/sin filtrado, se
         basa en la consulta principal asignada al manager
@@ -232,7 +232,7 @@ class DatabaseManager:
             _type_: Lista de objetos o diccionario con los registro de la entidad
         """
 
-        sql_base = self._select_query()
+        sql_base = sql or self._select_query()
         query_params = {}
 
         try:
