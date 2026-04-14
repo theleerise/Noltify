@@ -16,7 +16,7 @@ class DepartmentModel(EntityModel):
     is_active: bool = Field(
         default=True, 
         title="Activo", 
-        description="Indica si el departamento está activo", 
+        description="Estado de departamento", 
         boolean_config= {
             "values": {"true": True, "false": False},
             "display": {"true": "Si", "false": "No"}
