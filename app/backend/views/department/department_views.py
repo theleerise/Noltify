@@ -1,6 +1,6 @@
 from backend.managers.department_manager import DepartmentManager
 from backend.models.department_model import DepartmentModel
-from backend.views.entity_crud import build_crud_views
+from app.backend.core.entity_crud import build_crud_views
 
 
 _views = build_crud_views(

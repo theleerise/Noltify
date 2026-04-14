@@ -1,6 +1,6 @@
 from backend.managers.permission_manager import PermissionManager
 from backend.models.permission_model import PermissionModel
-from backend.views.entity_crud import build_crud_views
+from app.backend.core.entity_crud import build_crud_views
 
 
 _views = build_crud_views(

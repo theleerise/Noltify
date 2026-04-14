@@ -1,6 +1,6 @@
 from backend.managers.publication_manager import PublicationManager
 from backend.models.publication_model import PublicationModel
-from backend.views.entity_crud import build_crud_views
+from app.backend.core.entity_crud import build_crud_views
 
 
 _views = build_crud_views(

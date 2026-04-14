@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from backend.managers.document_manager import DocumentManager
 from backend.models.document_model import DocumentModel
 from backend.core.response import get_error_response, get_request_json, get_success_response
-from backend.views.entity_crud import build_crud_views
+from app.backend.core.entity_crud import build_crud_views
 
 
 _views = build_crud_views(

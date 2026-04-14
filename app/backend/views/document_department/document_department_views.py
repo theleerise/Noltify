@@ -1,6 +1,6 @@
 from backend.managers.document_department_manager import DocumentDepartmentManager
 from backend.models.document_department_model import DocumentDepartmentModel
-from backend.views.entity_crud import build_crud_views
+from app.backend.core.entity_crud import build_crud_views
 
 
 _views = build_crud_views(

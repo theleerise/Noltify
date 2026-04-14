@@ -1,6 +1,6 @@
 from backend.managers.role_manager import RoleManager
 from backend.models.role_model import RoleModel
-from backend.views.entity_crud import build_crud_views
+from app.backend.core.entity_crud import build_crud_views
 
 
 _views = build_crud_views(

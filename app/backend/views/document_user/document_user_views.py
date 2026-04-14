@@ -1,6 +1,6 @@
 from backend.managers.document_user_manager import DocumentUserManager
 from backend.models.document_user_model import DocumentUserModel
-from backend.views.entity_crud import build_crud_views
+from app.backend.core.entity_crud import build_crud_views
 
 
 _views = build_crud_views(
