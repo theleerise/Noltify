@@ -1,3 +1,5 @@
+{% from 'macro/api_value.jinja2' import mac_api_value_select %}
+
 {% macro _build_attrs(field_name, field_config={}, extra_class='') -%}
     name="{{ field_name }}"
     id="id_{{ field_name }}"
@@ -203,7 +205,9 @@
 {% endmacro %}
 
 {% macro mac_render_field(field_name, field_config={}, value='', options=[]) %}
-    {% if field_config.type == 'integer' or field_config.type == 'number' or field_config.type == 'decimal' %}
+    {% if field_config.master_key %}
+        {{ mac_api_value_select(field_name, field_config, value) }}
+    {% elif field_config.type == 'integer' or field_config.type == 'number' or field_config.type == 'decimal' %}
         {{ mac_input_number(field_name, field_config, value) }}
     {% elif field_config.type == 'date' %}
         {{ mac_input_date(field_name, field_config, value) }}

@@ -1,0 +1,164 @@
+{% macro mac_api_value_select(field_name, field_config={}, value='') %}
+    {% set master_key = field_config.master_key or '' %}
+    {% set field_id = 'id_' ~ field_name %}
+    {% set endpoint_url = url('api_value:data', args=[master_key]) if master_key else '' %}
+    {% set placeholder = field_config.placeholder or 'Seleccione...' %}
+
+    <div class="mb-3">
+        <div class="d-flex align-items-center gap-1 mb-1">
+            <label for="{{ field_id }}" class="form-label">
+                {{ field_config.title or field_name|replace('_', ' ')|title }}
+                {% if field_config.required %}
+                    <span class="text-danger">*</span>
+                {% endif %}
+            </label>
+            {% if field_config.description %}
+                <div class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <div class="tooltip-bubble">{{ field_config.description }}</div>
+                </div>
+            {% endif %}
+        </div>
+
+        <select
+            name="{{ field_name }}"
+            id="{{ field_id }}"
+            class="form-select{% if field_config.className %} {{ field_config.className }}{% endif %}"
+            data-api-value-select="true"
+            data-api-value-master="{{ master_key }}"
+            data-api-value-url="{{ endpoint_url }}"
+            data-placeholder="{{ placeholder }}"
+            data-initial-value="{{ value if value is not none else '' }}"
+            data-selected-value="{{ value if value is not none else '' }}"
+            {% if field_config.required %}required{% endif %}
+            {% if field_config.readonly %}disabled{% endif %}
+        >
+            <option value="">{{ placeholder }}</option>
+        </select>
+    </div>
+
+    <script>
+        (() => {
+            const select = document.getElementById("{{ field_id }}");
+
+            if (!select || select.dataset.apiValueInitialized === "true") {
+                return;
+            }
+
+            select.dataset.apiValueInitialized = "true";
+            const wasInitiallyDisabled = select.disabled;
+
+            const placeholderText = select.dataset.placeholder || "Seleccione...";
+            const endpointUrl = select.dataset.apiValueUrl;
+
+            const normalizeRecords = (responseJson) => {
+                if (Array.isArray(responseJson)) {
+                    return responseJson;
+                }
+
+                if (Array.isArray(responseJson?.data)) {
+                    return responseJson.data;
+                }
+
+                return [];
+            };
+
+            const buildOptionLabel = (record) => {
+                return record?.DISPLAY_VALUE
+                    ?? record?.display_value
+                    ?? record?.label
+                    ?? "";
+            };
+
+            const buildOptionValue = (record) => {
+                return record?.ID_ROW
+                    ?? record?.id_row
+                    ?? record?.value
+                    ?? "";
+            };
+
+            const getSelectedValue = () => {
+                return select.dataset.selectedValue
+                    || select.dataset.initialValue
+                    || "";
+            };
+
+            const renderOptions = (records) => {
+                const selectedValue = String(getSelectedValue());
+
+                select.innerHTML = "";
+
+                const emptyOption = document.createElement("option");
+                emptyOption.value = "";
+                emptyOption.textContent = placeholderText;
+                select.appendChild(emptyOption);
+
+                records.forEach((record) => {
+                    const option = document.createElement("option");
+                    const optionValue = buildOptionValue(record);
+
+                    option.value = optionValue;
+                    option.textContent = buildOptionLabel(record);
+
+                    if (String(optionValue) === selectedValue) {
+                        option.selected = true;
+                    }
+
+                    select.appendChild(option);
+                });
+
+                if (selectedValue) {
+                    select.value = selectedValue;
+                }
+            };
+
+            const renderError = () => {
+                select.innerHTML = "";
+
+                const emptyOption = document.createElement("option");
+                emptyOption.value = "";
+                emptyOption.textContent = "No se pudieron cargar los valores";
+                select.appendChild(emptyOption);
+            };
+
+            const loadOptions = async () => {
+                if (!endpointUrl) {
+                    renderError();
+                    return;
+                }
+
+                try {
+                    select.disabled = true;
+
+                    const response = await fetch(endpointUrl, {
+                        method: "GET",
+                        headers: {
+                            "Accept": "application/json",
+                            "X-Requested-With": "XMLHttpRequest"
+                        },
+                        credentials: "include"
+                    });
+
+                    const responseJson = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(responseJson?.error || "No se pudieron cargar los valores.");
+                    }
+
+                    renderOptions(normalizeRecords(responseJson));
+                } catch (error) {
+                    console.error(error);
+                    renderError();
+                } finally {
+                    select.disabled = wasInitiallyDisabled;
+                }
+            };
+
+            select.addEventListener("change", () => {
+                select.dataset.selectedValue = select.value || "";
+            });
+
+            loadOptions();
+        })();
+    </script>
+{% endmacro %}
