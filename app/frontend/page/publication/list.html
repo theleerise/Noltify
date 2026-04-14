@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% set entity_slug = "publication" %}
+{% set entity_title = "Publicación" %}
+{% set entity_title_plural = "Publicaciones" %}
+{% set delete_label_field = "title" %}
+{% set article = "la" %}
+{% set visible_columns = '["title", "status", "created_by", "is_active", "created_at", "updated_at"]' %}
+{% set filters_columns = '["id", "title", "content", "status", "created_by", "is_active", "created_at", "updated_at"]' %}
+
+{% block title %}
+ - {{ entity_title_plural }}
+{% endblock %}
+
+{% block content %}
+    {% include "crud/list_content.html" %}
+{% endblock %}

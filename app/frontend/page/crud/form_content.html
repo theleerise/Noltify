@@ -1,0 +1,21 @@
+{% from 'macro/input.jinja2' import mac_render_field %}
+
+<form class="row g-3" novalidate>
+    {% for field_name, field_config in entity_model.items() %}
+        {% if not field_config.hidden_form %}
+            <div class="col-12 {% if field_config.widget == 'textarea' %}col-md-12{% else %}col-md-6{% endif %}">
+                {{ mac_render_field(field_name, field_config) }}
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    <div hidden>
+        {% for field_name, field_config in entity_model.items() %}
+            {% if field_config.hidden_form %}
+                <div class="col-12 col-md-6">
+                    {{ mac_render_field(field_name, field_config) }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</form>

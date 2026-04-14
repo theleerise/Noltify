@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% set entity_slug = "document" %}
+{% set entity_title = "Documento" %}
+{% set entity_title_plural = "Documentos" %}
+{% set delete_label_field = "title" %}
+{% set article = "el" %}
+{% set visible_columns = '["title", "file_name", "file_path", "mime_type", "file_size", "uploaded_by", "is_active", "created_at", "updated_at"]' %}
+{% set filters_columns = '["id", "title", "file_name", "file_path", "mime_type", "file_size", "uploaded_by", "is_active", "created_at", "updated_at"]' %}
+
+{% block title %}
+ - {{ entity_title_plural }}
+{% endblock %}
+
+{% block content %}
+    {% include "crud/list_content.html" %}
+{% endblock %}

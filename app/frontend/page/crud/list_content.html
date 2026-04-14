@@ -1,0 +1,140 @@
+{% from 'macro/component.jinja2' import mac_list_title %}
+
+{{ mac_list_title(entity_title_plural) }}
+
+<div>
+    <div filters_name="{{ entity_slug }}-filters" class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <a class="btn btn-sm btn-outline-secondary"
+                data-bs-toggle="collapse"
+                href="#{{ entity_slug }}-filters-collapse">
+                Filtros
+                </a>
+                <a class="btn btn-sm btn-outline-primary" onclick="window.entityFormMgr.openNew()">Crear</a>
+            </div>
+            <div filters_actions="{{ entity_slug }}-filters-actions"></div>
+        </div>
+        <div class="collapse" id="{{ entity_slug }}-filters-collapse">
+            <div class="card-body">
+                <div filters_form="{{ entity_slug }}-filters-form"></div>
+            </div>
+        </div>
+    </div>
+
+    <div summary_name="{{ entity_slug }}-table-summary"></div>
+    <div table_name="{{ entity_slug }}-table"></div>
+    <div pagination_name="{{ entity_slug }}-table-pagination"></div>
+</div>
+
+<div id="{{ entity_slug }}-modal-container"></div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import RenderTableFilters from "/static/js/render-table-filters.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const entityConfig = {{ entity_model|safe }};
+    const visibleColumns = {{ visible_columns|safe }};
+    const filtersColumns = {{ filters_columns|safe }};
+
+    const entityConfigButtons = {
+        edit: {
+            position: "start",
+            title: "Editar",
+            className: "btn-outline-primary",
+            ButtonIconClass: "bi bi-pencil-square",
+            action: (row) => {
+                window.entityFormMgr.openEdit(row.id);
+            }
+        },
+        del: {
+            position: "end",
+            title: "Eliminar",
+            className: "btn-outline-danger",
+            ButtonIconClass: "bi bi-trash",
+            action: (row) => {
+                const entityLabel = row["{{ delete_label_field }}"] ?? row.id;
+
+                deleteModal({
+                    containerName: "{{ entity_slug }}-modal-container",
+                    url: "/{{ entity_slug }}/delete/" + row.id + "/",
+                    headers: {
+                        "X-CSRFToken": getCookie("csrftoken")
+                    },
+                    title: "Eliminar {{ entity_title|lower }}",
+                    message: `¿Seguro que deseas eliminar {{ article }} {{ entity_title|lower }} <strong>${entityLabel}</strong>?`,
+                    onSuccess: (response, modal) => {
+                        modal.close();
+                        table.load();
+                    },
+                    onError: (error) => {
+                        console.error(error);
+                    }
+                });
+            }
+        }
+    };
+
+    const table = new RenderPaginateTable({
+        tableName: "{{ entity_slug }}-table",
+        paginationContainerName: "{{ entity_slug }}-table-pagination",
+        summaryContainerName: "{{ entity_slug }}-table-summary",
+        entityConfig: entityConfig,
+        columns: visibleColumns,
+        buttons: entityConfigButtons,
+        url: "/{{ entity_slug }}/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const filters = new RenderTableFilters({
+        filtersName: "{{ entity_slug }}-filters",
+        entityConfig: entityConfig,
+        columns: filtersColumns,
+        onSubmit: (currentFilters) => {
+            table.applyFilters(currentFilters);
+        },
+        onReset: () => {
+            table.setOrders({});
+            table.applyFilters({});
+        }
+    });
+
+    filters.render();
+    table.load();
+
+    window.entityFormMgr = new ModalFormManager({
+        containerName: "{{ entity_slug }}-modal-container",
+        entityConfig: entityConfig,
+        formUrl: "/{{ entity_slug }}/form/",
+        headers: {
+            "X-CSRFToken": getCookie("csrftoken")
+        },
+        dataUrls: {
+            new: "/{{ entity_slug }}/new/",
+            edit: (id) => `/{{ entity_slug }}/edit/${id}/`
+        },
+        submitUrl: (mode, id) => {
+            if (mode === "new") {
+                return "/{{ entity_slug }}/create/";
+            }
+            return `/{{ entity_slug }}/update/${id}/`;
+        },
+        modal: {
+            titleNew: "Nuevo {{ entity_title|lower }}",
+            titleEdit: "Editar {{ entity_title|lower }}",
+            titleShow: "Detalle del {{ entity_title|lower }}",
+            size: "modal-lg"
+        },
+        onSuccess: (response, manager) => {
+            manager.close();
+            table.load();
+        },
+        onError: (error) => {
+            console.error(error);
+        }
+    });
+</script>

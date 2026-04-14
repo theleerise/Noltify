@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% set entity_slug = "document_department" %}
+{% set entity_title = "Asignación documento-departamento" %}
+{% set entity_title_plural = "Asignaciones documento-departamento" %}
+{% set delete_label_field = "id" %}
+{% set article = "la" %}
+{% set visible_columns = '["document_id", "department_id", "assigned_at"]' %}
+{% set filters_columns = '["id", "document_id", "department_id", "assigned_at"]' %}
+
+{% block title %}
+ - {{ entity_title_plural }}
+{% endblock %}
+
+{% block content %}
+    {% include "crud/list_content.html" %}
+{% endblock %}

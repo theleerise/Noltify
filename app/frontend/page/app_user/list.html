@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% set entity_slug = "app_user" %}
+{% set entity_title = "Usuario" %}
+{% set entity_title_plural = "Usuarios" %}
+{% set delete_label_field = "username" %}
+{% set article = "el" %}
+{% set visible_columns = '["username", "email", "first_name", "last_name", "is_active", "is_superuser", "created_at", "updated_at"]' %}
+{% set filters_columns = '["id", "username", "email", "first_name", "last_name", "is_active", "is_superuser", "created_at", "updated_at"]' %}
+
+{% block title %}
+ - {{ entity_title_plural }}
+{% endblock %}
+
+{% block content %}
+    {% include "crud/list_content.html" %}
+{% endblock %}

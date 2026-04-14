@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% set entity_slug = "permission_user" %}
+{% set entity_title = "Asignación permiso-usuario" %}
+{% set entity_title_plural = "Asignaciones permiso-usuario" %}
+{% set delete_label_field = "id" %}
+{% set article = "la" %}
+{% set visible_columns = '["user_id", "permission_id", "assigned_at"]' %}
+{% set filters_columns = '["id", "user_id", "permission_id", "assigned_at"]' %}
+
+{% block title %}
+ - {{ entity_title_plural }}
+{% endblock %}
+
+{% block content %}
+    {% include "crud/list_content.html" %}
+{% endblock %}

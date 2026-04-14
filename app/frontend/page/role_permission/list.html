@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% set entity_slug = "role_permission" %}
+{% set entity_title = "Asignación rol-permiso" %}
+{% set entity_title_plural = "Asignaciones rol-permiso" %}
+{% set delete_label_field = "id" %}
+{% set article = "la" %}
+{% set visible_columns = '["role_id", "permission_id", "assigned_at"]' %}
+{% set filters_columns = '["id", "role_id", "permission_id", "assigned_at"]' %}
+
+{% block title %}
+ - {{ entity_title_plural }}
+{% endblock %}
+
+{% block content %}
+    {% include "crud/list_content.html" %}
+{% endblock %}
