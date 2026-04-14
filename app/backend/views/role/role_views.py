@@ -1,15 +1,24 @@
-import json
-
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render
-from django.urls import reverse
-from django.views.decorators.http import require_http_methods
+from backend.managers.role_manager import RoleManager
+from backend.models.role_model import RoleModel
+from backend.views.entity_crud import build_crud_views
 
 
-@require_http_methods(["GET"])
-def list_view(request):
+_views = build_crud_views(
+    manager_class=RoleManager,
+    model_class=RoleModel,
+    template_prefix="role",
+    singular_name="Rol",
+    created_message="Rol creado correctamente",
+    updated_message="Rol actualizado correctamente",
+    deleted_message="Rol eliminado correctamente",
+    not_found_message="No se encontró el rol solicitado",
+)
 
-    return render(
-        request,
-        "role/list.html",
-    )
+list_view = _views["list_view"]
+form_view = _views["form_view"]
+data = _views["data"]
+new_view = _views["new_view"]
+edit_view = _views["edit_view"]
+create = _views["create"]
+update = _views["update"]
+delete = _views["delete"]
