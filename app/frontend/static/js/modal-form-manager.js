@@ -173,6 +173,10 @@ export default class ModalFormManager {
             const fieldName = field.name;
             if (!fieldName) return;
 
+            if (this._isFileField(field)) {
+                return;
+            }
+
             if (field.type === "radio") {
                 if (!Object.prototype.hasOwnProperty.call(data, fieldName)) {
                     data[fieldName] = this._readFieldValue(field, fieldName);
@@ -223,19 +227,27 @@ export default class ModalFormManager {
             }
 
             const finalMethod = method || (this.mode === "new" ? "POST" : "PUT");
+            const shouldUseMultipart = this._hasSelectedFiles();
 
-            const response = await fetch(finalUrl, {
+            const requestConfig = {
                 method: finalMethod,
                 headers: {
-                    "Content-Type": "application/json",
                     ...this.headers
-                },
-                body: JSON.stringify({
+                }
+            };
+
+            if (shouldUseMultipart) {
+                requestConfig.body = this._buildMultipartPayload(payload);
+            } else {
+                requestConfig.headers["Content-Type"] = "application/json";
+                requestConfig.body = JSON.stringify({
                     mode: this.mode,
                     id: this.currentId,
                     data: payload
-                })
-            });
+                });
+            }
+
+            const response = await fetch(finalUrl, requestConfig);
 
             const json = await this._safeJson(response);
 
@@ -412,6 +424,21 @@ export default class ModalFormManager {
                 field.classList.add(...fieldConfig.className.split(" "));
             }
 
+            if (fieldConfig.create_only === true) {
+                const isNewMode = this.mode === "new";
+                this._toggleFieldVisibility(fieldName, isNewMode);
+
+                if (isNewMode) {
+                    field.removeAttribute("disabled");
+                    if (fieldConfig.required === true) {
+                        field.setAttribute("required", "required");
+                    }
+                } else {
+                    field.setAttribute("disabled", "disabled");
+                    field.removeAttribute("required");
+                }
+            }
+
             if (fieldConfig.type === "boolean") {
                 this._applyBooleanFieldConfig(field, fieldName, fieldConfig);
             }
@@ -490,6 +517,10 @@ export default class ModalFormManager {
         const fieldConfig = this.entityConfig[fieldName || field.name] || {};
 
         if (tagName === "input") {
+            if (type === "file") {
+                return null;
+            }
+
             if (type === "checkbox") {
                 return this._normalizeBooleanValue(field.checked, fieldConfig);
             }
@@ -535,6 +566,10 @@ export default class ModalFormManager {
         const fieldConfig = this.entityConfig[fieldName || field.name] || {};
 
         if (tagName === "input") {
+            if (type === "file") {
+                return;
+            }
+
             if (type === "checkbox") {
                 field.checked = this._resolveBooleanLogicalValue(value, fieldConfig) === "true";
                 return;
@@ -608,6 +643,49 @@ export default class ModalFormManager {
 
     _snapshotInitialData() {
         this.initialData = this.getData();
+    }
+
+    _buildMultipartPayload(payload) {
+        const formData = new FormData();
+        formData.append("mode", this.mode);
+
+        if (this.currentId !== null && this.currentId !== undefined) {
+            formData.append("id", String(this.currentId));
+        }
+
+        formData.append("data", JSON.stringify(payload));
+
+        const fileFields = this.formElement.querySelectorAll('input[type="file"][name]');
+        fileFields.forEach((field) => {
+            if (!field.files || field.files.length === 0) {
+                return;
+            }
+
+            Array.from(field.files).forEach((file) => {
+                formData.append(field.name, file);
+            });
+        });
+
+        return formData;
+    }
+
+    _hasSelectedFiles() {
+        if (!this.formElement) return false;
+
+        return Array.from(this.formElement.querySelectorAll('input[type="file"]'))
+            .some((field) => field.files && field.files.length > 0);
+    }
+
+    _isFileField(field) {
+        return field?.tagName?.toLowerCase() === "input"
+            && (field.type || "").toLowerCase() === "file";
+    }
+
+    _toggleFieldVisibility(fieldName, visible) {
+        const wrapper = this.formElement?.querySelector(`[data-field-wrapper="${fieldName}"]`);
+        if (!wrapper) return;
+
+        wrapper.classList.toggle("d-none", !visible);
     }
 
     _bindInternalEvents() {

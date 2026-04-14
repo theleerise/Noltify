@@ -8,11 +8,11 @@ class DocumentModel(EntityModel):
     id: int | None = Field(default=None, title="ID", description="Identificador del documento", pk=True, readonly=True, master_key="DOCUMENTS", hidden_form=True)
 
     title: str = Field(..., title="Título", description="Título del documento")
-    file_name: str = Field(..., title="Nombre Archivo", description="Nombre original del archivo")
-    file_path: str = Field(..., title="Ruta Archivo", description="Ruta física donde se almacena el archivo")
+    file_name: str | None = Field(default=None, title="Nombre Archivo", description="Nombre original del archivo", hidden_form=True)
+    file_binary: bytes | None = Field(default=None, title="Archivo", description="Archivo", widget="file", create_only=True)
 
-    mime_type: str | None = Field(default=None, title="Tipo MIME", description="Tipo MIME del archivo")
-    file_size: int | None = Field(default=None, title="Tamaño", description="Tamaño del archivo en bytes")
+    mime_type: str | None = Field(default=None, title="Tipo MIME", description="Tipo MIME del archivo", hidden_form=True)
+    file_size: int | None = Field(default=None, title="Tamaño", description="Tamaño del archivo en bytes", hidden_form=True)
 
     description: str | None = Field(default=None, title="Descripción", description="Descripción del documento", widget="textarea", rows=5)
 

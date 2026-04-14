@@ -98,6 +98,25 @@
     </div>
 {% endmacro %}
 
+{% macro mac_input_file(field_name, field_config={}) %}
+    <div class="mb-3">
+        <div class="d-flex align-items-center gap-1 mb-1">
+            {{ mac_label(field_name, field_config) }}
+            {% if field_config.description %}
+                <div class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <div class="tooltip-bubble">{{ field_config.description }}</div>
+                </div>
+            {% endif %}
+        </div>
+        <input
+            type="file"
+            {{ _build_attrs(field_name, field_config) }}
+            {% if field_config.accept %}accept="{{ field_config.accept }}"{% endif %}
+        >
+    </div>
+{% endmacro %}
+
 {% macro mac_textarea(field_name, field_config={}, value='') %}
     <div class="mb-3">
         <div class="d-flex align-items-center gap-1 mb-1">
@@ -207,6 +226,8 @@
 {% macro mac_render_field(field_name, field_config={}, value='', options=[]) %}
     {% if field_config.master_key %}
         {{ mac_api_value_select(field_name, field_config, value) }}
+    {% elif field_config.widget == 'file' %}
+        {{ mac_input_file(field_name, field_config) }}
     {% elif field_config.type == 'integer' or field_config.type == 'number' or field_config.type == 'decimal' %}
         {{ mac_input_number(field_name, field_config, value) }}
     {% elif field_config.type == 'date' %}

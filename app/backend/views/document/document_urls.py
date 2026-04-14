@@ -9,6 +9,7 @@ urlpatterns = [
     path("form/", document_views.form_view, name="form"),
     path("new/", document_views.new_view, name="new"),
     path("edit/<int:id>/", document_views.edit_view, name="edit"),
+    path("file/<int:id>/", document_views.document_file, name="file"),
     path("create/", document_views.create, name="create"),
     path("update/<int:id>/", document_views.update, name="update"),
     path("delete/<int:id>/", document_views.delete, name="delete"),

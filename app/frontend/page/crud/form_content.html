@@ -1,9 +1,9 @@
 {% from 'macro/input.jinja2' import mac_render_field %}
 
-<form class="row g-3" novalidate>
+<form class="row g-3" novalidate enctype="multipart/form-data">
     {% for field_name, field_config in entity_model.items() %}
         {% if not field_config.hidden_form %}
-            <div class="col-12 {% if field_config.widget == 'textarea' %}col-md-12{% else %}col-md-6{% endif %}">
+            <div class="col-12 {% if field_config.widget == 'textarea' %}col-md-12{% else %}col-md-6{% endif %}" data-field-wrapper="{{ field_name }}">
                 {{ mac_render_field(field_name, field_config) }}
             </div>
         {% endif %}
@@ -12,7 +12,7 @@
     <div hidden>
         {% for field_name, field_config in entity_model.items() %}
             {% if field_config.hidden_form %}
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-md-6" data-field-wrapper="{{ field_name }}">
                     {{ mac_render_field(field_name, field_config) }}
                 </div>
             {% endif %}

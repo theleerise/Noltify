@@ -15,7 +15,6 @@ class DocumentManager(DatabaseManager):
                   ID
                 , TITLE
                 , FILE_NAME
-                , FILE_PATH
                 , MIME_TYPE
                 , FILE_SIZE
                 , DESCRIPTION
@@ -32,7 +31,7 @@ class DocumentManager(DatabaseManager):
             INSERT INTO PUBLIC.DOCUMENT (
                   TITLE
                 , FILE_NAME
-                , FILE_PATH
+                , FILE_BINARY
                 , MIME_TYPE
                 , FILE_SIZE
                 , DESCRIPTION
@@ -43,7 +42,7 @@ class DocumentManager(DatabaseManager):
             ) VALUES (
                   %(title)s
                 , %(file_name)s
-                , %(file_path)s
+                , %(file_binary)s
                 , %(mime_type)s
                 , %(file_size)s
                 , %(description)s
@@ -60,7 +59,6 @@ class DocumentManager(DatabaseManager):
             SET
                   TITLE = %(title)s
                 , FILE_NAME = %(file_name)s
-                , FILE_PATH = %(file_path)s
                 , MIME_TYPE = %(mime_type)s
                 , FILE_SIZE = %(file_size)s
                 , DESCRIPTION = %(description)s
@@ -84,3 +82,26 @@ class DocumentManager(DatabaseManager):
     def _before_update(self, data: dict) -> dict:
         data["updated_at"] = datetime.now()
         return data
+    
+    def get_document(self, id_doc: int):
+        """
+        Devuelve un documento almacenado dentro de la tabla.
+
+        Args:
+            id_doc (int): Id. del registro que contiene el documento.
+        """
+        sql = """
+            SELECT
+                  ID
+                , FILE_NAME
+                , FILE_BINARY
+                , MIME_TYPE
+            FROM PUBLIC.DOCUMENT
+            WHERE ID = %(id)s
+        """
+
+        return self.fetchone(
+            sql=sql,
+            params={"id": id_doc},
+            data_model=False
+        )
