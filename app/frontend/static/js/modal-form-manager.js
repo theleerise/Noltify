@@ -562,6 +562,11 @@ export default class ModalFormManager {
         }
 
         if (tagName === "select") {
+            if (field.dataset.apiValueSelect === "true") {
+                field.dataset.selectedValue = value ?? "";
+                field.dataset.initialValue = value ?? "";
+            }
+
             if (field.multiple && Array.isArray(value)) {
                 Array.from(field.options).forEach((option) => {
                     option.selected = value.includes(option.value);

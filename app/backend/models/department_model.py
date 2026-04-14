@@ -4,7 +4,7 @@ from app.backend.core.entity_model import EntityModel
 
 class DepartmentModel(EntityModel):
 
-    id: int | None = Field(default=None, title="ID", description="Identificador del departamento", pk=True, readonly=True)
+    id: int | None = Field(default=None, title="ID", description="Identificador del departamento", pk=True, readonly=True, master_key="DEPARTMENTS")
 
     code: str = Field(..., title="Código", description="Código único del departamento", nullable=False, table={
         "td": {"className": "text-nowrap"},

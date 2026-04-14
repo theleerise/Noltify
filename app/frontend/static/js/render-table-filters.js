@@ -1,3 +1,5 @@
+import { fetchApiValueRecords } from "./api-value-service.js";
+
 export class RenderTableFilters {
 
     constructor(options = {}) {
@@ -13,6 +15,8 @@ export class RenderTableFilters {
         this.formClassName = options.formClassName || "rt-filters";
         this.gridClassName = options.gridClassName || "d-flex flex-column gap-3";
         this.rowClassName = "row g-2 align-items-center mb-1";
+        this.apiValueBaseUrl = options.apiValueBaseUrl || "/api_value/data/";
+        this.apiValueRecords = {};
 
         this.container = this._resolveContainer();
         this.formContainer = this._resolveFormContainer();
@@ -297,6 +301,14 @@ export class RenderTableFilters {
                 this._buildBooleanSelect(columnName, columnConfig));
             return;
         }
+
+        if (columnConfig.master_key) {
+            container.appendChild(
+                this._buildApiValueSelect(columnName, columnConfig)
+            );
+            return;
+        }
+
         container.appendChild(
             this._buildSingleInput(
                 columnName,
@@ -378,6 +390,21 @@ export class RenderTableFilters {
 
             select.appendChild(option);
         }
+
+        return select;
+    }
+
+    _buildApiValueSelect(columnName, columnConfig) {
+        const select = document.createElement("select");
+        select.className = this._getInputClassName(columnConfig, "form-select");
+        select.name = columnName;
+
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = columnConfig.filter?.placeholder || "Todos";
+        select.appendChild(emptyOption);
+
+        this._loadApiValueOptions(select, columnConfig);
 
         return select;
     }
@@ -590,6 +617,7 @@ export class RenderTableFilters {
         if (columnConfig.type === "boolean") {
             return this._mapBooleanLogicalValueToCrudValue(trimmedValue, columnConfig);
         }
+
         if (columnConfig.type === "integer") {
             return parseInt(trimmedValue, 10);
         }
@@ -663,6 +691,63 @@ export class RenderTableFilters {
 
     _isEmptyValue(value) {
         return value === undefined || value === null || String(value).trim() === "";
+    }
+
+    async _loadApiValueOptions(selectElement, columnConfig = {}) {
+        const masterKey = String(columnConfig.master_key || "").trim().toUpperCase();
+
+        if (!masterKey || !selectElement) {
+            return;
+        }
+
+        try {
+            selectElement.disabled = true;
+
+            const records = await fetchApiValueRecords(
+                masterKey,
+                { baseUrl: this.apiValueBaseUrl }
+            );
+
+            this.apiValueRecords[masterKey] = records;
+            this._populateApiValueSelect(selectElement, columnConfig, records);
+        } catch (error) {
+            console.error(error);
+            this._populateApiValueError(selectElement);
+        } finally {
+            selectElement.disabled = false;
+        }
+    }
+
+    _populateApiValueSelect(selectElement, columnConfig, records = []) {
+        const currentValue = selectElement.value || "";
+        const placeholder = columnConfig.filter?.placeholder || "Todos";
+
+        selectElement.innerHTML = "";
+
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = placeholder;
+        selectElement.appendChild(emptyOption);
+
+        records.forEach((record) => {
+            const option = document.createElement("option");
+            option.value = record?.ID_ROW ?? record?.id_row ?? "";
+            option.textContent = record?.DISPLAY_VALUE ?? record?.display_value ?? "";
+            selectElement.appendChild(option);
+        });
+
+        if (currentValue) {
+            selectElement.value = currentValue;
+        }
+    }
+
+    _populateApiValueError(selectElement) {
+        selectElement.innerHTML = "";
+
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = "No se pudieron cargar los valores";
+        selectElement.appendChild(emptyOption);
     }
 }
 

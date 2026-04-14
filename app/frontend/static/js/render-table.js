@@ -1,4 +1,5 @@
 import { DateFormatter } from "./formater.js";
+import { fetchApiValueRecords, getApiValueLabel } from "./api-value-service.js";
 
 
 export default class RenderTable {
@@ -10,6 +11,8 @@ export default class RenderTable {
         this.buttons = options.buttons || {};
         this.onRowRender = options.onRowRender || null;
         this.onTableRendered = options.onTableRendered || null;
+        this.apiValueBaseUrl = options.apiValueBaseUrl || "/api_value/data/";
+        this.apiValueRecords = {};
         this.container = this._resolveContainer();
         this.tableElement = null;
         this.tbodyElement = null;
@@ -25,6 +28,7 @@ export default class RenderTable {
             this.data = Array.isArray(data) ? data : [];
         }
 
+        this._ensureApiValueMastersLoaded();
         this._createStructure();
         this._renderHeader();
         this._renderBody();
@@ -367,6 +371,13 @@ export default class RenderTable {
             );
         }
 
+        if (columnConfig.master_key) {
+            return this._formatApiValue(
+                value,
+                columnConfig
+            );
+        }
+
         if (value === null || value === undefined) {
             return "";
         }
@@ -388,6 +399,58 @@ export default class RenderTable {
         }
 
         return String(value);
+    }
+
+    _formatApiValue(value, columnConfig = {}) {
+        if (value === null || value === undefined || value === "") {
+            return "";
+        }
+
+        const masterKey = String(columnConfig.master_key || "").trim().toUpperCase();
+        const records = this.apiValueRecords[masterKey] || [];
+        const resolvedLabel = getApiValueLabel(records, value);
+
+        if (resolvedLabel !== null && resolvedLabel !== undefined) {
+            return String(resolvedLabel);
+        }
+
+        return String(value);
+    }
+
+    _ensureApiValueMastersLoaded() {
+        const mastersToLoad = this.columns
+            .map((columnName) => this.entityConfig[columnName] || {})
+            .map((columnConfig) => columnConfig.master_key)
+            .filter(Boolean);
+
+        const uniqueMasters = [...new Set(mastersToLoad)];
+
+        uniqueMasters.forEach((masterKey) => {
+            this._loadApiValueMaster(masterKey);
+        });
+    }
+
+    async _loadApiValueMaster(masterKey) {
+        const normalizedMasterKey = String(masterKey || "").trim().toUpperCase();
+
+        if (!normalizedMasterKey) {
+            return;
+        }
+
+        try {
+            const records = await fetchApiValueRecords(
+                normalizedMasterKey,
+                { baseUrl: this.apiValueBaseUrl }
+            );
+
+            this.apiValueRecords[normalizedMasterKey] = records;
+
+            if (this.tbodyElement) {
+                this._renderBody();
+            }
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     _formatBooleanValue(value, columnConfig = {}) {
