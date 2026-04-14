@@ -92,7 +92,7 @@ class DatabaseManager:
         with DatabaseConnection.get_connection() as connection:
             with connection.cursor() as cursor:
                 if params:
-                    cursor.execute(final_sql)
+                    cursor.execute(final_sql, params)
                 else:
                     cursor.execute(final_sql)
                 records = cursor.fetchall()
