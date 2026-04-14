@@ -126,7 +126,7 @@ class EntityModel(BaseModel):
         Por defecto excluye campos nulos para evitar enviar columnas vacías
         a la capa de persistencia.
         """
-        return self.to_dict(exclude_none=True)
+        return self.to_dict(exclude_none=False)
 
     def to_update_dict(self, *, include_primary_key: bool = False) -> dict[str, Any]:
 
