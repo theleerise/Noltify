@@ -32,7 +32,7 @@ class DatabaseConnection:
         cls._pool = ConnectionPool(
             connection_string,
             min_size=1,
-            max_size=10,
+            max_size=20,
             kwargs={
                 "row_factory": dict_row
             }
