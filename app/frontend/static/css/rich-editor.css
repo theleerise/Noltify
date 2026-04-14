@@ -1,0 +1,53 @@
+.nk-rich-editor .nk-rich-editor-toolbar {
+    background-color: var(--bs-tertiary-bg, #f8f9fa);
+}
+
+.nk-rich-editor .nk-rich-editor-toolbar .btn {
+    min-width: 36px;
+}
+
+.nk-rich-editor .nk-rich-editor-body {
+    overflow-y: auto;
+    background-color: #ffffff;
+    line-height: 1.5;
+}
+
+.nk-rich-editor .nk-rich-editor-body:focus {
+    box-shadow: none;
+    outline: none;
+}
+
+.nk-rich-editor .nk-rich-editor-body.is-empty::before {
+    content: attr(data-placeholder);
+    color: #6c757d;
+    pointer-events: none;
+}
+
+.nk-rich-editor .nk-rich-editor-body h1,
+.nk-rich-editor .nk-rich-editor-body h2,
+.nk-rich-editor .nk-rich-editor-body h3 {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.nk-rich-editor .nk-rich-editor-body p {
+    margin-bottom: 0.75rem;
+}
+
+.nk-rich-editor .nk-rich-editor-body blockquote {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    border-left: 4px solid #ced4da;
+    background-color: #f8f9fa;
+}
+
+.nk-rich-editor .nk-rich-editor-body ul,
+.nk-rich-editor .nk-rich-editor-body ol {
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.nk-rich-editor .nk-rich-editor-body img {
+    max-width: 100%;
+    height: auto;
+}

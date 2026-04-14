@@ -1,0 +1,157 @@
+{% macro rich_editor(
+    name,
+    id=None,
+    label=None,
+    value='',
+    placeholder='Escriba una publicación...',
+    height='260px',
+    required=False,
+    readonly=False,
+    disabled=False,
+    help_text=None,
+    toolbar=True,
+    upload_image=False,
+    css_class='',
+    editor_class='',
+    textarea_class='',
+    data_attributes={}
+) %}
+    {% set editor_id = id or ('editor_' ~ name) %}
+    {% set textarea_id = editor_id ~ '_textarea' %}
+    {% set toolbar_id = editor_id ~ '_toolbar' %}
+
+    <div class="nk-rich-editor {{ css_class }}" data-rich-editor-container>
+        {% if label %}
+            <label for="{{ textarea_id }}" class="form-label">
+                {{ label }}
+                {% if required %}
+                    <span class="text-danger">*</span>
+                {% endif %}
+            </label>
+        {% endif %}
+
+        <div class="card shadow-sm border-0">
+            {% if toolbar and not readonly and not disabled %}
+                <div
+                    id="{{ toolbar_id }}"
+                    class="nk-rich-editor-toolbar border-bottom px-2 py-2 d-flex flex-wrap gap-1 align-items-center"
+                    data-rich-editor-toolbar
+                >
+                    <button type="button" class="btn btn-sm btn-light" data-command="bold" title="Negrita">
+                        <strong>B</strong>
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="italic" title="Cursiva">
+                        <em>I</em>
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="underline" title="Subrayado">
+                        <u>U</u>
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="strikeThrough" title="Tachado">
+                        <s>S</s>
+                    </button>
+
+                    <span class="vr mx-1"></span>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="formatBlock" data-value="H1" title="Título 1">
+                        H1
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="formatBlock" data-value="H2" title="Título 2">
+                        H2
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="formatBlock" data-value="P" title="Párrafo">
+                        P
+                    </button>
+
+                    <span class="vr mx-1"></span>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="insertUnorderedList" title="Lista">
+                        • Lista
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="insertOrderedList" title="Lista numerada">
+                        1. Lista
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="blockquote" data-custom-action="blockquote" title="Cita">
+                        “ ”
+                    </button>
+
+                    <span class="vr mx-1"></span>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="justifyLeft" title="Alinear a la izquierda">
+                        ⬅
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="justifyCenter" title="Centrar">
+                        ↔
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="justifyRight" title="Alinear a la derecha">
+                        ➡
+                    </button>
+
+                    <span class="vr mx-1"></span>
+
+                    <button type="button" class="btn btn-sm btn-light" data-custom-action="link" title="Insertar enlace">
+                        🔗
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="removeFormat" title="Quitar formato">
+                        Tx
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="undo" title="Deshacer">
+                        ↺
+                    </button>
+
+                    <button type="button" class="btn btn-sm btn-light" data-command="redo" title="Rehacer">
+                        ↻
+                    </button>
+
+                    {% if upload_image %}
+                        <span class="vr mx-1"></span>
+
+                        <button type="button" class="btn btn-sm btn-light" data-custom-action="image" title="Insertar imagen">
+                            🖼
+                        </button>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <div
+                id="{{ editor_id }}"
+                class="nk-rich-editor-body form-control rounded-0 border-0 {{ editor_class }}"
+                contenteditable="{{ 'false' if readonly or disabled else 'true' }}"
+                data-rich-editor
+                data-textarea-id="{{ textarea_id }}"
+                data-placeholder="{{ placeholder }}"
+                style="min-height: {{ height }};"
+                {% if readonly %}data-readonly="true"{% endif %}
+                {% if disabled %}data-disabled="true"{% endif %}
+                {% for attr_name, attr_value in data_attributes.items() %}
+                    data-{{ attr_name }}="{{ attr_value }}"
+                {% endfor %}
+            >{{ value | safe }}</div>
+
+            <textarea
+                id="{{ textarea_id }}"
+                name="{{ name }}"
+                class="d-none {{ textarea_class }}"
+                {% if required %}required{% endif %}
+                {% if readonly %}readonly{% endif %}
+                {% if disabled %}disabled{% endif %}
+            >{{ value }}</textarea>
+        </div>
+
+        {% if help_text %}
+            <div class="form-text">
+                {{ help_text }}
+            </div>
+        {% endif %}
+    </div>
+{% endmacro %}

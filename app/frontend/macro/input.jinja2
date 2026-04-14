@@ -1,4 +1,5 @@
 {% from 'macro/api_value.jinja2' import mac_api_value_select %}
+{% from 'macro/rich_editor.jinja2' import rich_editor %}
 
 {% macro _build_attrs(field_name, field_config={}, extra_class='') -%}
     name="{{ field_name }}"
@@ -238,9 +239,28 @@
         {{ mac_input_time(field_name, field_config, value) }}
     {% elif field_config.type == 'boolean' %}
         {{ mac_checkbox(field_name, field_config, value) }}
+    {% elif field_config.widget == 'rich_editor' %}
+        {{ mac_rich_editor(field_name, field_config, value) }}
     {% elif field_config.widget == 'textarea' %}
         {{ mac_textarea(field_name, field_config, value) }}
     {% else %}
         {{ mac_input_text(field_name, field_config, value) }}
     {% endif %}
+{% endmacro %}
+
+{% macro mac_rich_editor(field_name, field_config={}, value='') %}
+    <div class="mb-3">
+        {{ rich_editor(
+            name=field_name,
+            id='id_' ~ field_name ~ '_editor',
+            label=field_config.title or field_name|replace('_', ' ')|title,
+            value=value,
+            placeholder=field_config.placeholder or '',
+            height=field_config.height or '260px',
+            required=field_config.required or false,
+            readonly=field_config.readonly or false,
+            disabled=field_config.readonly or false,
+            help_text=field_config.description
+        ) }}
+    </div>
 {% endmacro %}

@@ -1,9 +1,13 @@
 {% from 'macro/input.jinja2' import mac_render_field %}
 
+{% set ns = namespace(has_rich_editor=false) %}
 <form class="row g-3" novalidate enctype="multipart/form-data">
     {% for field_name, field_config in entity_model.items() %}
         {% if not field_config.hidden_form %}
-            <div class="col-12 {% if field_config.widget == 'textarea' %}col-md-12{% else %}col-md-6{% endif %}" data-field-wrapper="{{ field_name }}">
+            {% if field_config.widget == 'rich_editor' %}
+                {% set ns.has_rich_editor = true %}
+            {% endif %}
+            <div class="col-12 {% if field_config.widget in ['textarea', 'rich_editor'] %}col-md-12{% else %}col-md-6{% endif %}" data-field-wrapper="{{ field_name }}">
                 {{ mac_render_field(field_name, field_config) }}
             </div>
         {% endif %}
@@ -19,3 +23,11 @@
         {% endfor %}
     </div>
 </form>
+
+{% if ns.has_rich_editor %}
+    <script>
+        if (window.RichEditor) {
+            window.RichEditor.initAll();
+        }
+    </script>
+{% endif %}

@@ -12,6 +12,14 @@
  - {{ entity_title_plural }}
 {% endblock %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ static('css/rich-editor.css') }}">
+{% endblock %}
+
 {% block content %}
     {% include "crud/list_content.html" %}
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{{ static('js/rich-editor.js') }}"></script>
 {% endblock %}

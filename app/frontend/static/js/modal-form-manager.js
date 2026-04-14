@@ -621,6 +621,15 @@ export default class ModalFormManager {
 
         if (tagName === "textarea") {
             field.value = value ?? "";
+
+            const richEditor = field.id
+                ? this.formElement.querySelector(`[data-rich-editor][data-textarea-id="${field.id}"]`)
+                : null;
+
+            if (richEditor) {
+                richEditor.innerHTML = value ?? "";
+                richEditor.dispatchEvent(new Event("input", { bubbles: true }));
+            }
         }
     }
 

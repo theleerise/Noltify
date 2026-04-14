@@ -8,7 +8,15 @@ class PublicationModel(EntityModel):
     id: int | None = Field(default=None, title="ID", description="Identificador de la publicación", pk=True, readonly=True, master_key="PUBLICATIONS", hidden_form=True)
 
     title: str = Field(..., title="Título", description="Título de la publicación")
-    content: str | None = Field(default=None, title="Contenido", description="Contenido de la publicación", widget="textarea", rows=8)
+    content: str | None = Field(
+        default=None,
+        title="Contenido",
+        description="Contenido de la publicación",
+        widget="rich_editor",
+        rows=8,
+        placeholder="Escriba el contenido de la publicación...",
+        height="320px"
+    )
 
     status: str = Field(default="DRAFT", title="Estado", description="Estado de la publicación")
 
