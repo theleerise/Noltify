@@ -5,7 +5,7 @@ from app.backend.core.entity_model import EntityModel
 
 class AppUserModel(EntityModel):
 
-    id: int | None = Field(default=None, title="ID", description="Identificador único del usuario")
+    id: int | None = Field(default=None, title="ID", description="Identificador único del usuario", pk=True, readonly=True, master_key="APP_USERS", hidden_form=True)
 
     username: str = Field(..., title="Usuario", description="Nombre de usuario único del sistema")
     email: str = Field(..., title="Email", description="Correo electrónico del usuario")
@@ -17,8 +17,8 @@ class AppUserModel(EntityModel):
     is_active: bool = Field(default=True, title="Activo", description="Indica si el usuario está activo")
     is_superuser: bool = Field(default=False, title="Superusuario", description="Indica si el usuario tiene permisos administrativos")
 
-    created_at: datetime | None = Field(default=None, title="Fec. Creación", description="Fecha de creación del usuario")
-    updated_at: datetime | None = Field(default=None, title="Fec. Actualización", description="Fecha de última actualización del usuario")
+    created_at: datetime | None = Field(default=None, title="Fec. Creación", description="Fecha de creación del usuario", readonly=True, hidden_form=True)
+    updated_at: datetime | None = Field(default=None, title="Fec. Actualización", description="Fecha de última actualización del usuario", readonly=True, hidden_form=True)
 
     class Config:
         table_name = "APP_USER"

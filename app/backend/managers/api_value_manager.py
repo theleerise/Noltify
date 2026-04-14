@@ -89,3 +89,59 @@ class ApiValueManager(DatabaseManager):
             ) WHERE 1=1
         """
         return query
+
+    def _query_DOCUMENTS(self) -> str:
+        query = """
+            SELECT
+                  ID_ROW
+                , DISPLAY_VALUE
+            FROM (
+                SELECT
+                      ID AS ID_ROW
+                    , TITLE AS DISPLAY_VALUE
+                FROM PUBLIC.DOCUMENT
+            ) WHERE 1=1
+        """
+        return query
+
+    def _query_PERMISSIONS(self) -> str:
+        query = """
+            SELECT
+                  ID_ROW
+                , DISPLAY_VALUE
+            FROM (
+                SELECT
+                      ID AS ID_ROW
+                    , CODE AS DISPLAY_VALUE
+                FROM PUBLIC.PERMISSION
+            ) WHERE 1=1
+        """
+        return query
+
+    def _query_PUBLICATIONS(self) -> str:
+        query = """
+            SELECT
+                  ID_ROW
+                , DISPLAY_VALUE
+            FROM (
+                SELECT
+                      ID AS ID_ROW
+                    , TITLE AS DISPLAY_VALUE
+                FROM PUBLIC.PUBLICATION
+            ) WHERE 1=1
+        """
+        return query
+
+    def _query_ROLES(self) -> str:
+        query = """
+            SELECT
+                  ID_ROW
+                , DISPLAY_VALUE
+            FROM (
+                SELECT
+                      ID AS ID_ROW
+                    , CODE AS DISPLAY_VALUE
+                FROM PUBLIC.ROLE
+            ) WHERE 1=1
+        """
+        return query
