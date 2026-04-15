@@ -13,12 +13,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SEGURIDAD
 # ---------------------------------------------------------
 
-SECRET_KEY = "django-insecure-change-this-key"
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-change-this-key")
 
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "0") == "1"
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost,.railway.app").split(",")
+    if host.strip()
+]
 
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "https://*.railway.app").split(",")
+    if origin.strip()
+]
 
 # ---------------------------------------------------------
 # APLICACIONES INSTALADAS
