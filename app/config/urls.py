@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import HttpResponse
 from django.views.generic import TemplateView
 
 from backend.views.api_value.api_value_urls import app_name as api_value_app
@@ -24,6 +25,7 @@ from backend.views.role_user.role_user_urls import app_name as role_user_app
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("health/", lambda request: HttpResponse("ok", content_type="text/plain"), name="health"),
     path("", TemplateView.as_view(template_name="index.html"), name="home"),
     path(f"{api_value_app}/", include(f"app.backend.views.{api_value_app}.{api_value_app}_urls")),
 
