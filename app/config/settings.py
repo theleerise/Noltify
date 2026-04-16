@@ -6,7 +6,44 @@ from pathlib import Path
 # RUTAS BASE
 # ---------------------------------------------------------
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+CONFIG_DIR = Path(__file__).resolve().parent
+APP_DIR = CONFIG_DIR.parent
+PROJECT_DIR = APP_DIR.parent
+BASE_DIR = APP_DIR
+
+FRONTEND_DIR = APP_DIR / "frontend"
+PAGE_DIR = FRONTEND_DIR / "page"
+MACRO_DIR = FRONTEND_DIR / "macro"
+STATIC_DIR = FRONTEND_DIR / "static"
+STATIC_ROOT_DIR = PROJECT_DIR / "staticfiles"
+MEDIA_ROOT_DIR = PROJECT_DIR / "media"
+
+
+# ---------------------------------------------------------
+# ENTORNO LOCAL
+# ---------------------------------------------------------
+
+def load_local_env(env_path: Path) -> None:
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+
+        os.environ.setdefault(key, value)
+
+
+load_local_env(PROJECT_DIR / ".env")
+
+STATIC_ROOT_DIR.mkdir(parents=True, exist_ok=True)
+MEDIA_ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ---------------------------------------------------------
@@ -73,9 +110,9 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.jinja2.Jinja2",
         "DIRS": [
-            BASE_DIR / "frontend",
-            BASE_DIR / "frontend" / "page",
-            BASE_DIR / "frontend" / "macro",
+            FRONTEND_DIR,
+            PAGE_DIR,
+            MACRO_DIR,
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -85,9 +122,9 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            BASE_DIR / "frontend",
-            BASE_DIR / "frontend" / "page",
-            BASE_DIR / "frontend" / "macro",
+            FRONTEND_DIR,
+            PAGE_DIR,
+            MACRO_DIR,
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -113,26 +150,17 @@ ASGI_APPLICATION = "config.asgi.application"
 # BASE DE DATOS
 # ---------------------------------------------------------
 
-USE_POSTGRES = os.getenv("USE_POSTGRES", "0") == "1"
 
-if USE_POSTGRES:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("DB_NAME", "noltify"),
-            "USER": os.getenv("DB_USER", "noltify_app_user"),
-            "PASSWORD": os.getenv("DB_PASSWORD", "88908890"),
-            "HOST": os.getenv("DB_HOST", "localhost"),
-            "PORT": os.getenv("DB_PORT", "5432"),
-        }
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("DB_NAME", "noltify"),
+        "USER": os.getenv("DB_USER", "noltify_app_user"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "88908890"),
+        "HOST": os.getenv("DB_HOST", "localhost"),
+        "PORT": os.getenv("DB_PORT", "5432"),
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+}
 
 
 # ---------------------------------------------------------
@@ -175,19 +203,10 @@ USE_TZ = True
 STATIC_URL = "/static/"
 
 STATICFILES_DIRS = [
-    BASE_DIR / "frontend" / "static",
+    STATIC_DIR,
 ]
 
-STATIC_ROOT = BASE_DIR / "staticfiles"
-
-
-# ---------------------------------------------------------
-# ARCHIVOS MEDIA
-# ---------------------------------------------------------
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
+STATIC_ROOT = STATIC_ROOT_DIR
 
 # ---------------------------------------------------------
 # CLAVE PRIMARIA POR DEFECTO

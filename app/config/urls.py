@@ -42,6 +42,3 @@ urlpatterns = [
     path(f"{role_permission_app}/", include(f"app.backend.views.{role_permission_app}.{role_permission_app}_urls")),
     path(f"{role_user_app}/", include(f"app.backend.views.{role_user_app}.{role_user_app}_urls")),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
