@@ -3,7 +3,7 @@
 {% set ns = namespace(has_rich_editor=false) %}
 <form class="row g-3" novalidate enctype="multipart/form-data">
     {% for field_name, field_config in entity_model.items() %}
-        {% if not field_config.hidden_form %}
+        {% if not field_config.hidden_form and not field_config.display_value %}
             {% if field_config.widget == 'rich_editor' %}
                 {% set ns.has_rich_editor = true %}
             {% endif %}
@@ -15,7 +15,7 @@
 
     <div hidden>
         {% for field_name, field_config in entity_model.items() %}
-            {% if field_config.hidden_form %}
+            {% if field_config.hidden_form and not field_config.display_value %}
                 <div class="col-12 col-md-6" data-field-wrapper="{{ field_name }}">
                     {{ mac_render_field(field_name, field_config) }}
                 </div>

@@ -12,11 +12,17 @@ class DepartmentUserManager(DatabaseManager):
     def _select_query(self) -> str:
         return """
             SELECT
-                  ID
-                , DEPARTMENT_ID
-                , USER_ID
-                , ASSIGNED_AT
-            FROM PUBLIC.DEPARTMENT_USER
+                  DEUS.ID
+                , DEUS.DEPARTMENT_ID
+				, DE.CODE AS DEPARTMENT_ID_DISPLAY
+                , DEUS.USER_ID
+				, CONCAT(US.USERNAME, ' (', US.FIRST_NAME, ' ', US.LAST_NAME, ')') AS USER_ID_DISPLAY
+                , DEUS.ASSIGNED_AT
+            FROM PUBLIC.DEPARTMENT_USER AS DEUS
+			LEFT JOIN PUBLIC.DEPARTMENT AS DE
+			    ON DE.ID = DEUS.DEPARTMENT_ID
+			LEFT JOIN PUBLIC.APP_USER AS US
+			    ON US.ID = DEUS.USER_ID
             WHERE 1 = 1
         """
 
