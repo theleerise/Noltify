@@ -1,7 +1,8 @@
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PORT=8080
 
 WORKDIR /app
 
@@ -17,4 +18,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "gunicorn config.wsgi:application --pythonpath app --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile - --capture-output"]
+CMD ["sh", "-c", "echo PORT=$PORT && exec gunicorn config.wsgi:application --pythonpath app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile - --capture-output"]
