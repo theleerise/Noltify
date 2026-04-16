@@ -18,4 +18,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "exec gunicorn config.wsgi:application --pythonpath app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile - --capture-output"]
+CMD ["sh", "-c", "python manager.py collectstatic --noinput && exec gunicorn config.wsgi:application --pythonpath app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile - --capture-output"]
