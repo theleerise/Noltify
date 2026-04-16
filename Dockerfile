@@ -17,4 +17,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "python manager.py migrate && python manager.py collectstatic --noinput && gunicorn config.wsgi:application --pythonpath app --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile - --capture-output"]
+CMD ["sh", "-c", "gunicorn config.wsgi:application --pythonpath app --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile - --capture-output"]
