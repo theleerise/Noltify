@@ -4,7 +4,7 @@ from typing import Any
 import time
 
 from backend.core.database_connection import DatabaseConnection
-from backend.core.sql_builder import QueryBuilder, get_query_row_count, get_query_paginator
+from backend.core.sql_builder import QueryBuilder, get_query_row_count, get_query_paginator, get_query_base_wrapper
 from backend.core.entity_model import EntityModel
 
 
@@ -158,8 +158,9 @@ class DatabaseManager:
         """
 
         sql_base = sql or self._select_query()
+        sql_wrap = get_query_base_wrapper(sql_base)
         sql_filter = f"""
-            {sql_base}
+            {sql_wrap}
             AND {self.primary_key} = %({self.primary_key})s
         """
 

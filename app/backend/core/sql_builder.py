@@ -24,6 +24,17 @@ def get_query_paginator(sql: str) -> str:
     """
     return query
 
+def get_query_base_wrapper(sql: str) -> str:
+    query = f"""
+        SELECT *
+        FROM (
+            {sql}
+        ) WHERE 1=1
+    """
+    
+    return query
+
+
 class QueryBuilder:
     """Clase utilizada para construir consultas SQL Dinamicas
 
