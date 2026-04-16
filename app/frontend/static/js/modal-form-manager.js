@@ -399,7 +399,10 @@ export default class ModalFormManager {
             const field = this._findField(fieldName);
             if (!field) return;
 
-            if (fieldConfig.required === true) {
+            const isRequired = fieldConfig.required === true
+                || (fieldConfig.required_on_create === true && this.mode === "new");
+
+            if (isRequired) {
                 field.setAttribute("required", "required");
             } else {
                 field.removeAttribute("required");

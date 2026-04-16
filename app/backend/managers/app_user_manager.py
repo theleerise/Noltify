@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from django.contrib.auth.hashers import make_password
+
 from backend.core.database_manager import DatabaseManager
 from backend.models.app_user_model import AppUserModel
 
@@ -15,7 +17,6 @@ class AppUserManager(DatabaseManager):
                   ID
                 , USERNAME
                 , EMAIL
-                , PASSWORD_HASH
                 , FIRST_NAME
                 , LAST_NAME
                 , IS_ACTIVE
@@ -51,13 +52,16 @@ class AppUserManager(DatabaseManager):
             )
         """
 
-    def _update_query(self):
-        return """
+    def _update_query(self, include_password: bool = False):
+        password_sql = ""
+        if include_password:
+            password_sql = "\n                , PASSWORD_HASH = %(password_hash)s"
+
+        return f"""
             UPDATE PUBLIC.APP_USER
             SET
                   USERNAME = %(username)s
-                , EMAIL = %(email)s
-                , PASSWORD_HASH = %(password_hash)s
+                , EMAIL = %(email)s{password_sql}
                 , FIRST_NAME = %(first_name)s
                 , LAST_NAME = %(last_name)s
                 , IS_ACTIVE = %(is_active)s
@@ -72,11 +76,50 @@ class AppUserManager(DatabaseManager):
             WHERE ID = %(id)s
         """
 
+    def insert_query(self, data: dict):
+        final_data = self._before_insert(data)
+        self.execute_query_data(
+            sql=self._insert_query(),
+            params=final_data,
+        )
+        self._after_insert(final_data)
+
+    def update_query(self, data: dict):
+        final_data = self._before_update(data)
+        include_password = "password_hash" in final_data
+
+        self.execute_query_data(
+            sql=self._update_query(include_password=include_password),
+            params=final_data,
+        )
+
+        self._after_update(final_data)
+
     def _before_insert(self, data: dict) -> dict:
+        password = self._normalize_password(data.get("password_hash"))
+        if not password:
+            raise ValueError("La contrasena es obligatoria para crear un usuario.")
+
+        data["password_hash"] = make_password(password)
         data["created_at"] = datetime.now()
         data["updated_at"] = datetime.now()
         return data
 
     def _before_update(self, data: dict) -> dict:
+        password = self._normalize_password(data.get("password_hash"))
+
+        if password:
+            data["password_hash"] = make_password(password)
+        else:
+            data.pop("password_hash", None)
+
         data["updated_at"] = datetime.now()
         return data
+
+    @staticmethod
+    def _normalize_password(password: str | None) -> str | None:
+        if password is None:
+            return None
+
+        normalized_password = password.strip()
+        return normalized_password or None

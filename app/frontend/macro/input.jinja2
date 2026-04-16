@@ -6,6 +6,7 @@
     id="id_{{ field_name }}"
     class="form-control{% if extra_class %} {{ extra_class }}{% endif %}{% if field_config.className %} {{ field_config.className }}{% endif %}"
     {% if field_config.placeholder %}placeholder="{{ field_config.placeholder }}"{% endif %}
+    {% if field_config.autocomplete %}autocomplete="{{ field_config.autocomplete }}"{% endif %}
     {% if field_config.required %}required{% endif %}
     {% if field_config.readonly %}disabled{% endif %}
     {% if field_config.maxlength %}maxlength="{{ field_config.maxlength }}"{% endif %}
@@ -35,7 +36,7 @@
                 </div>
             {% endif %}
         </div>
-        <input type="text" value="{{ value }}" {{ _build_attrs(field_name, field_config) }} >
+        <input type="{{ field_config.input_type or 'text' }}" value="{{ value }}" {{ _build_attrs(field_name, field_config) }} >
     </div>
 {% endmacro %}
 
