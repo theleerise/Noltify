@@ -1,15 +1,8 @@
 {% extends "base.html" %}
-
-{% set entity_slug = "publication" %}
-{% set entity_title = "Publicación" %}
-{% set entity_title_plural = "Publicaciones" %}
-{% set delete_label_field = "title" %}
-{% set article = "la" %}
-{% set visible_columns = '["title", "status", "created_by", "is_active", "created_at", "updated_at"]' %}
-{% set filters_columns = '["id", "title", "content", "status", "created_by", "is_active", "created_at", "updated_at"]' %}
+{% from 'macro/component.jinja2' import mac_list_title %}
 
 {% block title %}
- - {{ entity_title_plural }}
+ - Publicaciones
 {% endblock %}
 
 {% block extra_css %}
@@ -17,7 +10,145 @@
 {% endblock %}
 
 {% block content %}
-    {% include "crud/list_content.html" %}
+
+{{ mac_list_title("Publicaciones") }}
+
+<div>
+    <div filters_name="publication-filters" class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#publication-filters-collapse">Filtros</a>
+                <a class="btn btn-sm btn-outline-primary" onclick="window.publicationOpenNew()">Crear</a>
+            </div>
+            <div filters_actions="publication-filters-actions"></div>
+        </div>
+        <div class="collapse" id="publication-filters-collapse">
+            <div class="card-body">
+                <div filters_form="publication-filters-form"></div>
+            </div>
+        </div>
+    </div>
+
+    <div summary_name="publication-table-summary"></div>
+    <div table_name="publication-table"></div>
+    <div pagination_name="publication-table-pagination"></div>
+</div>
+
+<div id="publication-modal-container"></div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import RenderTableFilters from "/static/js/render-table-filters.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const entityConfig = {{ entity_model|safe }};
+    const visibleColumns = ["title", "status", "created_by", "is_active", "created_at", "updated_at"];
+    const filtersColumns = ["id", "title", "content", "status", "created_by", "is_active", "created_at", "updated_at"];
+
+    function buildFilter(fieldName, value) {
+        return {
+            page: 1,
+            orders: {},
+            filters: {
+                [fieldName.toUpperCase()]: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: value
+                }
+            }
+        };
+    }
+
+    const table = new RenderPaginateTable({
+        tableName: "publication-table",
+        paginationContainerName: "publication-table-pagination",
+        summaryContainerName: "publication-table-summary",
+        entityConfig,
+        columns: visibleColumns,
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => {
+                    window.publicationUserFilterValue = buildFilter("publication_id", row.id);
+                    window.publicationDepartmentFilterValue = buildFilter("publication_id", row.id);
+                    window.entityFormMgr.openEdit(row.id);
+                }
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "publication-modal-container",
+                        url: `/publication/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar publicacion",
+                        message: `Seguro que deseas eliminar la publicacion <strong>${row.title}</strong>?`,
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            table.load();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
+        url: "/publication/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const filters = new RenderTableFilters({
+        filtersName: "publication-filters",
+        entityConfig,
+        columns: filtersColumns,
+        onSubmit: (currentFilters) => table.applyFilters(currentFilters),
+        onReset: () => {
+            table.setOrders({});
+            table.applyFilters({});
+        }
+    });
+
+    filters.render();
+    table.load();
+
+    window.publicationOpenNew = () => {
+        window.publicationUserFilterValue = null;
+        window.publicationDepartmentFilterValue = null;
+        window.entityFormMgr.openNew();
+    };
+
+    window.entityFormMgr = new ModalFormManager({
+        containerName: "publication-modal-container",
+        entityConfig,
+        formUrl: "/publication/form/",
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
+        dataUrls: {
+            new: "/publication/new/",
+            edit: (id) => `/publication/edit/${id}/`
+        },
+        submitUrl: (mode, id) => mode === "new" ? "/publication/create/" : `/publication/update/${id}/`,
+        modal: {
+            titleNew: "Nueva publicacion",
+            titleEdit: "Editar publicacion",
+            titleShow: "Detalle de la publicacion",
+            size: "modal-lg"
+        },
+        onSuccess: (response, manager) => {
+            manager.close();
+            table.load();
+        },
+        onError: (error) => console.error(error)
+    });
+</script>
+
 {% endblock %}
 
 {% block extra_js %}

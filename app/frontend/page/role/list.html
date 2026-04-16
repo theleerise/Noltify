@@ -1,17 +1,148 @@
 {% extends "base.html" %}
-
-{% set entity_slug = "role" %}
-{% set entity_title = "Rol" %}
-{% set entity_title_plural = "Roles" %}
-{% set delete_label_field = "code" %}
-{% set article = "el" %}
-{% set visible_columns = '["code", "name", "description", "is_active", "created_at", "updated_at"]' %}
-{% set filters_columns = '["id", "code", "name", "description", "is_active", "created_at", "updated_at"]' %}
+{% from 'macro/component.jinja2' import mac_list_title %}
 
 {% block title %}
- - {{ entity_title_plural }}
+ - Roles
 {% endblock %}
 
 {% block content %}
-    {% include "crud/list_content.html" %}
+
+{{ mac_list_title("Roles") }}
+
+<div>
+    <div filters_name="role-filters" class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#role-filters-collapse">Filtros</a>
+                <a class="btn btn-sm btn-outline-primary" onclick="window.roleOpenNew()">Crear</a>
+            </div>
+            <div filters_actions="role-filters-actions"></div>
+        </div>
+        <div class="collapse" id="role-filters-collapse">
+            <div class="card-body">
+                <div filters_form="role-filters-form"></div>
+            </div>
+        </div>
+    </div>
+
+    <div summary_name="role-table-summary"></div>
+    <div table_name="role-table"></div>
+    <div pagination_name="role-table-pagination"></div>
+</div>
+
+<div id="role-modal-container"></div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import RenderTableFilters from "/static/js/render-table-filters.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const entityConfig = {{ entity_model|safe }};
+    const visibleColumns = ["code", "name", "description", "is_active", "created_at", "updated_at"];
+    const filtersColumns = ["id", "code", "name", "description", "is_active", "created_at", "updated_at"];
+
+    function buildFilter(fieldName, value) {
+        return {
+            page: 1,
+            orders: {},
+            filters: {
+                [fieldName.toUpperCase()]: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: value
+                }
+            }
+        };
+    }
+
+    const table = new RenderPaginateTable({
+        tableName: "role-table",
+        paginationContainerName: "role-table-pagination",
+        summaryContainerName: "role-table-summary",
+        entityConfig,
+        columns: visibleColumns,
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => {
+                    window.roleUserFilterValue = buildFilter("role_id", row.id);
+                    window.rolePermissionFilterValue = buildFilter("role_id", row.id);
+                    window.entityFormMgr.openEdit(row.id);
+                }
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "role-modal-container",
+                        url: `/role/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar rol",
+                        message: `Seguro que deseas eliminar el rol <strong>${row.code}</strong>?`,
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            table.load();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
+        url: "/role/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const filters = new RenderTableFilters({
+        filtersName: "role-filters",
+        entityConfig,
+        columns: filtersColumns,
+        onSubmit: (currentFilters) => table.applyFilters(currentFilters),
+        onReset: () => {
+            table.setOrders({});
+            table.applyFilters({});
+        }
+    });
+
+    filters.render();
+    table.load();
+
+    window.roleOpenNew = () => {
+        window.roleUserFilterValue = null;
+        window.rolePermissionFilterValue = null;
+        window.entityFormMgr.openNew();
+    };
+
+    window.entityFormMgr = new ModalFormManager({
+        containerName: "role-modal-container",
+        entityConfig,
+        formUrl: "/role/form/",
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
+        dataUrls: {
+            new: "/role/new/",
+            edit: (id) => `/role/edit/${id}/`
+        },
+        submitUrl: (mode, id) => mode === "new" ? "/role/create/" : `/role/update/${id}/`,
+        modal: {
+            titleNew: "Nuevo rol",
+            titleEdit: "Editar rol",
+            titleShow: "Detalle del rol",
+            size: "modal-lg"
+        },
+        onSuccess: (response, manager) => {
+            manager.close();
+            table.load();
+        },
+        onError: (error) => console.error(error)
+    });
+</script>
+
 {% endblock %}

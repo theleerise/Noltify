@@ -1,17 +1,154 @@
 {% extends "base.html" %}
-
-{% set entity_slug = "app_user" %}
-{% set entity_title = "Usuario" %}
-{% set entity_title_plural = "Usuarios" %}
-{% set delete_label_field = "username" %}
-{% set article = "el" %}
-{% set visible_columns = '["username", "email", "first_name", "last_name", "is_active", "is_superuser", "created_at", "updated_at"]' %}
-{% set filters_columns = '["id", "username", "email", "first_name", "last_name", "is_active", "is_superuser", "created_at", "updated_at"]' %}
+{% from 'macro/component.jinja2' import mac_list_title %}
 
 {% block title %}
- - {{ entity_title_plural }}
+ - Usuarios
 {% endblock %}
 
 {% block content %}
-    {% include "crud/list_content.html" %}
+
+{{ mac_list_title("Usuarios") }}
+
+<div>
+    <div filters_name="app_user-filters" class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#app_user-filters-collapse">Filtros</a>
+                <a class="btn btn-sm btn-outline-primary" onclick="window.appUserOpenNew()">Crear</a>
+            </div>
+            <div filters_actions="app_user-filters-actions"></div>
+        </div>
+        <div class="collapse" id="app_user-filters-collapse">
+            <div class="card-body">
+                <div filters_form="app_user-filters-form"></div>
+            </div>
+        </div>
+    </div>
+
+    <div summary_name="app_user-table-summary"></div>
+    <div table_name="app_user-table"></div>
+    <div pagination_name="app_user-table-pagination"></div>
+</div>
+
+<div id="app_user-modal-container"></div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import RenderTableFilters from "/static/js/render-table-filters.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const entityConfig = {{ entity_model|safe }};
+    const visibleColumns = ["username", "email", "first_name", "last_name", "is_active", "is_superuser", "created_at", "updated_at"];
+    const filtersColumns = ["id", "username", "email", "first_name", "last_name", "is_active", "is_superuser", "created_at", "updated_at"];
+
+    function buildFilter(fieldName, value) {
+        return {
+            page: 1,
+            orders: {},
+            filters: {
+                [fieldName.toUpperCase()]: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: value
+                }
+            }
+        };
+    }
+
+    const table = new RenderPaginateTable({
+        tableName: "app_user-table",
+        paginationContainerName: "app_user-table-pagination",
+        summaryContainerName: "app_user-table-summary",
+        entityConfig,
+        columns: visibleColumns,
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => {
+                    window.appUserDepartmentFilterValue = buildFilter("user_id", row.id);
+                    window.appUserRoleFilterValue = buildFilter("user_id", row.id);
+                    window.appUserPermissionFilterValue = buildFilter("user_id", row.id);
+                    window.appUserDocumentFilterValue = buildFilter("user_id", row.id);
+                    window.appUserPublicationFilterValue = buildFilter("user_id", row.id);
+                    window.entityFormMgr.openEdit(row.id);
+                }
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "app_user-modal-container",
+                        url: `/app_user/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar usuario",
+                        message: `Seguro que deseas eliminar el usuario <strong>${row.username}</strong>?`,
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            table.load();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
+        url: "/app_user/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const filters = new RenderTableFilters({
+        filtersName: "app_user-filters",
+        entityConfig,
+        columns: filtersColumns,
+        onSubmit: (currentFilters) => table.applyFilters(currentFilters),
+        onReset: () => {
+            table.setOrders({});
+            table.applyFilters({});
+        }
+    });
+
+    filters.render();
+    table.load();
+
+    window.appUserOpenNew = () => {
+        window.appUserDepartmentFilterValue = null;
+        window.appUserRoleFilterValue = null;
+        window.appUserPermissionFilterValue = null;
+        window.appUserDocumentFilterValue = null;
+        window.appUserPublicationFilterValue = null;
+        window.entityFormMgr.openNew();
+    };
+
+    window.entityFormMgr = new ModalFormManager({
+        containerName: "app_user-modal-container",
+        entityConfig,
+        formUrl: "/app_user/form/",
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
+        dataUrls: {
+            new: "/app_user/new/",
+            edit: (id) => `/app_user/edit/${id}/`
+        },
+        submitUrl: (mode, id) => mode === "new" ? "/app_user/create/" : `/app_user/update/${id}/`,
+        modal: {
+            titleNew: "Nuevo usuario",
+            titleEdit: "Editar usuario",
+            titleShow: "Detalle del usuario",
+            size: "modal-lg"
+        },
+        onSuccess: (response, manager) => {
+            manager.close();
+            table.load();
+        },
+        onError: (error) => console.error(error)
+    });
+</script>
+
 {% endblock %}

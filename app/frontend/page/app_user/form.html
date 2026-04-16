@@ -1,1 +1,274 @@
 {% include "crud/form_content.html" %}
+
+<div class="col-12 mt-2">
+    <ul class="nav nav-tabs" id="app-user-form-tabs" role="tablist">
+        <li class="nav-item" role="presentation"><button class="nav-link active" id="app-user-departments-tab" type="button" data-bs-toggle="tab" data-bs-target="#app-user-departments-pane" role="tab" aria-controls="app-user-departments-pane" aria-selected="true">Departamentos</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="app-user-roles-tab" type="button" data-bs-toggle="tab" data-bs-target="#app-user-roles-pane" role="tab" aria-controls="app-user-roles-pane" aria-selected="false">Roles</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="app-user-permissions-tab" type="button" data-bs-toggle="tab" data-bs-target="#app-user-permissions-pane" role="tab" aria-controls="app-user-permissions-pane" aria-selected="false">Permisos</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="app-user-documents-tab" type="button" data-bs-toggle="tab" data-bs-target="#app-user-documents-pane" role="tab" aria-controls="app-user-documents-pane" aria-selected="false">Documentos</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="app-user-publications-tab" type="button" data-bs-toggle="tab" data-bs-target="#app-user-publications-pane" role="tab" aria-controls="app-user-publications-pane" aria-selected="false">Publicaciones</button></li>
+    </ul>
+
+    <div class="tab-content border border-top-0 rounded-bottom p-3">
+        <div class="tab-pane fade show active" id="app-user-departments-pane" role="tabpanel" aria-labelledby="app-user-departments-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="app_user_departments-empty">Guarda el usuario primero para poder ver los departamentos asignados.</div>
+            <div class="d-none" data-role="app_user_departments-wrapper">
+                <div class="d-flex justify-content-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary" data-role="app_user_departments-create">Asignar departamento</button></div>
+                <div summary_name="app_user_departments-table-summary" class="mb-2"></div>
+                <div table_name="app_user_departments-table"></div>
+                <div pagination_name="app_user_departments-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="app-user-roles-pane" role="tabpanel" aria-labelledby="app-user-roles-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="app_user_roles-empty">Guarda el usuario primero para poder ver los roles asignados.</div>
+            <div class="d-none" data-role="app_user_roles-wrapper">
+                <div class="d-flex justify-content-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary" data-role="app_user_roles-create">Asignar rol</button></div>
+                <div summary_name="app_user_roles-table-summary" class="mb-2"></div>
+                <div table_name="app_user_roles-table"></div>
+                <div pagination_name="app_user_roles-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="app-user-permissions-pane" role="tabpanel" aria-labelledby="app-user-permissions-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="app_user_permissions-empty">Guarda el usuario primero para poder ver los permisos asignados.</div>
+            <div class="d-none" data-role="app_user_permissions-wrapper">
+                <div class="d-flex justify-content-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary" data-role="app_user_permissions-create">Asignar permiso</button></div>
+                <div summary_name="app_user_permissions-table-summary" class="mb-2"></div>
+                <div table_name="app_user_permissions-table"></div>
+                <div pagination_name="app_user_permissions-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="app-user-documents-pane" role="tabpanel" aria-labelledby="app-user-documents-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="app_user_documents-empty">Guarda el usuario primero para poder ver los documentos asignados.</div>
+            <div class="d-none" data-role="app_user_documents-wrapper">
+                <div class="d-flex justify-content-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary" data-role="app_user_documents-create">Asignar documento</button></div>
+                <div summary_name="app_user_documents-table-summary" class="mb-2"></div>
+                <div table_name="app_user_documents-table"></div>
+                <div pagination_name="app_user_documents-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="app-user-publications-pane" role="tabpanel" aria-labelledby="app-user-publications-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="app_user_publications-empty">Guarda el usuario primero para poder ver las publicaciones asignadas.</div>
+            <div class="d-none" data-role="app_user_publications-wrapper">
+                <div class="d-flex justify-content-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary" data-role="app_user_publications-create">Asignar publicacion</button></div>
+                <div summary_name="app_user_publications-table-summary" class="mb-2"></div>
+                <div table_name="app_user_publications-table"></div>
+                <div pagination_name="app_user_publications-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const departmentUserConfig = {{ entity_model_department_user | safe }};
+    const roleUserConfig = {{ entity_model_role_user | safe }};
+    const permissionUserConfig = {{ entity_model_permission_user | safe }};
+    const documentUserConfig = {{ entity_model_document_user | safe }};
+    const publicationUserConfig = {{ entity_model_publication_user | safe }};
+
+    function getUserId() {
+        const filterUserId = window.appUserDepartmentFilterValue?.filters?.USER_ID?.values;
+        if (filterUserId !== undefined && filterUserId !== null && filterUserId !== "") {
+            return Number(filterUserId) || null;
+        }
+
+        const idField = document.querySelector('form [name="id"]');
+        return Number(idField?.value) || null;
+    }
+
+    function setInheritedField(manager, fieldName, value) {
+        const field = manager.formElement?.querySelector(`[name="${fieldName}"]`);
+        if (!field) {
+            return;
+        }
+
+        if (field.dataset.apiValueSelect === "true") {
+            field.dataset.selectedValue = String(value);
+            field.dataset.initialValue = String(value);
+        }
+
+        field.value = String(value);
+        field.setAttribute("disabled", "disabled");
+
+        const fieldWrapper = manager.formElement?.querySelector(`[data-field-wrapper="${fieldName}"]`);
+        if (fieldWrapper) {
+            fieldWrapper.classList.add("d-none");
+        }
+    }
+
+    function syncSectionVisibility(emptyRole, wrapperRole) {
+        const emptyState = document.querySelector(`[data-role="${emptyRole}"]`);
+        const wrapper = document.querySelector(`[data-role="${wrapperRole}"]`);
+        const userId = getUserId();
+
+        if (!emptyState || !wrapper) {
+            return userId;
+        }
+
+        if (!userId) {
+            emptyState.classList.remove("d-none");
+            wrapper.classList.add("d-none");
+            return null;
+        }
+
+        emptyState.classList.add("d-none");
+        wrapper.classList.remove("d-none");
+        return userId;
+    }
+
+    function createChildFormManager(containerName, entityConfig, entitySlug, inheritedFieldName, onSuccessReload, titles) {
+        if (!document.getElementById(containerName)) {
+            const modalContainer = document.createElement("div");
+            modalContainer.id = containerName;
+            document.body.appendChild(modalContainer);
+        }
+
+        return new ModalFormManager({
+            containerName,
+            entityConfig,
+            formUrl: `/${entitySlug}/form/`,
+            headers: { "X-CSRFToken": getCookie("csrftoken") },
+            dataUrls: {
+                new: `/${entitySlug}/new/`,
+                edit: (id) => `/${entitySlug}/edit/${id}/`
+            },
+            submitUrl: (mode, id) => mode === "new" ? `/${entitySlug}/create/` : `/${entitySlug}/update/${id}/`,
+            modal: {
+                titleNew: titles.titleNew,
+                titleEdit: titles.titleEdit,
+                titleShow: titles.titleShow,
+                size: "modal-lg"
+            },
+            onAfterPrefill: (data, mode, manager) => {
+                const userId = getUserId();
+                if (!userId) {
+                    return;
+                }
+
+                if (mode === "new" || Number(data?.[inheritedFieldName]) === userId) {
+                    setInheritedField(manager, inheritedFieldName, userId);
+                }
+            },
+            onSuccess: (response, manager) => {
+                manager.close();
+                onSuccessReload();
+            },
+            onError: (error) => console.error(error)
+        });
+    }
+
+    function createTable(tableName, paginationName, summaryName, entityConfig, columns, deleteTitle, deleteUrlBuilder, reloadFn, formMgrAccessor) {
+        return new RenderPaginateTable({
+            tableName,
+            paginationContainerName: paginationName,
+            summaryContainerName: summaryName,
+            entityConfig,
+            columns,
+            buttons: {
+                edit: {
+                    position: "start",
+                    title: "Editar",
+                    className: "btn-outline-primary",
+                    ButtonIconClass: "bi bi-pencil-square",
+                    action: (row) => formMgrAccessor().openEdit(row.id)
+                },
+                del: {
+                    position: "end",
+                    title: "Eliminar",
+                    className: "btn-outline-danger",
+                    ButtonIconClass: "bi bi-trash",
+                    action: (row) => {
+                        deleteModal({
+                            containerName: `${tableName}-modal-container`,
+                            url: deleteUrlBuilder(row.id),
+                            headers: { "X-CSRFToken": getCookie("csrftoken") },
+                            title: deleteTitle,
+                            message: "Seguro que deseas eliminar esta asignacion?",
+                            onSuccess: (response, modal) => {
+                                modal.close();
+                                reloadFn();
+                            },
+                            onError: (error) => console.error(error)
+                        });
+                    }
+                }
+            },
+            url: deleteUrlBuilder("").replace(/delete\/$/, "data/"),
+            method: "GET",
+            rowsPerPage: 10,
+            autoLoad: false
+        });
+    }
+
+    const appUserDepartmentsTable = new RenderPaginateTable({
+        tableName: "app_user_departments-table",
+        paginationContainerName: "app_user_departments-table-pagination",
+        summaryContainerName: "app_user_departments-table-summary",
+        entityConfig: departmentUserConfig,
+        columns: ["department_id", "assigned_at"],
+        buttons: {
+            edit: { position: "start", title: "Editar", className: "btn-outline-primary", ButtonIconClass: "bi bi-pencil-square", action: (row) => window.appUserDepartmentFormMgr.openEdit(row.id) },
+            del: { position: "end", title: "Eliminar", className: "btn-outline-danger", ButtonIconClass: "bi bi-trash", action: (row) => deleteModal({ containerName: "app-user-department-user-modal-container", url: `/department_user/delete/${row.id}/`, headers: { "X-CSRFToken": getCookie("csrftoken") }, title: "Eliminar asignacion de departamento", message: "Seguro que deseas eliminar esta asignacion?", onSuccess: (response, modal) => { modal.close(); loadAppUserDepartments(); }, onError: (error) => console.error(error) }) }
+        },
+        url: "/department_user/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const appUserRolesTable = new RenderPaginateTable({ tableName: "app_user_roles-table", paginationContainerName: "app_user_roles-table-pagination", summaryContainerName: "app_user_roles-table-summary", entityConfig: roleUserConfig, columns: ["role_id", "assigned_at"], buttons: { edit: { position: "start", title: "Editar", className: "btn-outline-primary", ButtonIconClass: "bi bi-pencil-square", action: (row) => window.appUserRoleFormMgr.openEdit(row.id) }, del: { position: "end", title: "Eliminar", className: "btn-outline-danger", ButtonIconClass: "bi bi-trash", action: (row) => deleteModal({ containerName: "app-user-role-user-modal-container", url: `/role_user/delete/${row.id}/`, headers: { "X-CSRFToken": getCookie("csrftoken") }, title: "Eliminar asignacion de rol", message: "Seguro que deseas eliminar esta asignacion?", onSuccess: (response, modal) => { modal.close(); loadAppUserRoles(); }, onError: (error) => console.error(error) }) } }, url: "/role_user/data/", method: "GET", rowsPerPage: 10, autoLoad: false });
+    const appUserPermissionsTable = new RenderPaginateTable({ tableName: "app_user_permissions-table", paginationContainerName: "app_user_permissions-table-pagination", summaryContainerName: "app_user_permissions-table-summary", entityConfig: permissionUserConfig, columns: ["permission_id", "assigned_at"], buttons: { edit: { position: "start", title: "Editar", className: "btn-outline-primary", ButtonIconClass: "bi bi-pencil-square", action: (row) => window.appUserPermissionFormMgr.openEdit(row.id) }, del: { position: "end", title: "Eliminar", className: "btn-outline-danger", ButtonIconClass: "bi bi-trash", action: (row) => deleteModal({ containerName: "app-user-permission-user-modal-container", url: `/permission_user/delete/${row.id}/`, headers: { "X-CSRFToken": getCookie("csrftoken") }, title: "Eliminar asignacion de permiso", message: "Seguro que deseas eliminar esta asignacion?", onSuccess: (response, modal) => { modal.close(); loadAppUserPermissions(); }, onError: (error) => console.error(error) }) } }, url: "/permission_user/data/", method: "GET", rowsPerPage: 10, autoLoad: false });
+    const appUserDocumentsTable = new RenderPaginateTable({ tableName: "app_user_documents-table", paginationContainerName: "app_user_documents-table-pagination", summaryContainerName: "app_user_documents-table-summary", entityConfig: documentUserConfig, columns: ["document_id", "assigned_at"], buttons: { edit: { position: "start", title: "Editar", className: "btn-outline-primary", ButtonIconClass: "bi bi-pencil-square", action: (row) => window.appUserDocumentFormMgr.openEdit(row.id) }, del: { position: "end", title: "Eliminar", className: "btn-outline-danger", ButtonIconClass: "bi bi-trash", action: (row) => deleteModal({ containerName: "app-user-document-user-modal-container", url: `/document_user/delete/${row.id}/`, headers: { "X-CSRFToken": getCookie("csrftoken") }, title: "Eliminar asignacion de documento", message: "Seguro que deseas eliminar esta asignacion?", onSuccess: (response, modal) => { modal.close(); loadAppUserDocuments(); }, onError: (error) => console.error(error) }) } }, url: "/document_user/data/", method: "GET", rowsPerPage: 10, autoLoad: false });
+    const appUserPublicationsTable = new RenderPaginateTable({ tableName: "app_user_publications-table", paginationContainerName: "app_user_publications-table-pagination", summaryContainerName: "app_user_publications-table-summary", entityConfig: publicationUserConfig, columns: ["publication_id", "assigned_at"], buttons: { edit: { position: "start", title: "Editar", className: "btn-outline-primary", ButtonIconClass: "bi bi-pencil-square", action: (row) => window.appUserPublicationFormMgr.openEdit(row.id) }, del: { position: "end", title: "Eliminar", className: "btn-outline-danger", ButtonIconClass: "bi bi-trash", action: (row) => deleteModal({ containerName: "app-user-publication-user-modal-container", url: `/publication_user/delete/${row.id}/`, headers: { "X-CSRFToken": getCookie("csrftoken") }, title: "Eliminar asignacion de publicacion", message: "Seguro que deseas eliminar esta asignacion?", onSuccess: (response, modal) => { modal.close(); loadAppUserPublications(); }, onError: (error) => console.error(error) }) } }, url: "/publication_user/data/", method: "GET", rowsPerPage: 10, autoLoad: false });
+
+    function loadAppUserDepartments() {
+        const userId = syncSectionVisibility("app_user_departments-empty", "app_user_departments-wrapper");
+        if (!userId) return;
+        appUserDepartmentsTable.load(window.appUserDepartmentFilterValue || { page: 1, orders: {}, filters: { USER_ID: { type: "integer", filter: "EQUAL", values: userId } } });
+    }
+    function loadAppUserRoles() {
+        const userId = syncSectionVisibility("app_user_roles-empty", "app_user_roles-wrapper");
+        if (!userId) return;
+        appUserRolesTable.load(window.appUserRoleFilterValue || { page: 1, orders: {}, filters: { USER_ID: { type: "integer", filter: "EQUAL", values: userId } } });
+    }
+    function loadAppUserPermissions() {
+        const userId = syncSectionVisibility("app_user_permissions-empty", "app_user_permissions-wrapper");
+        if (!userId) return;
+        appUserPermissionsTable.load(window.appUserPermissionFilterValue || { page: 1, orders: {}, filters: { USER_ID: { type: "integer", filter: "EQUAL", values: userId } } });
+    }
+    function loadAppUserDocuments() {
+        const userId = syncSectionVisibility("app_user_documents-empty", "app_user_documents-wrapper");
+        if (!userId) return;
+        appUserDocumentsTable.load(window.appUserDocumentFilterValue || { page: 1, orders: {}, filters: { USER_ID: { type: "integer", filter: "EQUAL", values: userId } } });
+    }
+    function loadAppUserPublications() {
+        const userId = syncSectionVisibility("app_user_publications-empty", "app_user_publications-wrapper");
+        if (!userId) return;
+        appUserPublicationsTable.load(window.appUserPublicationFilterValue || { page: 1, orders: {}, filters: { USER_ID: { type: "integer", filter: "EQUAL", values: userId } } });
+    }
+
+    window.appUserDepartmentFormMgr = createChildFormManager("app-user-department-user-modal-container", departmentUserConfig, "department_user", "user_id", loadAppUserDepartments, { titleNew: "Asignar departamento al usuario", titleEdit: "Editar asignacion de departamento", titleShow: "Detalle de asignacion de departamento" });
+    window.appUserRoleFormMgr = createChildFormManager("app-user-role-user-modal-container", roleUserConfig, "role_user", "user_id", loadAppUserRoles, { titleNew: "Asignar rol al usuario", titleEdit: "Editar asignacion de rol", titleShow: "Detalle de asignacion de rol" });
+    window.appUserPermissionFormMgr = createChildFormManager("app-user-permission-user-modal-container", permissionUserConfig, "permission_user", "user_id", loadAppUserPermissions, { titleNew: "Asignar permiso al usuario", titleEdit: "Editar asignacion de permiso", titleShow: "Detalle de asignacion de permiso" });
+    window.appUserDocumentFormMgr = createChildFormManager("app-user-document-user-modal-container", documentUserConfig, "document_user", "user_id", loadAppUserDocuments, { titleNew: "Asignar documento al usuario", titleEdit: "Editar asignacion de documento", titleShow: "Detalle de asignacion de documento" });
+    window.appUserPublicationFormMgr = createChildFormManager("app-user-publication-user-modal-container", publicationUserConfig, "publication_user", "user_id", loadAppUserPublications, { titleNew: "Asignar publicacion al usuario", titleEdit: "Editar asignacion de publicacion", titleShow: "Detalle de asignacion de publicacion" });
+
+    document.querySelector('[data-role="app_user_departments-create"]')?.addEventListener("click", () => { if (getUserId()) window.appUserDepartmentFormMgr.openNew(); });
+    document.querySelector('[data-role="app_user_roles-create"]')?.addEventListener("click", () => { if (getUserId()) window.appUserRoleFormMgr.openNew(); });
+    document.querySelector('[data-role="app_user_permissions-create"]')?.addEventListener("click", () => { if (getUserId()) window.appUserPermissionFormMgr.openNew(); });
+    document.querySelector('[data-role="app_user_documents-create"]')?.addEventListener("click", () => { if (getUserId()) window.appUserDocumentFormMgr.openNew(); });
+    document.querySelector('[data-role="app_user_publications-create"]')?.addEventListener("click", () => { if (getUserId()) window.appUserPublicationFormMgr.openNew(); });
+
+    loadAppUserDepartments();
+    loadAppUserRoles();
+    loadAppUserPermissions();
+    loadAppUserDocuments();
+    loadAppUserPublications();
+</script>

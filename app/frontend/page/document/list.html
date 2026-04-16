@@ -13,12 +13,8 @@
     <div filters_name="document-filters" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
-                <a class="btn btn-sm btn-outline-secondary"
-                data-bs-toggle="collapse"
-                href="#document-filters-collapse">
-                Filtros
-                </a>
-                <a class="btn btn-sm btn-outline-primary" onclick="window.entityFormMgr.openNew()">Crear</a>
+                <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#document-filters-collapse">Filtros</a>
+                <a class="btn btn-sm btn-outline-primary" onclick="window.documentOpenNew()">Crear</a>
             </div>
             <div filters_actions="document-filters-actions"></div>
         </div>
@@ -43,70 +39,71 @@
     import { deleteModal } from "/static/js/modals.js";
 
     const entityConfig = {{ entity_model|safe }};
-    console.log(entityConfig);
-
-    //////////////////////////
-    // Entity Table //////////
-    //////////////////////////
-
     const visibleColumns = ["title", "file_name", "mime_type", "file_size", "uploaded_by", "is_active", "created_at", "updated_at"];
-
     const filtersColumns = ["id", "title", "file_name", "mime_type", "file_size", "uploaded_by", "is_active", "created_at", "updated_at"];
 
-    const entityConfigButtons = {
-        edit: {
-            position: "start",
-            title: "Editar",
-            className: "btn-outline-primary",
-            ButtonIconClass: "bi bi-pencil-square",
-            action: (row) => {
-                console.log(row);
-                window.entityFormMgr.openEdit(row.id);
+    function buildFilter(fieldName, value) {
+        return {
+            page: 1,
+            orders: {},
+            filters: {
+                [fieldName.toUpperCase()]: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: value
+                }
             }
-        },
-        doc: {
-            position: "start",
-            title: "Documento",
-            className: "btn-outline-warning",
-            ButtonIconClass: "bi bi-file-earmark-post",
-            action: (row) => {
-                window.open(`/document/file/${row.id}/`, "_blank", "noopener");
-            }
-        },
-        del: {
-            position: "end",
-            title: "Eliminar",
-            className: "btn-outline-danger",
-            ButtonIconClass: "bi bi-trash",
-            action: (row) => {
-                deleteModal({
-                    containerName: "document-modal-container",
-                    url: `/document/delete/${row.id}/`,
-                    headers: {
-                        "X-CSRFToken": getCookie("csrftoken")
-                    },
-                    title: "Eliminar documento",
-                    message: `¿Seguro que deseas eliminar el documento <strong>${row.name}</strong>?`,
-                    onSuccess: (response, modal) => {
-                        modal.close();
-                        console.log(response);
-                        table.load();
-                    },
-                    onError: (error) => {
-                        console.error(error);
-                    }
-                });
-            }
-        }
-    };
+        };
+    }
 
     const table = new RenderPaginateTable({
         tableName: "document-table",
         paginationContainerName: "document-table-pagination",
         summaryContainerName: "document-table-summary",
-        entityConfig: entityConfig,
+        entityConfig,
         columns: visibleColumns,
-        buttons: entityConfigButtons,
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => {
+                    window.documentUserFilterValue = buildFilter("document_id", row.id);
+                    window.documentDepartmentFilterValue = buildFilter("document_id", row.id);
+                    window.entityFormMgr.openEdit(row.id);
+                }
+            },
+            doc: {
+                position: "start",
+                title: "Documento",
+                className: "btn-outline-warning",
+                ButtonIconClass: "bi bi-file-earmark-post",
+                action: (row) => {
+                    window.open(`/document/file/${row.id}/`, "_blank", "noopener");
+                }
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "document-modal-container",
+                        url: `/document/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar documento",
+                        message: `Seguro que deseas eliminar el documento <strong>${row.title}</strong>?`,
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            table.load();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
         url: "/document/data/",
         method: "GET",
         rowsPerPage: 10,
@@ -115,11 +112,9 @@
 
     const filters = new RenderTableFilters({
         filtersName: "document-filters",
-        entityConfig: entityConfig,
+        entityConfig,
         columns: filtersColumns,
-        onSubmit: (currentFilters) => {
-            table.applyFilters(currentFilters);
-        },
+        onSubmit: (currentFilters) => table.applyFilters(currentFilters),
         onReset: () => {
             table.setOrders({});
             table.applyFilters({});
@@ -129,27 +124,22 @@
     filters.render();
     table.load();
 
-    //////////////////////////
-    // Entity Form ///////////
-    //////////////////////////
+    window.documentOpenNew = () => {
+        window.documentUserFilterValue = null;
+        window.documentDepartmentFilterValue = null;
+        window.entityFormMgr.openNew();
+    };
 
     window.entityFormMgr = new ModalFormManager({
         containerName: "document-modal-container",
-        entityConfig: entityConfig,
+        entityConfig,
         formUrl: "/document/form/",
-        headers: {
-            "X-CSRFToken": getCookie("csrftoken")
-        },
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
         dataUrls: {
             new: "/document/new/",
             edit: (id) => `/document/edit/${id}/`
         },
-        submitUrl: (mode, id) => {
-            if (mode === "new") {
-                return "/document/create/";
-            }
-            return `/document/update/${id}/`;
-        },
+        submitUrl: (mode, id) => mode === "new" ? "/document/create/" : `/document/update/${id}/`,
         modal: {
             titleNew: "Nuevo documento",
             titleEdit: "Editar documento",
@@ -158,12 +148,9 @@
         },
         onSuccess: (response, manager) => {
             manager.close();
-            console.log(response);
             table.load();
         },
-        onError: (error) => {
-            console.error(error);
-        }
+        onError: (error) => console.error(error)
     });
 </script>
 

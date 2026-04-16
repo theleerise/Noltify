@@ -1,10 +1,13 @@
 import json
 
 from django.http import HttpResponse
+from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
 from backend.managers.document_manager import DocumentManager
+from backend.models.document_department_model import DocumentDepartmentModel
 from backend.models.document_model import DocumentModel
+from backend.models.document_user_model import DocumentUserModel
 from backend.core.response import get_error_response, get_request_json, get_success_response
 from app.backend.core.entity_crud import build_crud_views
 
@@ -21,13 +24,22 @@ _views = build_crud_views(
 )
 
 list_view = _views["list_view"]
-form_view = _views["form_view"]
 data = _views["data"]
 new_view = _views["new_view"]
 edit_view = _views["edit_view"]
 create = _views["create"]
 update = _views["update"]
 delete = _views["delete"]
+
+
+@require_http_methods(["GET"])
+def form_view(request):
+    context_page = {
+        "entity_model": DocumentModel.config(),
+        "entity_model_document_user": json.dumps(DocumentUserModel.config()),
+        "entity_model_document_department": json.dumps(DocumentDepartmentModel.config()),
+    }
+    return render(request, "document/form.html", context_page)
 
 
 def _get_multipart_document_data(request) -> dict:

@@ -1,1 +1,309 @@
 {% include "crud/form_content.html" %}
+
+<div class="col-12 mt-2">
+    <ul class="nav nav-tabs" id="document-form-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="document-users-tab" type="button" data-bs-toggle="tab" data-bs-target="#document-users-pane" role="tab" aria-controls="document-users-pane" aria-selected="true">
+                Usuarios
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="document-departments-tab" type="button" data-bs-toggle="tab" data-bs-target="#document-departments-pane" role="tab" aria-controls="document-departments-pane" aria-selected="false">
+                Departamentos
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 rounded-bottom p-3">
+        <div class="tab-pane fade show active" id="document-users-pane" role="tabpanel" aria-labelledby="document-users-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="document_users-empty">
+                Guarda el documento primero para poder ver los usuarios asignados.
+            </div>
+            <div class="d-none" data-role="document_users-wrapper">
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-role="document_users-create">Asignar usuario</button>
+                </div>
+                <div summary_name="document_users-table-summary" class="mb-2"></div>
+                <div table_name="document_users-table"></div>
+                <div pagination_name="document_users-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="document-departments-pane" role="tabpanel" aria-labelledby="document-departments-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="document_departments-empty">
+                Guarda el documento primero para poder ver los departamentos asignados.
+            </div>
+            <div class="d-none" data-role="document_departments-wrapper">
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-role="document_departments-create">Asignar departamento</button>
+                </div>
+                <div summary_name="document_departments-table-summary" class="mb-2"></div>
+                <div table_name="document_departments-table"></div>
+                <div pagination_name="document_departments-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const documentUserConfig = {{ entity_model_document_user | safe }};
+    const documentDepartmentConfig = {{ entity_model_document_department | safe }};
+
+    function getDocumentId() {
+        const filterDocumentId = window.documentUserFilterValue?.filters?.DOCUMENT_ID?.values;
+        if (filterDocumentId !== undefined && filterDocumentId !== null && filterDocumentId !== "") {
+            return Number(filterDocumentId) || null;
+        }
+
+        const idField = document.querySelector('form [name="id"]');
+        return Number(idField?.value) || null;
+    }
+
+    function setInheritedField(manager, fieldName, value) {
+        const field = manager.formElement?.querySelector(`[name="${fieldName}"]`);
+        if (!field) {
+            return;
+        }
+
+        if (field.dataset.apiValueSelect === "true") {
+            field.dataset.selectedValue = String(value);
+            field.dataset.initialValue = String(value);
+        }
+
+        field.value = String(value);
+        field.setAttribute("disabled", "disabled");
+
+        const fieldWrapper = manager.formElement?.querySelector(`[data-field-wrapper="${fieldName}"]`);
+        if (fieldWrapper) {
+            fieldWrapper.classList.add("d-none");
+        }
+    }
+
+    function syncSectionVisibility(emptyRole, wrapperRole) {
+        const emptyState = document.querySelector(`[data-role="${emptyRole}"]`);
+        const wrapper = document.querySelector(`[data-role="${wrapperRole}"]`);
+        const documentId = getDocumentId();
+
+        if (!emptyState || !wrapper) {
+            return documentId;
+        }
+
+        if (!documentId) {
+            emptyState.classList.remove("d-none");
+            wrapper.classList.add("d-none");
+            return null;
+        }
+
+        emptyState.classList.add("d-none");
+        wrapper.classList.remove("d-none");
+        return documentId;
+    }
+
+    function createChildFormManager(containerName, entityConfig, entitySlug, inheritedFieldName, onSuccessReload, titles) {
+        if (!document.getElementById(containerName)) {
+            const modalContainer = document.createElement("div");
+            modalContainer.id = containerName;
+            document.body.appendChild(modalContainer);
+        }
+
+        return new ModalFormManager({
+            containerName,
+            entityConfig,
+            formUrl: `/${entitySlug}/form/`,
+            headers: { "X-CSRFToken": getCookie("csrftoken") },
+            dataUrls: {
+                new: `/${entitySlug}/new/`,
+                edit: (id) => `/${entitySlug}/edit/${id}/`
+            },
+            submitUrl: (mode, id) => mode === "new" ? `/${entitySlug}/create/` : `/${entitySlug}/update/${id}/`,
+            modal: {
+                titleNew: titles.titleNew,
+                titleEdit: titles.titleEdit,
+                titleShow: titles.titleShow,
+                size: "modal-lg"
+            },
+            onAfterPrefill: (data, mode, manager) => {
+                const documentId = getDocumentId();
+                if (!documentId) {
+                    return;
+                }
+
+                if (mode === "new" || Number(data?.[inheritedFieldName]) === documentId) {
+                    setInheritedField(manager, inheritedFieldName, documentId);
+                }
+            },
+            onSuccess: (response, manager) => {
+                manager.close();
+                onSuccessReload();
+            },
+            onError: (error) => {
+                console.error(error);
+            }
+        });
+    }
+
+    const documentUserTable = new RenderPaginateTable({
+        tableName: "document_users-table",
+        paginationContainerName: "document_users-table-pagination",
+        summaryContainerName: "document_users-table-summary",
+        entityConfig: documentUserConfig,
+        columns: ["user_id", "assigned_at"],
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => window.documentUserFormMgr.openEdit(row.id)
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "document-document-user-modal-container",
+                        url: `/document_user/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar asignacion de usuario",
+                        message: "Seguro que deseas eliminar esta asignacion?",
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            loadDocumentUsers();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
+        url: "/document_user/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const documentDepartmentTable = new RenderPaginateTable({
+        tableName: "document_departments-table",
+        paginationContainerName: "document_departments-table-pagination",
+        summaryContainerName: "document_departments-table-summary",
+        entityConfig: documentDepartmentConfig,
+        columns: ["department_id", "assigned_at"],
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => window.documentDepartmentFormMgr.openEdit(row.id)
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "document-document-department-modal-container",
+                        url: `/document_department/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar asignacion de departamento",
+                        message: "Seguro que deseas eliminar esta asignacion?",
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            loadDocumentDepartments();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
+        url: "/document_department/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    function loadDocumentUsers() {
+        const documentId = syncSectionVisibility("document_users-empty", "document_users-wrapper");
+        if (!documentId) {
+            return;
+        }
+
+        documentUserTable.load(window.documentUserFilterValue || {
+            page: 1,
+            orders: {},
+            filters: {
+                DOCUMENT_ID: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: documentId
+                }
+            }
+        });
+    }
+
+    function loadDocumentDepartments() {
+        const documentId = syncSectionVisibility("document_departments-empty", "document_departments-wrapper");
+        if (!documentId) {
+            return;
+        }
+
+        documentDepartmentTable.load(window.documentDepartmentFilterValue || {
+            page: 1,
+            orders: {},
+            filters: {
+                DOCUMENT_ID: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: documentId
+                }
+            }
+        });
+    }
+
+    window.documentUserFormMgr = createChildFormManager(
+        "document-document-user-modal-container",
+        documentUserConfig,
+        "document_user",
+        "document_id",
+        loadDocumentUsers,
+        {
+            titleNew: "Asignar usuario al documento",
+            titleEdit: "Editar asignacion de usuario",
+            titleShow: "Detalle de asignacion de usuario"
+        }
+    );
+
+    window.documentDepartmentFormMgr = createChildFormManager(
+        "document-document-department-modal-container",
+        documentDepartmentConfig,
+        "document_department",
+        "document_id",
+        loadDocumentDepartments,
+        {
+            titleNew: "Asignar departamento al documento",
+            titleEdit: "Editar asignacion de departamento",
+            titleShow: "Detalle de asignacion de departamento"
+        }
+    );
+
+    document.querySelector('[data-role="document_users-create"]')?.addEventListener("click", () => {
+        if (getDocumentId()) {
+            window.documentUserFormMgr.openNew();
+        }
+    });
+
+    document.querySelector('[data-role="document_departments-create"]')?.addEventListener("click", () => {
+        if (getDocumentId()) {
+            window.documentDepartmentFormMgr.openNew();
+        }
+    });
+
+    loadDocumentUsers();
+    loadDocumentDepartments();
+</script>

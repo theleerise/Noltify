@@ -1,1 +1,307 @@
 {% include "crud/form_content.html" %}
+
+<div class="col-12 mt-2">
+    <ul class="nav nav-tabs" id="publication-form-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="publication-users-tab" type="button" data-bs-toggle="tab" data-bs-target="#publication-users-pane" role="tab" aria-controls="publication-users-pane" aria-selected="true">
+                Usuarios
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="publication-departments-tab" type="button" data-bs-toggle="tab" data-bs-target="#publication-departments-pane" role="tab" aria-controls="publication-departments-pane" aria-selected="false">
+                Departamentos
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 rounded-bottom p-3">
+        <div class="tab-pane fade show active" id="publication-users-pane" role="tabpanel" aria-labelledby="publication-users-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="publication_users-empty">
+                Guarda la publicacion primero para poder ver los usuarios asignados.
+            </div>
+            <div class="d-none" data-role="publication_users-wrapper">
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-role="publication_users-create">Asignar usuario</button>
+                </div>
+                <div summary_name="publication_users-table-summary" class="mb-2"></div>
+                <div table_name="publication_users-table"></div>
+                <div pagination_name="publication_users-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="publication-departments-pane" role="tabpanel" aria-labelledby="publication-departments-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="publication_departments-empty">
+                Guarda la publicacion primero para poder ver los departamentos asignados.
+            </div>
+            <div class="d-none" data-role="publication_departments-wrapper">
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-role="publication_departments-create">Asignar departamento</button>
+                </div>
+                <div summary_name="publication_departments-table-summary" class="mb-2"></div>
+                <div table_name="publication_departments-table"></div>
+                <div pagination_name="publication_departments-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const publicationUserConfig = {{ entity_model_publication_user | safe }};
+    const publicationDepartmentConfig = {{ entity_model_publication_department | safe }};
+
+    function getPublicationId() {
+        const filterPublicationId = window.publicationUserFilterValue?.filters?.PUBLICATION_ID?.values;
+        if (filterPublicationId !== undefined && filterPublicationId !== null && filterPublicationId !== "") {
+            return Number(filterPublicationId) || null;
+        }
+
+        const idField = document.querySelector('form [name="id"]');
+        return Number(idField?.value) || null;
+    }
+
+    function setInheritedField(manager, fieldName, value) {
+        const field = manager.formElement?.querySelector(`[name="${fieldName}"]`);
+        if (!field) {
+            return;
+        }
+
+        if (field.dataset.apiValueSelect === "true") {
+            field.dataset.selectedValue = String(value);
+            field.dataset.initialValue = String(value);
+        }
+
+        field.value = String(value);
+        field.setAttribute("disabled", "disabled");
+
+        const fieldWrapper = manager.formElement?.querySelector(`[data-field-wrapper="${fieldName}"]`);
+        if (fieldWrapper) {
+            fieldWrapper.classList.add("d-none");
+        }
+    }
+
+    function syncSectionVisibility(emptyRole, wrapperRole) {
+        const emptyState = document.querySelector(`[data-role="${emptyRole}"]`);
+        const wrapper = document.querySelector(`[data-role="${wrapperRole}"]`);
+        const publicationId = getPublicationId();
+
+        if (!emptyState || !wrapper) {
+            return publicationId;
+        }
+
+        if (!publicationId) {
+            emptyState.classList.remove("d-none");
+            wrapper.classList.add("d-none");
+            return null;
+        }
+
+        emptyState.classList.add("d-none");
+        wrapper.classList.remove("d-none");
+        return publicationId;
+    }
+
+    function createChildFormManager(containerName, entityConfig, entitySlug, inheritedFieldName, onSuccessReload, titles) {
+        if (!document.getElementById(containerName)) {
+            const modalContainer = document.createElement("div");
+            modalContainer.id = containerName;
+            document.body.appendChild(modalContainer);
+        }
+
+        return new ModalFormManager({
+            containerName,
+            entityConfig,
+            formUrl: `/${entitySlug}/form/`,
+            headers: { "X-CSRFToken": getCookie("csrftoken") },
+            dataUrls: {
+                new: `/${entitySlug}/new/`,
+                edit: (id) => `/${entitySlug}/edit/${id}/`
+            },
+            submitUrl: (mode, id) => mode === "new" ? `/${entitySlug}/create/` : `/${entitySlug}/update/${id}/`,
+            modal: {
+                titleNew: titles.titleNew,
+                titleEdit: titles.titleEdit,
+                titleShow: titles.titleShow,
+                size: "modal-lg"
+            },
+            onAfterPrefill: (data, mode, manager) => {
+                const publicationId = getPublicationId();
+                if (!publicationId) {
+                    return;
+                }
+
+                if (mode === "new" || Number(data?.[inheritedFieldName]) === publicationId) {
+                    setInheritedField(manager, inheritedFieldName, publicationId);
+                }
+            },
+            onSuccess: (response, manager) => {
+                manager.close();
+                onSuccessReload();
+            },
+            onError: (error) => console.error(error)
+        });
+    }
+
+    const publicationUserTable = new RenderPaginateTable({
+        tableName: "publication_users-table",
+        paginationContainerName: "publication_users-table-pagination",
+        summaryContainerName: "publication_users-table-summary",
+        entityConfig: publicationUserConfig,
+        columns: ["user_id", "assigned_at"],
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => window.publicationUserFormMgr.openEdit(row.id)
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "publication-publication-user-modal-container",
+                        url: `/publication_user/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar asignacion de usuario",
+                        message: "Seguro que deseas eliminar esta asignacion?",
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            loadPublicationUsers();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
+        url: "/publication_user/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const publicationDepartmentTable = new RenderPaginateTable({
+        tableName: "publication_departments-table",
+        paginationContainerName: "publication_departments-table-pagination",
+        summaryContainerName: "publication_departments-table-summary",
+        entityConfig: publicationDepartmentConfig,
+        columns: ["department_id", "assigned_at"],
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => window.publicationDepartmentFormMgr.openEdit(row.id)
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "publication-publication-department-modal-container",
+                        url: `/publication_department/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar asignacion de departamento",
+                        message: "Seguro que deseas eliminar esta asignacion?",
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            loadPublicationDepartments();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
+        url: "/publication_department/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    function loadPublicationUsers() {
+        const publicationId = syncSectionVisibility("publication_users-empty", "publication_users-wrapper");
+        if (!publicationId) {
+            return;
+        }
+
+        publicationUserTable.load(window.publicationUserFilterValue || {
+            page: 1,
+            orders: {},
+            filters: {
+                PUBLICATION_ID: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: publicationId
+                }
+            }
+        });
+    }
+
+    function loadPublicationDepartments() {
+        const publicationId = syncSectionVisibility("publication_departments-empty", "publication_departments-wrapper");
+        if (!publicationId) {
+            return;
+        }
+
+        publicationDepartmentTable.load(window.publicationDepartmentFilterValue || {
+            page: 1,
+            orders: {},
+            filters: {
+                PUBLICATION_ID: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: publicationId
+                }
+            }
+        });
+    }
+
+    window.publicationUserFormMgr = createChildFormManager(
+        "publication-publication-user-modal-container",
+        publicationUserConfig,
+        "publication_user",
+        "publication_id",
+        loadPublicationUsers,
+        {
+            titleNew: "Asignar usuario a la publicacion",
+            titleEdit: "Editar asignacion de usuario",
+            titleShow: "Detalle de asignacion de usuario"
+        }
+    );
+
+    window.publicationDepartmentFormMgr = createChildFormManager(
+        "publication-publication-department-modal-container",
+        publicationDepartmentConfig,
+        "publication_department",
+        "publication_id",
+        loadPublicationDepartments,
+        {
+            titleNew: "Asignar departamento a la publicacion",
+            titleEdit: "Editar asignacion de departamento",
+            titleShow: "Detalle de asignacion de departamento"
+        }
+    );
+
+    document.querySelector('[data-role="publication_users-create"]')?.addEventListener("click", () => {
+        if (getPublicationId()) {
+            window.publicationUserFormMgr.openNew();
+        }
+    });
+
+    document.querySelector('[data-role="publication_departments-create"]')?.addEventListener("click", () => {
+        if (getPublicationId()) {
+            window.publicationDepartmentFormMgr.openNew();
+        }
+    });
+
+    loadPublicationUsers();
+    loadPublicationDepartments();
+</script>

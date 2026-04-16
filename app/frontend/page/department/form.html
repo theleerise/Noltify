@@ -14,20 +14,390 @@
         {{ mac_render_field('description', entity_model.description) }}
     </div>
 
-    <!-- Datos ocultos -->
     <div hidden>
-        <div class="col-12 col-md-2">
-            {{ mac_render_field('id', entity_model.id) }}
-        </div>
-        <div class="col-12 col-md-6">
-            {{ mac_render_field('created_at', entity_model.created_at) }}
-        </div>
-        <div class="col-12 col-md-6">
-            {{ mac_render_field('updated_at', entity_model.updated_at) }}
-        </div>
+        <div class="col-12 col-md-2">{{ mac_render_field('id', entity_model.id) }}</div>
+        <div class="col-12 col-md-6">{{ mac_render_field('created_at', entity_model.created_at) }}</div>
+        <div class="col-12 col-md-6">{{ mac_render_field('updated_at', entity_model.updated_at) }}</div>
     </div>
 </form>
 
-<script>
-    console.log("Formulario cargado correctamente dentro del modal");
+<div class="col-12">
+    <ul class="nav nav-tabs" id="department-form-tabs" role="tablist">
+        <li class="nav-item" role="presentation"><button class="nav-link active" id="department-users-tab" type="button" data-bs-toggle="tab" data-bs-target="#department-users-pane" role="tab" aria-controls="department-users-pane" aria-selected="true">Usuarios</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="department-documents-tab" type="button" data-bs-toggle="tab" data-bs-target="#department-documents-pane" role="tab" aria-controls="department-documents-pane" aria-selected="false">Documentos</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="department-publications-tab" type="button" data-bs-toggle="tab" data-bs-target="#department-publications-pane" role="tab" aria-controls="department-publications-pane" aria-selected="false">Publicaciones</button></li>
+    </ul>
+
+    <div class="tab-content border border-top-0 rounded-bottom p-3">
+        <div class="tab-pane fade show active" id="department-users-pane" role="tabpanel" aria-labelledby="department-users-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="department_users-empty">Guarda el departamento primero para poder ver los usuarios asignados.</div>
+            <div class="d-none" data-role="department_users-wrapper">
+                <div class="d-flex justify-content-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary" data-role="department_users-create">Asignar usuario</button></div>
+                <div summary_name="department_users-table-summary" class="mb-2"></div>
+                <div table_name="department_users-table"></div>
+                <div pagination_name="department_users-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="department-documents-pane" role="tabpanel" aria-labelledby="department-documents-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="department_documents-empty">Guarda el departamento primero para poder ver los documentos asignados.</div>
+            <div class="d-none" data-role="department_documents-wrapper">
+                <div class="d-flex justify-content-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary" data-role="department_documents-create">Asignar documento</button></div>
+                <div summary_name="department_documents-table-summary" class="mb-2"></div>
+                <div table_name="department_documents-table"></div>
+                <div pagination_name="department_documents-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="department-publications-pane" role="tabpanel" aria-labelledby="department-publications-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="department_publications-empty">Guarda el departamento primero para poder ver las publicaciones asignadas.</div>
+            <div class="d-none" data-role="department_publications-wrapper">
+                <div class="d-flex justify-content-end mb-3"><button type="button" class="btn btn-sm btn-outline-primary" data-role="department_publications-create">Asignar publicacion</button></div>
+                <div summary_name="department_publications-table-summary" class="mb-2"></div>
+                <div table_name="department_publications-table"></div>
+                <div pagination_name="department_publications-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const departmentUserConfig = {{ entity_model_department_user | safe }};
+    const documentDepartmentConfig = {{ entity_model_document_department | safe }};
+    const publicationDepartmentConfig = {{ entity_model_publication_department | safe }};
+
+    function getDepartmentId() {
+        const filterDepartmentId = window.departmentUserFilterValue?.filters?.DEPARTMENT_ID?.values;
+        if (filterDepartmentId !== undefined && filterDepartmentId !== null && filterDepartmentId !== "") {
+            return Number(filterDepartmentId) || null;
+        }
+
+        const idField = document.querySelector('#department-form [name="id"]');
+        return Number(idField?.value) || null;
+    }
+
+    function setInheritedField(manager, fieldName, value) {
+        const field = manager.formElement?.querySelector(`[name="${fieldName}"]`);
+        if (!field) {
+            return;
+        }
+
+        if (field.dataset.apiValueSelect === "true") {
+            field.dataset.selectedValue = String(value);
+            field.dataset.initialValue = String(value);
+        }
+
+        field.value = String(value);
+        field.setAttribute("disabled", "disabled");
+
+        const fieldWrapper = manager.formElement?.querySelector(`[data-field-wrapper="${fieldName}"]`);
+        if (fieldWrapper) {
+            fieldWrapper.classList.add("d-none");
+        }
+    }
+
+    function syncSectionVisibility(emptyRole, wrapperRole) {
+        const emptyState = document.querySelector(`[data-role="${emptyRole}"]`);
+        const wrapper = document.querySelector(`[data-role="${wrapperRole}"]`);
+        const departmentId = getDepartmentId();
+
+        if (!emptyState || !wrapper) {
+            return departmentId;
+        }
+
+        if (!departmentId) {
+            emptyState.classList.remove("d-none");
+            wrapper.classList.add("d-none");
+            return null;
+        }
+
+        emptyState.classList.add("d-none");
+        wrapper.classList.remove("d-none");
+        return departmentId;
+    }
+
+    const departmentUserTable = new RenderPaginateTable({
+        tableName: "department_users-table",
+        paginationContainerName: "department_users-table-pagination",
+        summaryContainerName: "department_users-table-summary",
+        entityConfig: departmentUserConfig,
+        columns: ["user_id", "assigned_at"],
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => {
+                    window.departmentUserFormMgr.openEdit(row.id);
+                }
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "department-department-user-modal-container",
+                        url: `/department_user/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar asignacion de usuario",
+                        message: `Seguro que deseas eliminar esta asignacion?`,
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            loadDepartmentUsers();
+                        },
+                        onError: (error) => {
+                            console.error(error);
+                        }
+                    });
+                }
+            }
+        },
+        url: "/department_user/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const documentDepartmentTable = new RenderPaginateTable({
+        tableName: "department_documents-table",
+        paginationContainerName: "department_documents-table-pagination",
+        summaryContainerName: "department_documents-table-summary",
+        entityConfig: documentDepartmentConfig,
+        columns: ["document_id", "assigned_at"],
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => {
+                    window.departmentDocumentFormMgr.openEdit(row.id);
+                }
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "department-document-department-modal-container",
+                        url: `/document_department/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar asignacion de documento",
+                        message: `Seguro que deseas eliminar esta asignacion?`,
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            loadDepartmentDocuments();
+                        },
+                        onError: (error) => {
+                            console.error(error);
+                        }
+                    });
+                }
+            }
+        },
+        url: "/document_department/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const publicationDepartmentTable = new RenderPaginateTable({
+        tableName: "department_publications-table",
+        paginationContainerName: "department_publications-table-pagination",
+        summaryContainerName: "department_publications-table-summary",
+        entityConfig: publicationDepartmentConfig,
+        columns: ["publication_id", "assigned_at"],
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => {
+                    window.departmentPublicationFormMgr.openEdit(row.id);
+                }
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "department-publication-department-modal-container",
+                        url: `/publication_department/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar asignacion de publicacion",
+                        message: `Seguro que deseas eliminar esta asignacion?`,
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            loadDepartmentPublications();
+                        },
+                        onError: (error) => {
+                            console.error(error);
+                        }
+                    });
+                }
+            }
+        },
+        url: "/publication_department/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    function loadDepartmentUsers() {
+        const departmentId = syncSectionVisibility("department_users-empty", "department_users-wrapper");
+        if (!departmentId) {
+            return;
+        }
+
+        departmentUserTable.load(window.departmentUserFilterValue || {
+            page: 1,
+            orders: {},
+            filters: {
+                DEPARTMENT_ID: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: departmentId
+                }
+            }
+        });
+    }
+
+    function loadDepartmentDocuments() {
+        const departmentId = syncSectionVisibility("department_documents-empty", "department_documents-wrapper");
+        if (!departmentId) {
+            return;
+        }
+
+        documentDepartmentTable.load(window.departmentDocumentFilterValue || {
+            page: 1,
+            orders: {},
+            filters: {
+                DEPARTMENT_ID: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: departmentId
+                }
+            }
+        });
+    }
+
+    function loadDepartmentPublications() {
+        const departmentId = syncSectionVisibility("department_publications-empty", "department_publications-wrapper");
+        if (!departmentId) {
+            return;
+        }
+
+        publicationDepartmentTable.load(window.departmentPublicationFilterValue || {
+            page: 1,
+            orders: {},
+            filters: {
+                DEPARTMENT_ID: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: departmentId
+                }
+            }
+        });
+    }
+
+    function createChildFormManager(containerName, entityConfig, entitySlug, inheritedFieldName, onSuccessReload) {
+        if (!document.getElementById(containerName)) {
+            const modalContainer = document.createElement("div");
+            modalContainer.id = containerName;
+            document.body.appendChild(modalContainer);
+        }
+
+        return new ModalFormManager({
+            containerName: containerName,
+            entityConfig: entityConfig,
+            formUrl: `/${entitySlug}/form/`,
+            headers: { "X-CSRFToken": getCookie("csrftoken") },
+            dataUrls: {
+                new: `/${entitySlug}/new/`,
+                edit: (id) => `/${entitySlug}/edit/${id}/`
+            },
+            submitUrl: (mode, id) => mode === "new" ? `/${entitySlug}/create/` : `/${entitySlug}/update/${id}/`,
+            modal: {
+                titleNew: "Nueva asignacion",
+                titleEdit: "Editar asignacion",
+                titleShow: "Detalle de la asignacion",
+                size: "modal-lg"
+            },
+            onAfterPrefill: (data, mode, manager) => {
+                const departmentId = getDepartmentId();
+                if (!departmentId) {
+                    return;
+                }
+
+                if (mode === "new" || Number(data?.[inheritedFieldName]) === departmentId) {
+                    setInheritedField(manager, inheritedFieldName, departmentId);
+                }
+            },
+            onSuccess: (response, manager) => {
+                manager.close();
+                onSuccessReload();
+            },
+            onError: (error) => {
+                console.error(error);
+            }
+        });
+    }
+
+    window.departmentUserFormMgr = createChildFormManager(
+        "department-department-user-modal-container",
+        departmentUserConfig,
+        "department_user",
+        "department_id",
+        loadDepartmentUsers
+    );
+
+    window.departmentDocumentFormMgr = createChildFormManager(
+        "department-document-department-modal-container",
+        documentDepartmentConfig,
+        "document_department",
+        "department_id",
+        loadDepartmentDocuments
+    );
+
+    window.departmentPublicationFormMgr = createChildFormManager(
+        "department-publication-department-modal-container",
+        publicationDepartmentConfig,
+        "publication_department",
+        "department_id",
+        loadDepartmentPublications
+    );
+
+    document.querySelector('[data-role="department_users-create"]')?.addEventListener("click", () => {
+        if (getDepartmentId()) {
+            window.departmentUserFormMgr.openNew();
+        }
+    });
+
+    document.querySelector('[data-role="department_documents-create"]')?.addEventListener("click", () => {
+        if (getDepartmentId()) {
+            window.departmentDocumentFormMgr.openNew();
+        }
+    });
+
+    document.querySelector('[data-role="department_publications-create"]')?.addEventListener("click", () => {
+        if (getDepartmentId()) {
+            window.departmentPublicationFormMgr.openNew();
+        }
+    });
+
+    loadDepartmentUsers();
+    loadDepartmentDocuments();
+    loadDepartmentPublications();
 </script>

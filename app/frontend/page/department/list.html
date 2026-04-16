@@ -13,12 +13,8 @@
     <div filters_name="department-filters" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
-                <a class="btn btn-sm btn-outline-secondary"
-                data-bs-toggle="collapse"
-                href="#department-filters-collapse">
-                Filtros
-                </a>
-                <a class="btn btn-sm btn-outline-primary" onclick="window.entityFormMgr.openNew()">Crear</a>
+                <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#department-filters-collapse">Filtros</a>
+                <a class="btn btn-sm btn-outline-primary" onclick="window.departmentOpenNew()">Crear</a>
             </div>
             <div filters_actions="department-filters-actions"></div>
         </div>
@@ -43,68 +39,22 @@
     import { deleteModal } from "/static/js/modals.js";
 
     const entityConfig = {{ entity_model|safe }};
-    console.log(entityConfig);
+    const visibleColumns = ["code", "name", "description", "is_active", "created_at", "updated_at"];
+    const filtersColumns = ["id", "code", "name", "description", "is_active", "created_at", "updated_at"];
 
-    //////////////////////////
-    // Entity Table //////////
-    //////////////////////////
-
-    const visibleColumns = [
-        "code",
-        "name",
-        "description",
-        "is_active",
-        "created_at",
-        "updated_at"
-    ];
-
-    const filtersColumns = [
-        "id",
-        "code",
-        "name",
-        "description",
-        "is_active",
-        "created_at",
-        "updated_at"
-    ];
-
-    const entityConfigButtons = {
-        edit: {
-            position: "start",
-            title: "Editar",
-            className: "btn-outline-primary",
-            ButtonIconClass: "bi bi-pencil-square",
-            action: (row) => {
-                console.log(row);
-                window.entityFormMgr.openEdit(row.id);
+    function buildFilter(fieldName, value) {
+        return {
+            page: 1,
+            orders: {},
+            filters: {
+                [fieldName.toUpperCase()]: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: value
+                }
             }
-        },
-        del: {
-            position: "end",
-            title: "Eliminar",
-            className: "btn-outline-danger",
-            ButtonIconClass: "bi bi-trash",
-            action: (row) => {
-                deleteModal({
-                    containerName: "department-modal-container",
-                    url: `/department/delete/${row.id}/`,
-                    headers: {
-                        "X-CSRFToken": getCookie("csrftoken")
-                    },
-                    title: "Eliminar departamento",
-                    message: `¿Seguro que deseas eliminar el departamento <strong>${row.name}</strong>?`,
-                    onSuccess: (response, modal) => {
-                        modal.close();
-                        console.log(response);
-                        table.load();
-                    },
-                    onError: (error) => {
-                        console.error(error);
-                    }
-                });
-            }
-        }
-    };
+        };
+    }
 
     const table = new RenderPaginateTable({
         tableName: "department-table",
@@ -112,7 +62,42 @@
         summaryContainerName: "department-table-summary",
         entityConfig: entityConfig,
         columns: visibleColumns,
-        buttons: entityConfigButtons,
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => {
+                    window.departmentUserFilterValue = buildFilter("department_id", row.id);
+                    window.departmentDocumentFilterValue = buildFilter("department_id", row.id);
+                    window.departmentPublicationFilterValue = buildFilter("department_id", row.id);
+                    window.entityFormMgr.openEdit(row.id);
+                }
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "department-modal-container",
+                        url: `/department/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar departamento",
+                        message: `Seguro que deseas eliminar el departamento <strong>${row.name}</strong>?`,
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            table.load();
+                        },
+                        onError: (error) => {
+                            console.error(error);
+                        }
+                    });
+                }
+            }
+        },
         url: "/department/data/",
         method: "GET",
         rowsPerPage: 10,
@@ -123,9 +108,7 @@
         filtersName: "department-filters",
         entityConfig: entityConfig,
         columns: filtersColumns,
-        onSubmit: (currentFilters) => {
-            table.applyFilters(currentFilters);
-        },
+        onSubmit: (currentFilters) => table.applyFilters(currentFilters),
         onReset: () => {
             table.setOrders({});
             table.applyFilters({});
@@ -135,27 +118,23 @@
     filters.render();
     table.load();
 
-    //////////////////////////
-    // Entity Form ///////////
-    //////////////////////////
+    window.departmentOpenNew = () => {
+        window.departmentUserFilterValue = null;
+        window.departmentDocumentFilterValue = null;
+        window.departmentPublicationFilterValue = null;
+        window.entityFormMgr.openNew();
+    };
 
     window.entityFormMgr = new ModalFormManager({
         containerName: "department-modal-container",
         entityConfig: entityConfig,
         formUrl: "/department/form/",
-        headers: {
-            "X-CSRFToken": getCookie("csrftoken")
-        },
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
         dataUrls: {
             new: "/department/new/",
             edit: (id) => `/department/edit/${id}/`
         },
-        submitUrl: (mode, id) => {
-            if (mode === "new") {
-                return "/department/create/";
-            }
-            return `/department/update/${id}/`;
-        },
+        submitUrl: (mode, id) => mode === "new" ? "/department/create/" : `/department/update/${id}/`,
         modal: {
             titleNew: "Nuevo departamento",
             titleEdit: "Editar departamento",
@@ -164,7 +143,6 @@
         },
         onSuccess: (response, manager) => {
             manager.close();
-            console.log(response);
             table.load();
         },
         onError: (error) => {

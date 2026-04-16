@@ -1,17 +1,146 @@
 {% extends "base.html" %}
-
-{% set entity_slug = "permission" %}
-{% set entity_title = "Permiso" %}
-{% set entity_title_plural = "Permisos" %}
-{% set delete_label_field = "code" %}
-{% set article = "el" %}
-{% set visible_columns = '["code", "name", "description", "is_active", "created_at", "updated_at"]' %}
-{% set filters_columns = '["id", "code", "name", "description", "is_active", "created_at", "updated_at"]' %}
+{% from 'macro/component.jinja2' import mac_list_title %}
 
 {% block title %}
- - {{ entity_title_plural }}
+ - Permisos
 {% endblock %}
 
 {% block content %}
-    {% include "crud/list_content.html" %}
+
+{{ mac_list_title("Permisos") }}
+
+<div>
+    <div filters_name="permission-filters" class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#permission-filters-collapse">Filtros</a>
+                <a class="btn btn-sm btn-outline-primary" onclick="window.permissionOpenNew()">Crear</a>
+            </div>
+            <div filters_actions="permission-filters-actions"></div>
+        </div>
+        <div class="collapse" id="permission-filters-collapse">
+            <div class="card-body">
+                <div filters_form="permission-filters-form"></div>
+            </div>
+        </div>
+    </div>
+
+    <div summary_name="permission-table-summary"></div>
+    <div table_name="permission-table"></div>
+    <div pagination_name="permission-table-pagination"></div>
+</div>
+
+<div id="permission-modal-container"></div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import RenderTableFilters from "/static/js/render-table-filters.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const entityConfig = {{ entity_model|safe }};
+    const visibleColumns = ["code", "name", "description", "is_active", "created_at", "updated_at"];
+    const filtersColumns = ["id", "code", "name", "description", "is_active", "created_at", "updated_at"];
+
+    function buildFilter(fieldName, value) {
+        return {
+            page: 1,
+            orders: {},
+            filters: {
+                [fieldName.toUpperCase()]: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: value
+                }
+            }
+        };
+    }
+
+    const table = new RenderPaginateTable({
+        tableName: "permission-table",
+        paginationContainerName: "permission-table-pagination",
+        summaryContainerName: "permission-table-summary",
+        entityConfig,
+        columns: visibleColumns,
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => {
+                    window.permissionUserFilterValue = buildFilter("permission_id", row.id);
+                    window.entityFormMgr.openEdit(row.id);
+                }
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "permission-modal-container",
+                        url: `/permission/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar permiso",
+                        message: `Seguro que deseas eliminar el permiso <strong>${row.code}</strong>?`,
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            table.load();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
+        url: "/permission/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const filters = new RenderTableFilters({
+        filtersName: "permission-filters",
+        entityConfig,
+        columns: filtersColumns,
+        onSubmit: (currentFilters) => table.applyFilters(currentFilters),
+        onReset: () => {
+            table.setOrders({});
+            table.applyFilters({});
+        }
+    });
+
+    filters.render();
+    table.load();
+
+    window.permissionOpenNew = () => {
+        window.permissionUserFilterValue = null;
+        window.entityFormMgr.openNew();
+    };
+
+    window.entityFormMgr = new ModalFormManager({
+        containerName: "permission-modal-container",
+        entityConfig,
+        formUrl: "/permission/form/",
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
+        dataUrls: {
+            new: "/permission/new/",
+            edit: (id) => `/permission/edit/${id}/`
+        },
+        submitUrl: (mode, id) => mode === "new" ? "/permission/create/" : `/permission/update/${id}/`,
+        modal: {
+            titleNew: "Nuevo permiso",
+            titleEdit: "Editar permiso",
+            titleShow: "Detalle del permiso",
+            size: "modal-lg"
+        },
+        onSuccess: (response, manager) => {
+            manager.close();
+            table.load();
+        },
+        onError: (error) => console.error(error)
+    });
+</script>
+
 {% endblock %}

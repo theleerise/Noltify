@@ -1,1 +1,307 @@
 {% include "crud/form_content.html" %}
+
+<div class="col-12 mt-2">
+    <ul class="nav nav-tabs" id="role-form-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="role-users-tab" type="button" data-bs-toggle="tab" data-bs-target="#role-users-pane" role="tab" aria-controls="role-users-pane" aria-selected="true">
+                Usuarios
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="role-permissions-tab" type="button" data-bs-toggle="tab" data-bs-target="#role-permissions-pane" role="tab" aria-controls="role-permissions-pane" aria-selected="false">
+                Permisos
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 rounded-bottom p-3">
+        <div class="tab-pane fade show active" id="role-users-pane" role="tabpanel" aria-labelledby="role-users-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="role_users-empty">
+                Guarda el rol primero para poder ver los usuarios asignados.
+            </div>
+            <div class="d-none" data-role="role_users-wrapper">
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-role="role_users-create">Asignar usuario</button>
+                </div>
+                <div summary_name="role_users-table-summary" class="mb-2"></div>
+                <div table_name="role_users-table"></div>
+                <div pagination_name="role_users-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="role-permissions-pane" role="tabpanel" aria-labelledby="role-permissions-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="role_permissions-empty">
+                Guarda el rol primero para poder ver los permisos asignados.
+            </div>
+            <div class="d-none" data-role="role_permissions-wrapper">
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-role="role_permissions-create">Asignar permiso</button>
+                </div>
+                <div summary_name="role_permissions-table-summary" class="mb-2"></div>
+                <div table_name="role_permissions-table"></div>
+                <div pagination_name="role_permissions-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const roleUserConfig = {{ entity_model_role_user | safe }};
+    const rolePermissionConfig = {{ entity_model_role_permission | safe }};
+
+    function getRoleId() {
+        const filterRoleId = window.roleUserFilterValue?.filters?.ROLE_ID?.values;
+        if (filterRoleId !== undefined && filterRoleId !== null && filterRoleId !== "") {
+            return Number(filterRoleId) || null;
+        }
+
+        const idField = document.querySelector('form [name="id"]');
+        return Number(idField?.value) || null;
+    }
+
+    function setInheritedField(manager, fieldName, value) {
+        const field = manager.formElement?.querySelector(`[name="${fieldName}"]`);
+        if (!field) {
+            return;
+        }
+
+        if (field.dataset.apiValueSelect === "true") {
+            field.dataset.selectedValue = String(value);
+            field.dataset.initialValue = String(value);
+        }
+
+        field.value = String(value);
+        field.setAttribute("disabled", "disabled");
+
+        const fieldWrapper = manager.formElement?.querySelector(`[data-field-wrapper="${fieldName}"]`);
+        if (fieldWrapper) {
+            fieldWrapper.classList.add("d-none");
+        }
+    }
+
+    function syncSectionVisibility(emptyRole, wrapperRole) {
+        const emptyState = document.querySelector(`[data-role="${emptyRole}"]`);
+        const wrapper = document.querySelector(`[data-role="${wrapperRole}"]`);
+        const roleId = getRoleId();
+
+        if (!emptyState || !wrapper) {
+            return roleId;
+        }
+
+        if (!roleId) {
+            emptyState.classList.remove("d-none");
+            wrapper.classList.add("d-none");
+            return null;
+        }
+
+        emptyState.classList.add("d-none");
+        wrapper.classList.remove("d-none");
+        return roleId;
+    }
+
+    function createChildFormManager(containerName, entityConfig, entitySlug, inheritedFieldName, onSuccessReload, titles) {
+        if (!document.getElementById(containerName)) {
+            const modalContainer = document.createElement("div");
+            modalContainer.id = containerName;
+            document.body.appendChild(modalContainer);
+        }
+
+        return new ModalFormManager({
+            containerName,
+            entityConfig,
+            formUrl: `/${entitySlug}/form/`,
+            headers: { "X-CSRFToken": getCookie("csrftoken") },
+            dataUrls: {
+                new: `/${entitySlug}/new/`,
+                edit: (id) => `/${entitySlug}/edit/${id}/`
+            },
+            submitUrl: (mode, id) => mode === "new" ? `/${entitySlug}/create/` : `/${entitySlug}/update/${id}/`,
+            modal: {
+                titleNew: titles.titleNew,
+                titleEdit: titles.titleEdit,
+                titleShow: titles.titleShow,
+                size: "modal-lg"
+            },
+            onAfterPrefill: (data, mode, manager) => {
+                const roleId = getRoleId();
+                if (!roleId) {
+                    return;
+                }
+
+                if (mode === "new" || Number(data?.[inheritedFieldName]) === roleId) {
+                    setInheritedField(manager, inheritedFieldName, roleId);
+                }
+            },
+            onSuccess: (response, manager) => {
+                manager.close();
+                onSuccessReload();
+            },
+            onError: (error) => console.error(error)
+        });
+    }
+
+    const roleUserTable = new RenderPaginateTable({
+        tableName: "role_users-table",
+        paginationContainerName: "role_users-table-pagination",
+        summaryContainerName: "role_users-table-summary",
+        entityConfig: roleUserConfig,
+        columns: ["user_id", "assigned_at"],
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => window.roleUserFormMgr.openEdit(row.id)
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "role-role-user-modal-container",
+                        url: `/role_user/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar asignacion de usuario",
+                        message: "Seguro que deseas eliminar esta asignacion?",
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            loadRoleUsers();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
+        url: "/role_user/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const rolePermissionTable = new RenderPaginateTable({
+        tableName: "role_permissions-table",
+        paginationContainerName: "role_permissions-table-pagination",
+        summaryContainerName: "role_permissions-table-summary",
+        entityConfig: rolePermissionConfig,
+        columns: ["permission_id", "assigned_at"],
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => window.rolePermissionFormMgr.openEdit(row.id)
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "role-role-permission-modal-container",
+                        url: `/role_permission/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar asignacion de permiso",
+                        message: "Seguro que deseas eliminar esta asignacion?",
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            loadRolePermissions();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
+        url: "/role_permission/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    function loadRoleUsers() {
+        const roleId = syncSectionVisibility("role_users-empty", "role_users-wrapper");
+        if (!roleId) {
+            return;
+        }
+
+        roleUserTable.load(window.roleUserFilterValue || {
+            page: 1,
+            orders: {},
+            filters: {
+                ROLE_ID: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: roleId
+                }
+            }
+        });
+    }
+
+    function loadRolePermissions() {
+        const roleId = syncSectionVisibility("role_permissions-empty", "role_permissions-wrapper");
+        if (!roleId) {
+            return;
+        }
+
+        rolePermissionTable.load(window.rolePermissionFilterValue || {
+            page: 1,
+            orders: {},
+            filters: {
+                ROLE_ID: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: roleId
+                }
+            }
+        });
+    }
+
+    window.roleUserFormMgr = createChildFormManager(
+        "role-role-user-modal-container",
+        roleUserConfig,
+        "role_user",
+        "role_id",
+        loadRoleUsers,
+        {
+            titleNew: "Asignar usuario al rol",
+            titleEdit: "Editar asignacion de usuario",
+            titleShow: "Detalle de asignacion de usuario"
+        }
+    );
+
+    window.rolePermissionFormMgr = createChildFormManager(
+        "role-role-permission-modal-container",
+        rolePermissionConfig,
+        "role_permission",
+        "role_id",
+        loadRolePermissions,
+        {
+            titleNew: "Asignar permiso al rol",
+            titleEdit: "Editar asignacion de permiso",
+            titleShow: "Detalle de asignacion de permiso"
+        }
+    );
+
+    document.querySelector('[data-role="role_users-create"]')?.addEventListener("click", () => {
+        if (getRoleId()) {
+            window.roleUserFormMgr.openNew();
+        }
+    });
+
+    document.querySelector('[data-role="role_permissions-create"]')?.addEventListener("click", () => {
+        if (getRoleId()) {
+            window.rolePermissionFormMgr.openNew();
+        }
+    });
+
+    loadRoleUsers();
+    loadRolePermissions();
+</script>

@@ -1,1 +1,192 @@
 {% include "crud/form_content.html" %}
+
+<div class="col-12 mt-2">
+    <ul class="nav nav-tabs" id="permission-form-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="permission-users-tab" type="button" data-bs-toggle="tab" data-bs-target="#permission-users-pane" role="tab" aria-controls="permission-users-pane" aria-selected="true">
+                Usuarios
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 rounded-bottom p-3">
+        <div class="tab-pane fade show active" id="permission-users-pane" role="tabpanel" aria-labelledby="permission-users-tab" tabindex="0">
+            <div class="alert alert-info mb-3" data-role="permission_users-empty">
+                Guarda el permiso primero para poder ver los usuarios asignados.
+            </div>
+            <div class="d-none" data-role="permission_users-wrapper">
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-role="permission_users-create">Asignar usuario</button>
+                </div>
+                <div summary_name="permission_users-table-summary" class="mb-2"></div>
+                <div table_name="permission_users-table"></div>
+                <div pagination_name="permission_users-table-pagination" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const permissionUserConfig = {{ entity_model_permission_user | safe }};
+
+    function getPermissionId() {
+        const filterPermissionId = window.permissionUserFilterValue?.filters?.PERMISSION_ID?.values;
+        if (filterPermissionId !== undefined && filterPermissionId !== null && filterPermissionId !== "") {
+            return Number(filterPermissionId) || null;
+        }
+
+        const idField = document.querySelector('form [name="id"]');
+        return Number(idField?.value) || null;
+    }
+
+    function setInheritedField(manager, fieldName, value) {
+        const field = manager.formElement?.querySelector(`[name="${fieldName}"]`);
+        if (!field) {
+            return;
+        }
+
+        if (field.dataset.apiValueSelect === "true") {
+            field.dataset.selectedValue = String(value);
+            field.dataset.initialValue = String(value);
+        }
+
+        field.value = String(value);
+        field.setAttribute("disabled", "disabled");
+
+        const fieldWrapper = manager.formElement?.querySelector(`[data-field-wrapper="${fieldName}"]`);
+        if (fieldWrapper) {
+            fieldWrapper.classList.add("d-none");
+        }
+    }
+
+    function syncSectionVisibility() {
+        const emptyState = document.querySelector('[data-role="permission_users-empty"]');
+        const wrapper = document.querySelector('[data-role="permission_users-wrapper"]');
+        const permissionId = getPermissionId();
+
+        if (!emptyState || !wrapper) {
+            return permissionId;
+        }
+
+        if (!permissionId) {
+            emptyState.classList.remove("d-none");
+            wrapper.classList.add("d-none");
+            return null;
+        }
+
+        emptyState.classList.add("d-none");
+        wrapper.classList.remove("d-none");
+        return permissionId;
+    }
+
+    if (!document.getElementById("permission-permission-user-modal-container")) {
+        const modalContainer = document.createElement("div");
+        modalContainer.id = "permission-permission-user-modal-container";
+        document.body.appendChild(modalContainer);
+    }
+
+    const permissionUserTable = new RenderPaginateTable({
+        tableName: "permission_users-table",
+        paginationContainerName: "permission_users-table-pagination",
+        summaryContainerName: "permission_users-table-summary",
+        entityConfig: permissionUserConfig,
+        columns: ["user_id", "assigned_at"],
+        buttons: {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                action: (row) => window.permissionUserFormMgr.openEdit(row.id)
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                action: (row) => {
+                    deleteModal({
+                        containerName: "permission-permission-user-modal-container",
+                        url: `/permission_user/delete/${row.id}/`,
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar asignacion de usuario",
+                        message: "Seguro que deseas eliminar esta asignacion?",
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            loadPermissionUsers();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        },
+        url: "/permission_user/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    function loadPermissionUsers() {
+        const permissionId = syncSectionVisibility();
+        if (!permissionId) {
+            return;
+        }
+
+        permissionUserTable.load(window.permissionUserFilterValue || {
+            page: 1,
+            orders: {},
+            filters: {
+                PERMISSION_ID: {
+                    type: "integer",
+                    filter: "EQUAL",
+                    values: permissionId
+                }
+            }
+        });
+    }
+
+    window.permissionUserFormMgr = new ModalFormManager({
+        containerName: "permission-permission-user-modal-container",
+        entityConfig: permissionUserConfig,
+        formUrl: "/permission_user/form/",
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
+        dataUrls: {
+            new: "/permission_user/new/",
+            edit: (id) => `/permission_user/edit/${id}/`
+        },
+        submitUrl: (mode, id) => mode === "new" ? "/permission_user/create/" : `/permission_user/update/${id}/`,
+        modal: {
+            titleNew: "Asignar usuario al permiso",
+            titleEdit: "Editar asignacion de usuario",
+            titleShow: "Detalle de asignacion de usuario",
+            size: "modal-lg"
+        },
+        onAfterPrefill: (data, mode, manager) => {
+            const permissionId = getPermissionId();
+            if (!permissionId) {
+                return;
+            }
+
+            if (mode === "new" || Number(data?.permission_id) === permissionId) {
+                setInheritedField(manager, "permission_id", permissionId);
+            }
+        },
+        onSuccess: (response, manager) => {
+            manager.close();
+            loadPermissionUsers();
+        },
+        onError: (error) => console.error(error)
+    });
+
+    document.querySelector('[data-role="permission_users-create"]')?.addEventListener("click", () => {
+        if (getPermissionId()) {
+            window.permissionUserFormMgr.openNew();
+        }
+    });
+
+    loadPermissionUsers();
+</script>
