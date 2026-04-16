@@ -56,11 +56,7 @@ DEBUG = os.getenv("DEBUG", "0") == "1"
 
 ALLOWED_HOSTS = ["*"]
 
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "https://*.railway.app").split(",")
-    if origin.strip()
-]
+CSRF_TRUSTED_ORIGINS = ["https://*.railway.app"]
 
 # ---------------------------------------------------------
 # APLICACIONES INSTALADAS
