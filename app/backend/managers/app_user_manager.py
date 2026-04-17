@@ -76,6 +76,35 @@ class AppUserManager(DatabaseManager):
             WHERE ID = %(id)s
         """
 
+    def get_by_login(self, login_value: str):
+        normalized_login = (login_value or "").strip()
+        if not normalized_login:
+            return None
+
+        sql = """
+            SELECT
+                  ID
+                , USERNAME
+                , EMAIL
+                , PASSWORD_HASH
+                , FIRST_NAME
+                , LAST_NAME
+                , IS_ACTIVE
+                , IS_SUPERUSER
+                , CREATED_AT
+                , UPDATED_AT
+            FROM PUBLIC.APP_USER
+            WHERE IS_ACTIVE = TRUE
+              AND (
+                    UPPER(USERNAME) = UPPER(%(login_value)s)
+                 OR UPPER(EMAIL) = UPPER(%(login_value)s)
+              )
+            ORDER BY ID ASC
+            LIMIT 1
+        """
+
+        return self.fetchone(sql=sql, params={"login_value": normalized_login}, data_model=False)
+
     def insert_query(self, data: dict):
         final_data = self._before_insert(data)
         self.execute_query_data(

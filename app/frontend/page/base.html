@@ -32,6 +32,7 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarMain">
+            {% if app_is_authenticated %}
             <ul class="navbar-nav me-auto">
             <!--
                 <li class="nav-item">
@@ -50,6 +51,11 @@
                         Notificaciones
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url('app_user:profile') }}">
+                        Mi perfil
+                    </a>
+                </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarAdmin" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
@@ -60,18 +66,44 @@
                         <li><a class="dropdown-item" href="#">Valores</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{{ url('department:list') }}">Departamentos</a></li>
-                        <li><a class="dropdown-item" href="#">Usuarios</a></li>
+                        <li><a class="dropdown-item" href="{{ url('app_user:list') }}">Usuarios</a></li>
                         <li><a class="dropdown-item" href="#">Roles y permisos de usuario</a></li>
                     </ul>
                 </li>
             </ul>
+            <div class="d-flex align-items-center gap-3 text-white">
+                <div class="small text-end">
+                    <div class="fw-semibold">{{ app_session_user.username }}</div>
+                    <div class="text-white-50">{{ app_session_user.email or '' }}</div>
+                </div>
+                <a class="btn btn-sm btn-outline-light" href="{{ url('auth_app:logout') }}"
+                   onclick="event.preventDefault(); document.getElementById('auth-app-logout-form').submit();">
+                    Cerrar sesion
+                </a>
+            </div>
+            {% else %}
+            <div class="ms-auto">
+                <a class="btn btn-outline-light btn-sm" href="{{ url('auth_app:login') }}">Iniciar sesion</a>
+            </div>
+            {% endif %}
         </div>
     </div>
 </nav>
 
+<form id="auth-app-logout-form" method="post" action="{{ url('auth_app:logout') }}" class="d-none">
+    {{ csrf_input }}
+</form>
+
 
 <!-- CONTENIDO PRINCIPAL -->
 <main class="container py-4 flex-grow-1">
+    {% if messages %}
+        <div class="mb-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags or 'info' }} mb-2">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
     {% block content %}{% endblock %}
 </main>
 

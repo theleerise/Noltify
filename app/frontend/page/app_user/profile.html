@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}
+ - Mi perfil
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1">Perfil de usuario</h1>
+        <p class="text-muted mb-0">Consulta las publicaciones, departamentos y documentos asociados a tu usuario de sesion.</p>
+    </div>
+</div>
+
+{% if profile_user %}
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small mb-2">Usuario</div>
+                <h2 class="h4 mb-1">{{ profile_user_full_name or profile_user.username }}</h2>
+                <div class="text-muted">@{{ profile_user.username }}</div>
+                <hr>
+                <div class="mb-2"><strong>Email:</strong> {{ profile_user.email }}</div>
+                <div class="mb-2"><strong>Activo:</strong> {{ "S\u00ed" if profile_user.is_active else "No" }}</div>
+                <div class="mb-0"><strong>Superusuario:</strong> {{ "S\u00ed" if profile_user.is_superuser else "No" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm border-0 bg-primary-subtle">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-megaphone fs-2 text-primary"></i>
+                    <div>
+                        <div class="text-muted small">Publicaciones creadas</div>
+                        <div class="fs-3 fw-semibold" data-role="profile-publications-count">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm border-0 bg-success-subtle">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-file-earmark-text fs-2 text-success"></i>
+                    <div>
+                        <div class="text-muted small">Documentos creados</div>
+                        <div class="fs-3 fw-semibold" data-role="profile-documents-count">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h3 class="h5 mb-0">Departamentos asignados</h3>
+    </div>
+    <div class="card-body">
+        <div summary_name="profile-departments-summary" class="mb-2"></div>
+        <div table_name="profile-departments-table"></div>
+        <div pagination_name="profile-departments-pagination" class="mt-2"></div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-xl-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <h3 class="h5 mb-0">Publicaciones realizadas</h3>
+            </div>
+            <div class="card-body">
+                <div summary_name="profile-publications-summary" class="mb-2"></div>
+                <div table_name="profile-publications-table"></div>
+                <div pagination_name="profile-publications-pagination" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <h3 class="h5 mb-0">Documentos creados</h3>
+            </div>
+            <div class="card-body">
+                <div summary_name="profile-documents-summary" class="mb-2"></div>
+                <div table_name="profile-documents-table"></div>
+                <div pagination_name="profile-documents-pagination" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+
+    const profileUserId = {{ profile_user_id }};
+    const departmentUserConfig = {{ department_user_entity_model | safe }};
+    const publicationConfig = {{ publication_entity_model | safe }};
+    const documentConfig = {{ document_entity_model | safe }};
+
+    function setCount(roleName, value) {
+        const element = document.querySelector(`[data-role="${roleName}"]`);
+        if (!element) {
+            return;
+        }
+
+        element.textContent = String(value ?? 0);
+    }
+
+    const baseIntegerFilter = (value) => ({
+        type: "integer",
+        filter: "EQUAL",
+        values: value
+    });
+
+    const departmentsTable = new RenderPaginateTable({
+        tableName: "profile-departments-table",
+        paginationContainerName: "profile-departments-pagination",
+        summaryContainerName: "profile-departments-summary",
+        entityConfig: departmentUserConfig,
+        columns: ["department_id", "assigned_at"],
+        url: "/department_user/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false
+    });
+
+    const publicationsTable = new RenderPaginateTable({
+        tableName: "profile-publications-table",
+        paginationContainerName: "profile-publications-pagination",
+        summaryContainerName: "profile-publications-summary",
+        entityConfig: publicationConfig,
+        columns: ["title", "status", "is_active", "created_at", "updated_at"],
+        url: "/publication/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false,
+        afterFetch: (response) => {
+            setCount("profile-publications-count", response.rows);
+        }
+    });
+
+    const documentsTable = new RenderPaginateTable({
+        tableName: "profile-documents-table",
+        paginationContainerName: "profile-documents-pagination",
+        summaryContainerName: "profile-documents-summary",
+        entityConfig: documentConfig,
+        columns: ["title", "file_name", "description", "is_active", "created_at", "updated_at"],
+        url: "/document/data/",
+        method: "GET",
+        rowsPerPage: 10,
+        autoLoad: false,
+        afterFetch: (response) => {
+            setCount("profile-documents-count", response.rows);
+        }
+    });
+
+    departmentsTable.load({
+        filters: {
+            USER_ID: baseIntegerFilter(profileUserId)
+        }
+    });
+
+    publicationsTable.load({
+        filters: {
+            CREATED_BY: baseIntegerFilter(profileUserId)
+        }
+    });
+
+    documentsTable.load({
+        filters: {
+            UPLOADED_BY: baseIntegerFilter(profileUserId)
+        }
+    });
+</script>
+{% else %}
+<div class="alert alert-warning mb-0">
+    No hay usuarios disponibles para mostrar el perfil.
+</div>
+{% endif %}
+
+{% endblock %}

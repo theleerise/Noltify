@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.views.generic import TemplateView
 
 from backend.views.api_value.api_value_urls import app_name as api_value_app
+from backend.views.auth_app.auth_app_urls import app_name as auth_app
 
 from backend.views.app_user.app_user_urls import app_name as app_user_app
 from backend.views.department.department_urls import app_name as department_app
@@ -27,6 +28,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("health/", lambda request: HttpResponse("ok", content_type="text/plain"), name="health"),
     path("", TemplateView.as_view(template_name="index.html"), name="home"),
+    path(f"{auth_app}/", include(f"app.backend.views.{auth_app}.{auth_app}_urls")),
     path(f"{api_value_app}/", include(f"app.backend.views.{api_value_app}.{api_value_app}_urls")),
 
     path(f"{app_user_app}/", include(f"app.backend.views.{app_user_app}.{app_user_app}_urls")),
