@@ -211,6 +211,17 @@ STATIC_ROOT = STATIC_ROOT_DIR
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # ---------------------------------------------------------
+# SESIONES
+# ---------------------------------------------------------
+
+# Usamos sesiones firmadas en cookie para no depender de la tabla
+# django_session en despliegues donde no se ejecutan migraciones.
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+SESSION_COOKIE_AGE = 60 * 60 * 8
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+
+# ---------------------------------------------------------
 # CLAVE PRIMARIA POR DEFECTO
 # ---------------------------------------------------------
 
