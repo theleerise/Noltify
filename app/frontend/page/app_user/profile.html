@@ -9,7 +9,7 @@
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
     <div>
         <h1 class="h2 mb-1">Perfil de usuario</h1>
-        <p class="text-muted mb-0">Consulta las publicaciones, departamentos y documentos asociados a tu usuario de sesion.</p>
+        <p class="text-muted mb-0">Gestiona tu informacion personal, cambia tu contrasena y consulta tu actividad dentro de la aplicacion.</p>
     </div>
 </div>
 
@@ -23,6 +23,8 @@
                 <div class="text-muted">@{{ profile_user.username }}</div>
                 <hr>
                 <div class="mb-2"><strong>Email:</strong> {{ profile_user.email }}</div>
+                <div class="mb-2"><strong>Nombre:</strong> {{ profile_user.first_name or "-" }}</div>
+                <div class="mb-2"><strong>Apellidos:</strong> {{ profile_user.last_name or "-" }}</div>
                 <div class="mb-2"><strong>Activo:</strong> {{ "S\u00ed" if profile_user.is_active else "No" }}</div>
                 <div class="mb-0"><strong>Superusuario:</strong> {{ "S\u00ed" if profile_user.is_superuser else "No" }}</div>
             </div>
@@ -53,6 +55,185 @@
                         <div class="fs-3 fw-semibold" data-role="profile-documents-count">0</div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12 col-xl-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <h3 class="h5 mb-0">Editar mi informacion</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url('app_user:profile_update') }}" novalidate>
+                    {{ csrf_input }}
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label for="profile-username" class="form-label">Nombre de usuario</label>
+                            <input
+                                type="text"
+                                id="profile-username"
+                                name="username"
+                                class="form-control {% if profile_form_errors.username %}is-invalid{% endif %}"
+                                value="{{ profile_form_data.username }}"
+                                autocomplete="username"
+                                required>
+                            {% if profile_form_errors.username %}
+                            <div class="invalid-feedback">{{ profile_form_errors.username }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="profile-email" class="form-label">Email</label>
+                            <input
+                                type="email"
+                                id="profile-email"
+                                name="email"
+                                class="form-control {% if profile_form_errors.email %}is-invalid{% endif %}"
+                                value="{{ profile_form_data.email }}"
+                                autocomplete="email"
+                                required>
+                            {% if profile_form_errors.email %}
+                            <div class="invalid-feedback">{{ profile_form_errors.email }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="profile-first-name" class="form-label">Nombre</label>
+                            <input
+                                type="text"
+                                id="profile-first-name"
+                                name="first_name"
+                                class="form-control {% if profile_form_errors.first_name %}is-invalid{% endif %}"
+                                value="{{ profile_form_data.first_name }}"
+                                autocomplete="given-name">
+                            {% if profile_form_errors.first_name %}
+                            <div class="invalid-feedback">{{ profile_form_errors.first_name }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="profile-last-name" class="form-label">Apellidos</label>
+                            <input
+                                type="text"
+                                id="profile-last-name"
+                                name="last_name"
+                                class="form-control {% if profile_form_errors.last_name %}is-invalid{% endif %}"
+                                value="{{ profile_form_data.last_name }}"
+                                autocomplete="family-name">
+                            {% if profile_form_errors.last_name %}
+                            <div class="invalid-feedback">{{ profile_form_errors.last_name }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex align-items-start justify-content-between gap-3 flex-column flex-lg-row">
+                        <div>
+                            <h4 class="h6 mb-1">Cambiar contrasena</h4>
+                            <p class="text-muted small mb-0">Si no quieres cambiarla, deja estos campos vacios.</p>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-1">
+                        <div class="col-12">
+                            <label for="profile-current-password" class="form-label">Contrasena actual</label>
+                            <input
+                                type="password"
+                                id="profile-current-password"
+                                name="current_password"
+                                class="form-control {% if profile_form_errors.current_password %}is-invalid{% endif %}"
+                                autocomplete="current-password">
+                            {% if profile_form_errors.current_password %}
+                            <div class="invalid-feedback">{{ profile_form_errors.current_password }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="profile-new-password" class="form-label">Nueva contrasena</label>
+                            <input
+                                type="password"
+                                id="profile-new-password"
+                                name="new_password"
+                                class="form-control {% if profile_form_errors.new_password %}is-invalid{% endif %}"
+                                autocomplete="new-password">
+                            {% if profile_form_errors.new_password %}
+                            <div class="invalid-feedback">{{ profile_form_errors.new_password }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label for="profile-confirm-password" class="form-label">Confirmar nueva contrasena</label>
+                            <input
+                                type="password"
+                                id="profile-confirm-password"
+                                name="confirm_password"
+                                class="form-control {% if profile_form_errors.confirm_password %}is-invalid{% endif %}"
+                                autocomplete="new-password">
+                            {% if profile_form_errors.confirm_password %}
+                            <div class="invalid-feedback">{{ profile_form_errors.confirm_password }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>Guardar cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <div class="card shadow-sm border-danger h-100">
+            <div class="card-header bg-danger-subtle border-danger-subtle">
+                <h3 class="h5 mb-0 text-danger-emphasis">Zona de baja</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Si te das de baja, tu usuario no se elimina: simplemente se marca como inactivo y no podras iniciar sesion de nuevo hasta que un administrador lo reactive.
+                </p>
+
+                <form method="post" action="{{ url('app_user:profile_deactivate') }}" novalidate>
+                    {{ csrf_input }}
+
+                    <div class="mb-3">
+                        <label for="profile-deactivate-current-password" class="form-label">Contrasena actual</label>
+                        <input
+                            type="password"
+                            id="profile-deactivate-current-password"
+                            name="current_password"
+                            class="form-control {% if profile_form_errors.current_password and profile_form_data.confirm_deactivate %}is-invalid{% endif %}"
+                            autocomplete="current-password">
+                        {% if profile_form_errors.current_password and profile_form_data.confirm_deactivate %}
+                        <div class="invalid-feedback">{{ profile_form_errors.current_password }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="profile-confirm-deactivate" class="form-label">Escribe DESACTIVAR para confirmar</label>
+                        <input
+                            type="text"
+                            id="profile-confirm-deactivate"
+                            name="confirm_deactivate"
+                            class="form-control {% if profile_form_errors.confirm_deactivate %}is-invalid{% endif %}"
+                            value="{{ profile_form_data.confirm_deactivate }}"
+                            autocomplete="off">
+                        {% if profile_form_errors.confirm_deactivate %}
+                        <div class="invalid-feedback">{{ profile_form_errors.confirm_deactivate }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-person-dash me-1"></i>Darme de baja
+                    </button>
+                </form>
             </div>
         </div>
     </div>
