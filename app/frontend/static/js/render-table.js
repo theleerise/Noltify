@@ -1,5 +1,6 @@
 import { DateFormatter } from "./formater.js";
 import { fetchApiValueRecords, getApiValueLabel } from "./api-value-service.js";
+import { alertMessage } from "./alert-message.js";
 
 
 export default class RenderTable {
@@ -449,7 +450,10 @@ export default class RenderTable {
                 this._renderBody();
             }
         } catch (error) {
-            console.error(error);
+            alertMessage.notifyError(error, {
+                title: "No se pudo cargar el catalogo",
+                fallbackMessage: "No se pudieron resolver algunos valores de apoyo."
+            });
         }
     }
 

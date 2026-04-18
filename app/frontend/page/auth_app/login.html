@@ -17,6 +17,13 @@
 </head>
 
 <body class="auth-page">
+    <div id="app-alert-message-container" aria-live="polite" aria-atomic="true"></div>
+    {% if error_message %}
+    <div class="d-none" id="auth-login-flash-messages">
+        <div data-alert-flash data-alert-type="error">{{ error_message }}</div>
+    </div>
+    {% endif %}
+
     <main class="auth-shell">
         <section class="auth-hero">
             <div class="auth-brand">
@@ -40,10 +47,6 @@
                         <h2 class="h4 mb-2">Bienvenido de nuevo</h2>
                         <p class="text-secondary mb-0">Introduce tus credenciales para continuar.</p>
                     </div>
-
-                    {% if error_message %}
-                        <div class="alert alert-danger" role="alert">{{ error_message }}</div>
-                    {% endif %}
 
                     <form method="post" class="auth-form" novalidate>
                         {{ csrf_input }}
@@ -89,6 +92,7 @@
             </div>
         </section>
     </main>
+    <script type="module" src="{{ static('js/alert-message.js') }}"></script>
 </body>
 
 </html>

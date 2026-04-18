@@ -1,3 +1,5 @@
+import { alertMessage } from "./alert-message.js";
+
 export default class ModalFormManager {
     constructor(options = {}) {
         this.containerName = options.containerName;
@@ -66,60 +68,84 @@ export default class ModalFormManager {
     }
 
     async openNew(paramsUrl = null) {
-        this.mode = "new";
-        this.currentId = null;
+        try {
+            this.mode = "new";
+            this.currentId = null;
 
-        await this._loadFormHtml(paramsUrl);
-        this._applyConfigToForm();
+            await this._loadFormHtml(paramsUrl);
+            this._applyConfigToForm();
 
-        const data = await this._loadData("new");
-        if (data) {
-            this.setData(data);
-        } else {
-            this._applyDefaults();
+            const data = await this._loadData("new");
+            if (data) {
+                this.setData(data);
+            } else {
+                this._applyDefaults();
+            }
+
+            this._snapshotInitialData();
+            this._updateModalTitle();
+            this._toggleFooterByMode();
+            this._showModal();
+        } catch (error) {
+            alertMessage.notifyError(error, {
+                title: "No se pudo abrir el formulario",
+                fallbackMessage: "No se pudo preparar el formulario para crear el registro."
+            });
+            throw error;
         }
-
-        this._snapshotInitialData();
-        this._updateModalTitle();
-        this._toggleFooterByMode();
-        this._showModal();
     }
 
     async openEdit(id, paramsUrl = null) {
-        this.mode = "edit";
-        this.currentId = id;
+        try {
+            this.mode = "edit";
+            this.currentId = id;
 
-        await this._loadFormHtml(paramsUrl);
-        this._applyConfigToForm();
+            await this._loadFormHtml(paramsUrl);
+            this._applyConfigToForm();
 
-        const data = await this._loadData("edit", id);
-        if (data) {
-            this.setData(data);
+            const data = await this._loadData("edit", id);
+            if (data) {
+                this.setData(data);
+            }
+
+            this._snapshotInitialData();
+            this._updateModalTitle();
+            this._toggleFooterByMode();
+            this._showModal();
+        } catch (error) {
+            alertMessage.notifyError(error, {
+                title: "No se pudo abrir el formulario",
+                fallbackMessage: "No se pudo cargar el registro solicitado."
+            });
+            throw error;
         }
-
-        this._snapshotInitialData();
-        this._updateModalTitle();
-        this._toggleFooterByMode();
-        this._showModal();
     }
 
     async openShow(id, paramsUrl = null) {
-        this.mode = "show";
-        this.currentId = id;
+        try {
+            this.mode = "show";
+            this.currentId = id;
 
-        await this._loadFormHtml(paramsUrl);
-        this._applyConfigToForm();
+            await this._loadFormHtml(paramsUrl);
+            this._applyConfigToForm();
 
-        const data = await this._loadData("show", id);
-        if (data) {
-            this.setData(data);
+            const data = await this._loadData("show", id);
+            if (data) {
+                this.setData(data);
+            }
+
+            this.setReadOnly(true);
+            this._snapshotInitialData();
+            this._updateModalTitle();
+            this._toggleFooterByMode();
+            this._showModal();
+        } catch (error) {
+            alertMessage.notifyError(error, {
+                title: "No se pudo abrir el detalle",
+                fallbackMessage: "No se pudo cargar la informacion del registro."
+            });
+            throw error;
         }
-
-        this.setReadOnly(true);
-        this._snapshotInitialData();
-        this._updateModalTitle();
-        this._toggleFooterByMode();
-        this._showModal();
     }
 
     close() {
@@ -220,6 +246,9 @@ export default class ModalFormManager {
 
             if (!this.formElement.checkValidity()) {
                 this.formElement.classList.add("was-validated");
+                alertMessage.warning("Revisa los campos obligatorios antes de guardar.", {
+                    title: "Formulario incompleto"
+                });
                 return;
             }
 
@@ -273,6 +302,9 @@ export default class ModalFormManager {
             }
 
             this._snapshotInitialData();
+            alertMessage.notifyResponse(json, {
+                type: "success"
+            });
 
             if (typeof this.onSuccess === "function") {
                 this.onSuccess(json, this);
@@ -280,6 +312,10 @@ export default class ModalFormManager {
 
             return json;
         } catch (error) {
+            alertMessage.notifyError(error, {
+                title: "No se pudo guardar",
+                fallbackMessage: "La operacion no pudo completarse."
+            });
             if (typeof this.onError === "function") {
                 this.onError(error, this);
             } else {

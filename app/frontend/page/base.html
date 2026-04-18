@@ -19,6 +19,19 @@
 </head>
 
 <body class="d-flex flex-column min-vh-100">
+<div id="app-alert-message-container" aria-live="polite" aria-atomic="true"></div>
+
+{% if messages %}
+<div class="d-none" id="app-alert-flash-messages">
+    {% for message in messages %}
+    <div
+        data-alert-flash
+        data-alert-type="{{ message.tags or 'info' }}"
+    >{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
@@ -122,13 +135,6 @@
 
 <!-- CONTENIDO PRINCIPAL -->
 <main class="container py-4 flex-grow-1">
-    {% if messages %}
-        <div class="mb-3">
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags or 'info' }} mb-2">{{ message }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
     {% block content %}{% endblock %}
 </main>
 
@@ -146,6 +152,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- JS GLOBAL DEL PROYECTO -->
+<script type="module" src="{{ static('js/alert-message.js') }}"></script>
 <script src="{{ static('js/utils.js') }}"></script>
 
 {% block extra_js %}{% endblock %}

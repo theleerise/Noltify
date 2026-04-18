@@ -1,3 +1,5 @@
+import { alertMessage } from "./alert-message.js";
+
 class CustomModal {
     constructor({
         containerName,
@@ -561,6 +563,11 @@ export async function deleteModal({
                     throw new Error(errorMessage);
                 }
 
+                alertMessage.notifyResponse(result, {
+                    type: "success",
+                    message: "Registro eliminado correctamente."
+                });
+
                 if (typeof onSuccess === "function") {
                     onSuccess(result, modal);
                 } else {
@@ -572,6 +579,10 @@ export async function deleteModal({
                 confirmButton.innerHTML = confirmText;
 
                 showError(error);
+                alertMessage.notifyError(error, {
+                    title: "No se pudo eliminar",
+                    fallbackMessage: "La eliminacion no pudo completarse."
+                });
 
                 if (typeof onError === "function") {
                     onError(error, modal);
@@ -586,7 +597,10 @@ export async function deleteModal({
             return null;
         }
 
-        console.error(error);
+        alertMessage.notifyError(error, {
+            title: "No se pudo abrir la confirmacion",
+            fallbackMessage: "No se pudo preparar la ventana de confirmacion."
+        });
         return null;
     }
 }

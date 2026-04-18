@@ -1,4 +1,5 @@
 import { fetchApiValueRecords } from "./api-value-service.js";
+import { alertMessage } from "./alert-message.js";
 
 export class RenderTableFilters {
 
@@ -711,7 +712,10 @@ export class RenderTableFilters {
             this.apiValueRecords[masterKey] = records;
             this._populateApiValueSelect(selectElement, columnConfig, records);
         } catch (error) {
-            console.error(error);
+            alertMessage.notifyError(error, {
+                title: "Filtros incompletos",
+                fallbackMessage: "No se pudieron cargar los valores del filtro."
+            });
             this._populateApiValueError(selectElement);
         } finally {
             selectElement.disabled = false;

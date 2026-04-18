@@ -1,5 +1,6 @@
 import RenderTable from "./render-table.js";
 import RenderOrderTable from "./render-order-table.js";
+import { alertMessage } from "./alert-message.js";
 
 
 export class RenderPaginateTable extends RenderTable {
@@ -117,6 +118,10 @@ export class RenderPaginateTable extends RenderTable {
             const errorMessage = error?.message || "No se pudo cargar la tabla.";
 
             this.showError(errorMessage);
+            alertMessage.notifyError(error, {
+                title: "Error al cargar datos",
+                fallbackMessage: errorMessage
+            });
 
             if (this.paginationContainer) {
                 this.paginationContainer.innerHTML = "";
