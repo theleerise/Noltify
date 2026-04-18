@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+{% from 'macro/component.jinja2' import mac_list_title %}
+
+{% block title %}
+ - Publicaciones
+{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ static('css/rich-editor.css') }}">
+{% endblock %}
+
+{% block content %}
+
+{{ mac_list_title("Publicaciones") }}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <ul class="nav nav-tabs" id="publication-general-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="publications-by-department-tab" data-bs-toggle="tab" data-bs-target="#publications-by-department-pane" type="button" role="tab" aria-controls="publications-by-department-pane" aria-selected="true">
+                    Publicaciones por departamento
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="publications-general-tab" data-bs-toggle="tab" data-bs-target="#publications-general-pane" type="button" role="tab" aria-controls="publications-general-pane" aria-selected="false">
+                    Publicaciones generales
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="publications-user-tab" data-bs-toggle="tab" data-bs-target="#publications-user-pane" type="button" role="tab" aria-controls="publications-user-pane" aria-selected="false">
+                    Publicaciones del usuario
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content border border-top-0 rounded-bottom p-3">
+            <div class="tab-pane fade show active" id="publications-by-department-pane" role="tabpanel" aria-labelledby="publications-by-department-tab" tabindex="0">
+                {% if user_departments %}
+                <ul class="nav nav-pills gap-2 mb-3" id="publications-by-department-subtabs" role="tablist">
+                    {% for department in user_departments %}
+                    <li class="nav-item" role="presentation">
+                        <button
+                            class="nav-link {% if loop.first %}active{% endif %}"
+                            id="publications-department-{{ department.id }}-tab"
+                            data-bs-toggle="pill"
+                            data-bs-target="#publications-department-{{ department.id }}-pane"
+                            type="button"
+                            role="tab"
+                            aria-controls="publications-department-{{ department.id }}-pane"
+                            aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                            {{ department.code }}{% if department.name %} - {{ department.name }}{% endif %}
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <div class="tab-content">
+                    {% for department in user_departments %}
+                    <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="publications-department-{{ department.id }}-pane" role="tabpanel" aria-labelledby="publications-department-{{ department.id }}-tab" tabindex="0">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                data-role="department-publication-create"
+                                data-department-id="{{ department.id }}"
+                                data-department-label="{{ department.code }}{% if department.name %} - {{ department.name }}{% endif %}">
+                                Crear
+                            </button>
+                        </div>
+                        <div summary_name="publication-general-department-{{ department.id }}-summary" class="mb-2"></div>
+                        <div table_name="publication-general-department-{{ department.id }}-table"></div>
+                        <div pagination_name="publication-general-department-{{ department.id }}-pagination" class="mt-2"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    El usuario no tiene departamentos asignados, por lo que no hay subpestañas disponibles.
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="tab-pane fade" id="publications-general-pane" role="tabpanel" aria-labelledby="publications-general-tab" tabindex="0">
+                <div class="alert alert-light border mb-3">
+                    Las publicaciones generales son visibles para todos. Los creadores y administradores pueden editarlas.
+                </div>
+                <div summary_name="publication-general-public-summary" class="mb-2"></div>
+                <div table_name="publication-general-public-table"></div>
+                <div pagination_name="publication-general-public-pagination" class="mt-2"></div>
+            </div>
+
+            <div class="tab-pane fade" id="publications-user-pane" role="tabpanel" aria-labelledby="publications-user-tab" tabindex="0">
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-role="user-publication-create">Crear</button>
+                </div>
+                <div class="alert alert-light border mb-3">
+                    Las publicaciones creadas aqui pertenecen al usuario y no se asignan a ningun departamento.
+                </div>
+                <div summary_name="publication-general-user-summary" class="mb-2"></div>
+                <div table_name="publication-general-user-table"></div>
+                <div pagination_name="publication-general-user-pagination" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="publication-general-modal-container"></div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { CustomModal, deleteModal } from "/static/js/modals.js";
+
+    const entityConfig = {{ publication_entity_model | safe }};
+    const currentUserId = Number("{{ current_user_id }}") || null;
+    const currentUserIsSuperuser = {{ "true" if current_user_is_superuser else "false" }};
+    const visibleColumns = ["title", "status", "created_by", "created_at"];
+    const departmentTables = new Map();
+    let publicPublicationsTable = null;
+    let userPublicationsTable = null;
+
+    function canManagePublication(row) {
+        return currentUserIsSuperuser || Number(row?.created_by) === currentUserId;
+    }
+
+    function getReloadCallback(scope, departmentId = null) {
+        return () => {
+            if (scope === "department") {
+                departmentTables.get(departmentId)?.reload();
+                return;
+            }
+
+            if (scope === "general") {
+                publicPublicationsTable?.reload();
+                return;
+            }
+
+            userPublicationsTable?.reload();
+        };
+    }
+
+    function buildActionUrl(action, scope, departmentId = null, publicationId = null, variant = null) {
+        const baseMap = {
+            create: "/publication/general/create/",
+            update: `/publication/general/update/${publicationId}/`,
+            delete: `/publication/general/delete/${publicationId}/`,
+            form: "/publication/form/",
+            new: "/publication/new/",
+            edit: `/publication/edit/${publicationId}/`
+        };
+
+        const url = new URL(baseMap[action], window.location.origin);
+
+        if (action === "form") {
+            url.searchParams.set("variant", variant || (scope === "department" ? "department" : "user"));
+        }
+
+        if (action === "create") {
+            url.searchParams.set("scope", scope);
+        }
+
+        if (departmentId) {
+            url.searchParams.set("department_id", String(departmentId));
+        }
+
+        return `${url.pathname}${url.search}`;
+    }
+
+    function createPublicationManager({ scope, departmentId = null, onSuccessReload }) {
+        return new ModalFormManager({
+            containerName: "publication-general-modal-container",
+            entityConfig,
+            formUrl: buildActionUrl("form", scope, departmentId),
+            headers: { "X-CSRFToken": getCookie("csrftoken") },
+            dataUrls: {
+                new: buildActionUrl("new", scope, departmentId),
+                edit: (id) => buildActionUrl("edit", scope, departmentId, id)
+            },
+            submitUrl: (mode, id) => mode === "new"
+                ? buildActionUrl("create", scope, departmentId)
+                : buildActionUrl("update", scope, departmentId, id),
+            modal: {
+                titleNew: scope === "department" ? "Nueva publicacion del departamento" : "Nueva publicacion del usuario",
+                titleEdit: "Editar publicacion",
+                titleShow: "Detalle de la publicacion",
+                size: "modal-lg"
+            },
+            onAfterHtmlLoad: (html, manager) => {
+                const createdByWrapper = manager.formElement?.querySelector('[data-field-wrapper="created_by"]');
+                if (createdByWrapper) {
+                    createdByWrapper.classList.add("d-none");
+                }
+            },
+            onBeforeSubmit: (payload) => {
+                const finalPayload = { ...payload };
+                finalPayload.created_by = currentUserId;
+                return finalPayload;
+            },
+            onSuccess: (response, manager) => {
+                manager.close();
+                onSuccessReload?.();
+            },
+            onError: (error) => console.error(error)
+        });
+    }
+
+    function showPublicationContent(row) {
+        const modal = new CustomModal({
+            containerName: "publication-general-modal-container",
+            title: row.title || "Publicacion",
+            size: "modal-lg",
+            body: `
+                <div class="mb-2 text-muted small">
+                    <strong>Estado:</strong> ${row.status || ""}
+                </div>
+                <div class="border rounded p-3 bg-light">
+                    ${row.content || "<p class=\"mb-0 text-muted\">Sin contenido disponible.</p>"}
+                </div>
+            `,
+            footer: `
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            `,
+            backdrop: true,
+            keyboard: true
+        });
+
+        modal.open();
+    }
+
+    function buildButtons({ scope, departmentId = null, managerFactory = null, reloadTable = null }) {
+        return {
+            edit: {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                visible: (row) => Boolean(managerFactory?.()) && canManagePublication(row),
+                action: (row) => {
+                    const manager = managerFactory?.();
+                    if (manager) {
+                        manager.openEdit(row.id);
+                    }
+                }
+            },
+            read: {
+                position: "start",
+                title: "Leer",
+                className: "btn-outline-info",
+                ButtonIconClass: "bi bi-book",
+                action: (row) => showPublicationContent(row)
+            },
+            del: {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                visible: (row) => canManagePublication(row),
+                action: (row) => {
+                    deleteModal({
+                        containerName: "publication-general-modal-container",
+                        url: buildActionUrl("delete", scope, departmentId, row.id),
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar publicacion",
+                        message: `Seguro que deseas eliminar la publicacion <strong>${row.title}</strong>?`,
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            reloadTable?.();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            }
+        };
+    }
+
+    function createPublicationTable({ tableName, paginationContainerName, summaryContainerName, scope, departmentId = null }) {
+        const getManager = () => {
+            if (scope === "department") {
+                return window.departmentPublicationManagers?.[departmentId];
+            }
+
+            if (scope === "user") {
+                return window.userPublicationManager;
+            }
+
+            return null;
+        };
+
+        return new RenderPaginateTable({
+            tableName,
+            paginationContainerName,
+            summaryContainerName,
+            entityConfig,
+            columns: visibleColumns,
+            buttons: buildButtons({
+                scope,
+                departmentId,
+                managerFactory: getManager,
+                reloadTable: getReloadCallback(scope, departmentId)
+            }),
+            url: "/publication/general/data/",
+            method: "GET",
+            rowsPerPage: 10,
+            autoLoad: false,
+            extraParams: {
+                scope,
+                department_id: departmentId
+            }
+        });
+    }
+
+    function initializeDepartmentManagers() {
+        window.departmentPublicationManagers = {};
+
+        document.querySelectorAll('[data-role="department-publication-create"]').forEach((button) => {
+            const departmentId = Number(button.dataset.departmentId);
+            const departmentLabel = button.dataset.departmentLabel || "Departamento";
+
+            window.departmentPublicationManagers[departmentId] = createPublicationManager({
+                scope: "department",
+                departmentId,
+                onSuccessReload: getReloadCallback("department", departmentId)
+            });
+
+            button.addEventListener("click", () => {
+                const manager = window.departmentPublicationManagers[departmentId];
+                if (manager?.modalConfig) {
+                    manager.modalConfig.titleNew = `Nueva publicacion de ${departmentLabel}`;
+                }
+                manager?.openNew();
+            });
+        });
+    }
+
+    function initializeDepartmentTables() {
+        document.querySelectorAll('[data-role="department-publication-create"]').forEach((button) => {
+            const departmentId = Number(button.dataset.departmentId);
+            const table = createPublicationTable({
+                tableName: `publication-general-department-${departmentId}-table`,
+                paginationContainerName: `publication-general-department-${departmentId}-pagination`,
+                summaryContainerName: `publication-general-department-${departmentId}-summary`,
+                scope: "department",
+                departmentId
+            });
+            departmentTables.set(departmentId, table);
+        });
+
+        const firstDepartmentButton = document.querySelector('#publications-by-department-subtabs .nav-link.active');
+        if (firstDepartmentButton) {
+            const firstPaneSelector = firstDepartmentButton.getAttribute("data-bs-target");
+            const firstPane = firstPaneSelector ? document.querySelector(firstPaneSelector) : null;
+            const createButton = firstPane?.querySelector('[data-role="department-publication-create"]');
+            const departmentId = Number(createButton?.dataset.departmentId);
+
+            if (departmentId) {
+                departmentTables.get(departmentId)?.load();
+            }
+        }
+
+        document.querySelectorAll('#publications-by-department-subtabs [data-bs-toggle="pill"]').forEach((tabButton) => {
+            tabButton.addEventListener("shown.bs.tab", (event) => {
+                const targetSelector = event.target.getAttribute("data-bs-target");
+                const targetPane = targetSelector ? document.querySelector(targetSelector) : null;
+                const createButton = targetPane?.querySelector('[data-role="department-publication-create"]');
+                const departmentId = Number(createButton?.dataset.departmentId);
+
+                if (departmentId) {
+                    departmentTables.get(departmentId)?.load();
+                }
+            });
+        });
+    }
+
+    function initializePublicTable() {
+        publicPublicationsTable = createPublicationTable({
+            tableName: "publication-general-public-table",
+            paginationContainerName: "publication-general-public-pagination",
+            summaryContainerName: "publication-general-public-summary",
+            scope: "general"
+        });
+
+        document.getElementById("publications-general-tab")?.addEventListener("shown.bs.tab", () => {
+            publicPublicationsTable?.load();
+        });
+    }
+
+    function initializeUserTable() {
+        window.userPublicationManager = createPublicationManager({
+            scope: "user",
+            onSuccessReload: getReloadCallback("user")
+        });
+
+        userPublicationsTable = createPublicationTable({
+            tableName: "publication-general-user-table",
+            paginationContainerName: "publication-general-user-pagination",
+            summaryContainerName: "publication-general-user-summary",
+            scope: "user"
+        });
+
+        document.querySelector('[data-role="user-publication-create"]')?.addEventListener("click", () => {
+            window.userPublicationManager?.openNew();
+        });
+
+        document.getElementById("publications-user-tab")?.addEventListener("shown.bs.tab", () => {
+            userPublicationsTable?.load();
+        });
+    }
+
+    initializeDepartmentManagers();
+    initializeDepartmentTables();
+    initializePublicTable();
+    initializeUserTable();
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{{ static('js/rich-editor.js') }}"></script>
+{% endblock %}

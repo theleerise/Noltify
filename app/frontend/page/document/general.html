@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+{% from 'macro/component.jinja2' import mac_list_title %}
+
+{% block title %}
+ - Documentos
+{% endblock %}
+
+{% block content %}
+
+{{ mac_list_title("Documentos") }}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <ul class="nav nav-tabs" id="document-general-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active"
+                    id="documents-by-department-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#documents-by-department-pane"
+                    type="button"
+                    role="tab"
+                    aria-controls="documents-by-department-pane"
+                    aria-selected="true">
+                    Documentos por departamento
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button
+                    class="nav-link"
+                    id="documents-general-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#documents-general-pane"
+                    type="button"
+                    role="tab"
+                    aria-controls="documents-general-pane"
+                    aria-selected="false">
+                    Documentos generales
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button
+                    class="nav-link"
+                    id="documents-user-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#documents-user-pane"
+                    type="button"
+                    role="tab"
+                    aria-controls="documents-user-pane"
+                    aria-selected="false">
+                    Documentos del usuario
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content border border-top-0 rounded-bottom p-3">
+            <div class="tab-pane fade show active" id="documents-by-department-pane" role="tabpanel" aria-labelledby="documents-by-department-tab" tabindex="0">
+                {% if user_departments %}
+                <ul class="nav nav-pills gap-2 mb-3" id="documents-by-department-subtabs" role="tablist">
+                    {% for department in user_departments %}
+                    <li class="nav-item" role="presentation">
+                        <button
+                            class="nav-link {% if loop.first %}active{% endif %}"
+                            id="documents-department-{{ department.id }}-tab"
+                            data-bs-toggle="pill"
+                            data-bs-target="#documents-department-{{ department.id }}-pane"
+                            type="button"
+                            role="tab"
+                            aria-controls="documents-department-{{ department.id }}-pane"
+                            aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                            {{ department.code }}{% if department.name %} - {{ department.name }}{% endif %}
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <div class="tab-content">
+                    {% for department in user_departments %}
+                    <div
+                        class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                        id="documents-department-{{ department.id }}-pane"
+                        role="tabpanel"
+                        aria-labelledby="documents-department-{{ department.id }}-tab"
+                        tabindex="0">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                data-role="department-document-create"
+                                data-department-id="{{ department.id }}"
+                                data-department-label="{{ department.code }}{% if department.name %} - {{ department.name }}{% endif %}">
+                                Crear
+                            </button>
+                        </div>
+                        <div summary_name="document-general-department-{{ department.id }}-summary" class="mb-2"></div>
+                        <div table_name="document-general-department-{{ department.id }}-table"></div>
+                        <div pagination_name="document-general-department-{{ department.id }}-pagination" class="mt-2"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    El usuario no tiene departamentos asignados, por lo que no hay subpestañas disponibles.
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="tab-pane fade" id="documents-general-pane" role="tabpanel" aria-labelledby="documents-general-tab" tabindex="0">
+                <div class="alert alert-light border mb-3">
+                    Los documentos generales son publicos y solo los administradores pueden crearlos o modificarlos.
+                </div>
+                <div summary_name="document-general-public-summary" class="mb-2"></div>
+                <div table_name="document-general-public-table"></div>
+                <div pagination_name="document-general-public-pagination" class="mt-2"></div>
+            </div>
+
+            <div class="tab-pane fade" id="documents-user-pane" role="tabpanel" aria-labelledby="documents-user-tab" tabindex="0">
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-role="user-document-create">Crear</button>
+                </div>
+                <div class="alert alert-light border mb-3">
+                    Los documentos creados aqui pertenecen al usuario y no se asignan a ningun departamento.
+                </div>
+                <div summary_name="document-general-user-summary" class="mb-2"></div>
+                <div table_name="document-general-user-table"></div>
+                <div pagination_name="document-general-user-pagination" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="document-general-modal-container"></div>
+
+<script type="module">
+    import RenderPaginateTable from "/static/js/render-paginate-table.js";
+    import ModalFormManager from "/static/js/modal-form-manager.js";
+    import { deleteModal } from "/static/js/modals.js";
+
+    const entityConfig = {{ document_entity_model | safe }};
+    const currentUserId = Number("{{ current_user_id }}") || null;
+    const visibleColumns = ["title", "file_name", "mime_type", "file_size", "uploaded_by", "created_at"];
+    const departmentTables = new Map();
+    let publicDocumentsTable = null;
+    let userDocumentsTable = null;
+
+    function buildActionUrl(action, scope, departmentId = null, documentId = null) {
+        const baseMap = {
+            create: "/document/general/create/",
+            update: `/document/general/update/${documentId}/`,
+            delete: `/document/general/delete/${documentId}/`,
+            form: "/document/form/",
+            new: "/document/new/",
+            edit: `/document/edit/${documentId}/`
+        };
+
+        const url = new URL(baseMap[action], window.location.origin);
+
+        if (action === "form") {
+            url.searchParams.set("variant", scope === "department" ? "department" : "user");
+        }
+
+        if (action === "create") {
+            url.searchParams.set("scope", scope);
+        }
+
+        if (departmentId) {
+            url.searchParams.set("department_id", String(departmentId));
+        }
+
+        return `${url.pathname}${url.search}`;
+    }
+
+    function openDocumentFile(row) {
+        window.open(`/document/file/${row.id}/`, "_blank", "noopener");
+    }
+
+    function canManageRow(row) {
+        return Number(row?.uploaded_by) === currentUserId;
+    }
+
+    function createDocumentManager({ scope, departmentId = null, onSuccessReload }) {
+        return new ModalFormManager({
+            containerName: "document-general-modal-container",
+            entityConfig,
+            formUrl: buildActionUrl("form", scope, departmentId),
+            headers: { "X-CSRFToken": getCookie("csrftoken") },
+            dataUrls: {
+                new: buildActionUrl("new", scope, departmentId),
+                edit: (id) => buildActionUrl("edit", scope, departmentId, id)
+            },
+            submitUrl: (mode, id) => mode === "new"
+                ? buildActionUrl("create", scope, departmentId)
+                : buildActionUrl("update", scope, departmentId, id),
+            modal: {
+                titleNew: scope === "department" ? "Nuevo documento del departamento" : "Nuevo documento del usuario",
+                titleEdit: "Editar documento",
+                titleShow: "Detalle del documento",
+                size: "modal-lg"
+            },
+            onAfterHtmlLoad: (html, manager) => {
+                const uploadedByWrapper = manager.formElement?.querySelector('[data-field-wrapper="uploaded_by"]');
+                if (uploadedByWrapper) {
+                    uploadedByWrapper.classList.add("d-none");
+                }
+            },
+            onBeforeSubmit: (payload) => {
+                const finalPayload = { ...payload };
+                finalPayload.uploaded_by = currentUserId;
+                return finalPayload;
+            },
+            onSuccess: (response, manager) => {
+                manager.close();
+                onSuccessReload();
+            },
+            onError: (error) => console.error(error)
+        });
+    }
+
+    function buildButtons({ scope, departmentId = null, managerFactory = null, reloadTable = null, allowManage = true }) {
+        const buttons = {
+            doc: {
+                position: "start",
+                title: "Documento",
+                className: "btn-outline-warning",
+                ButtonIconClass: "bi bi-file-earmark-post",
+                action: (row) => openDocumentFile(row)
+            }
+        };
+
+        if (!allowManage) {
+            return buttons;
+        }
+
+        buttons.edit = {
+            position: "start",
+            title: "Editar",
+            className: "btn-outline-primary",
+            ButtonIconClass: "bi bi-pencil-square",
+            visible: (row) => canManageRow(row),
+            action: (row) => managerFactory()?.openEdit(row.id)
+        };
+
+        buttons.del = {
+            position: "end",
+            title: "Eliminar",
+            className: "btn-outline-danger",
+            ButtonIconClass: "bi bi-trash",
+            visible: (row) => canManageRow(row),
+            action: (row) => {
+                deleteModal({
+                    containerName: "document-general-modal-container",
+                    url: buildActionUrl("delete", scope, departmentId, row.id),
+                    headers: { "X-CSRFToken": getCookie("csrftoken") },
+                    title: "Eliminar documento",
+                    message: `Seguro que deseas eliminar el documento <strong>${row.title}</strong>?`,
+                    onSuccess: (response, modal) => {
+                        modal.close();
+                        reloadTable?.();
+                    },
+                    onError: (error) => console.error(error)
+                });
+            }
+        };
+
+        return buttons;
+    }
+
+    function createDepartmentTable(departmentId) {
+        const getManager = () => window.departmentDocumentManagers?.[departmentId];
+
+        return new RenderPaginateTable({
+            tableName: `document-general-department-${departmentId}-table`,
+            paginationContainerName: `document-general-department-${departmentId}-pagination`,
+            summaryContainerName: `document-general-department-${departmentId}-summary`,
+            entityConfig,
+            columns: visibleColumns,
+            buttons: buildButtons({
+                scope: "department",
+                departmentId,
+                managerFactory: getManager,
+                reloadTable: () => departmentTables.get(departmentId)?.reload(),
+                allowManage: true
+            }),
+            url: "/document/general/data/",
+            method: "GET",
+            rowsPerPage: 10,
+            autoLoad: false,
+            extraParams: {
+                scope: "department",
+                department_id: departmentId
+            }
+        });
+    }
+
+    function initializeDepartmentManagers() {
+        window.departmentDocumentManagers = {};
+
+        document.querySelectorAll('[data-role="department-document-create"]').forEach((button) => {
+            const departmentId = Number(button.dataset.departmentId);
+            const departmentLabel = button.dataset.departmentLabel || "Departamento";
+
+            window.departmentDocumentManagers[departmentId] = createDocumentManager({
+                scope: "department",
+                departmentId,
+                onSuccessReload: () => departmentTables.get(departmentId)?.reload()
+            });
+
+            button.addEventListener("click", () => {
+                const manager = window.departmentDocumentManagers[departmentId];
+                if (manager?.modalConfig) {
+                    manager.modalConfig.titleNew = `Nuevo documento de ${departmentLabel}`;
+                }
+                manager?.openNew();
+            });
+        });
+    }
+
+    function initializeDepartmentTables() {
+        document.querySelectorAll('[data-role="department-document-create"]').forEach((button) => {
+            const departmentId = Number(button.dataset.departmentId);
+            const table = createDepartmentTable(departmentId);
+            departmentTables.set(departmentId, table);
+        });
+
+        const firstDepartmentButton = document.querySelector('#documents-by-department-subtabs .nav-link.active');
+        if (firstDepartmentButton) {
+            const firstPaneSelector = firstDepartmentButton.getAttribute("data-bs-target");
+            const firstPane = firstPaneSelector ? document.querySelector(firstPaneSelector) : null;
+            const departmentCreateButton = firstPane?.querySelector('[data-role="department-document-create"]');
+            const departmentId = Number(departmentCreateButton?.dataset.departmentId);
+
+            if (departmentId) {
+                departmentTables.get(departmentId)?.load();
+            }
+        }
+
+        document.querySelectorAll('#documents-by-department-subtabs [data-bs-toggle="pill"]').forEach((tabButton) => {
+            tabButton.addEventListener("shown.bs.tab", (event) => {
+                const targetSelector = event.target.getAttribute("data-bs-target");
+                const targetPane = targetSelector ? document.querySelector(targetSelector) : null;
+                const createButton = targetPane?.querySelector('[data-role="department-document-create"]');
+                const departmentId = Number(createButton?.dataset.departmentId);
+
+                if (departmentId) {
+                    departmentTables.get(departmentId)?.load();
+                }
+            });
+        });
+    }
+
+    function initializePublicTable() {
+        publicDocumentsTable = new RenderPaginateTable({
+            tableName: "document-general-public-table",
+            paginationContainerName: "document-general-public-pagination",
+            summaryContainerName: "document-general-public-summary",
+            entityConfig,
+            columns: visibleColumns,
+            buttons: buildButtons({
+                scope: "general",
+                managerFactory: null,
+                reloadTable: () => publicDocumentsTable?.reload(),
+                allowManage: false
+            }),
+            url: "/document/general/data/",
+            method: "GET",
+            rowsPerPage: 10,
+            autoLoad: false,
+            extraParams: {
+                scope: "general"
+            }
+        });
+
+        document.getElementById("documents-general-tab")?.addEventListener("shown.bs.tab", () => {
+            publicDocumentsTable?.load();
+        });
+    }
+
+    function initializeUserTable() {
+        window.userDocumentManager = createDocumentManager({
+            scope: "user",
+            onSuccessReload: () => userDocumentsTable?.reload()
+        });
+
+        userDocumentsTable = new RenderPaginateTable({
+            tableName: "document-general-user-table",
+            paginationContainerName: "document-general-user-pagination",
+            summaryContainerName: "document-general-user-summary",
+            entityConfig,
+            columns: visibleColumns,
+            buttons: buildButtons({
+                scope: "user",
+                managerFactory: () => window.userDocumentManager,
+                reloadTable: () => userDocumentsTable?.reload(),
+                allowManage: true
+            }),
+            url: "/document/general/data/",
+            method: "GET",
+            rowsPerPage: 10,
+            autoLoad: false,
+            extraParams: {
+                scope: "user"
+            }
+        });
+
+        document.querySelector('[data-role="user-document-create"]')?.addEventListener("click", () => {
+            window.userDocumentManager?.openNew();
+        });
+
+        document.getElementById("documents-user-tab")?.addEventListener("shown.bs.tab", () => {
+            userDocumentsTable?.load();
+        });
+    }
+
+    initializeDepartmentManagers();
+    initializeDepartmentTables();
+    initializePublicTable();
+    initializeUserTable();
+</script>
+
+{% endblock %}

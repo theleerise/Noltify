@@ -7,7 +7,10 @@ class RoleModel(EntityModel):
 
     id: int | None = Field(default=None, title="ID", description="Identificador único del rol", pk=True, readonly=True, master_key="ROLES", hidden_form=True)
 
-    code: str = Field(..., title="Código", description="Código único del rol")
+    code: str = Field(..., title="Código", description="Código único del rol", table={
+        "td": {"className": "text-nowrap"},
+        "th": {"className": "text-nowrap"}
+    })
     name: str = Field(..., title="Nombre", description="Nombre del rol")
     description: str | None = Field(default=None, title="Descripción", description="Descripción del rol", widget="textarea", rows=5)
 

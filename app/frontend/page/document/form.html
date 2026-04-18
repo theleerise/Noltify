@@ -1,5 +1,6 @@
 {% include "crud/form_content.html" %}
 
+{% if show_assignment_tabs %}
 <div class="col-12 mt-2">
     <ul class="nav nav-tabs" id="document-form-tabs" role="tablist">
         <li class="nav-item" role="presentation">
@@ -307,3 +308,4 @@
     loadDocumentUsers();
     loadDocumentDepartments();
 </script>
+{% endif %}
