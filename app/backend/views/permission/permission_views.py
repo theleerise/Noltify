@@ -3,6 +3,7 @@ import json
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
+from backend.core.authorization import require_any_permission
 from backend.managers.permission_manager import PermissionManager
 from backend.models.permission_model import PermissionModel
 from backend.models.permission_user_model import PermissionUserModel
@@ -17,7 +18,8 @@ _views = build_crud_views(
     created_message="Permiso creado correctamente",
     updated_message="Permiso actualizado correctamente",
     deleted_message="Permiso eliminado correctamente",
-    not_found_message="No se encontró el permiso solicitado",
+    not_found_message="No se encontro el permiso solicitado",
+    permission_prefix="PERMISSION",
 )
 
 list_view = _views["list_view"]
@@ -30,6 +32,7 @@ delete = _views["delete"]
 
 
 @require_http_methods(["GET"])
+@require_any_permission("PERMISSION_LIST", "PERMISSION_INSERT", "PERMISSION_UPDATE")
 def form_view(request):
     context_page = {
         "entity_model": PermissionModel.config(),

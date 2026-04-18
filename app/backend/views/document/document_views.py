@@ -1,11 +1,10 @@
 import json
 
-from django.http import JsonResponse
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
-from backend.core.auth_session import is_authenticated
+from backend.core.authorization import require_any_permission, user_has_permission
 from backend.managers.document_manager import DocumentManager
 from backend.models.document_department_model import DocumentDepartmentModel
 from backend.models.document_model import DocumentModel
@@ -22,7 +21,8 @@ _views = build_crud_views(
     created_message="Documento creado correctamente",
     updated_message="Documento actualizado correctamente",
     deleted_message="Documento eliminado correctamente",
-    not_found_message="No se encontró el documento solicitado",
+    not_found_message="No se encontro el documento solicitado",
+    permission_prefix="DOCUMENT",
 )
 
 list_view = _views["list_view"]
@@ -35,6 +35,7 @@ delete = _views["delete"]
 
 
 @require_http_methods(["GET"])
+@require_any_permission("DOCUMENT_LIST", "DOCUMENT_INSERT", "DOCUMENT_UPDATE")
 def form_view(request):
     form_variant = (request.GET.get("variant") or "admin").strip().lower()
     entity_model = DocumentModel.config()
@@ -82,73 +83,21 @@ def _get_general_scope(request) -> str:
     return (request.GET.get("scope") or "").strip().lower()
 
 
-@require_http_methods(["POST"])
-def create(request):
-    try:
-        content_type = request.content_type or ""
-        if content_type.startswith("multipart/form-data"):
-            data = _get_multipart_document_data(request)
-        else:
-            request_data = get_request_json(request)
-            data = request_data.get("data", {})
-
-        if not data.get("file_binary"):
-            return get_error_response("Debes seleccionar un archivo para crear el documento", status=400)
-
-        model = DocumentModel(**data)
-
-        mgr = DocumentManager()
-        result = mgr.insert_query(model.to_insert_dict())
-
-        return get_success_response(
-            data=result,
-            message="Documento creado correctamente",
-            status=201
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return get_error_response(str(e))
-
-
-@require_http_methods(["PUT"])
-def update(request, id: int):
-    try:
-        request_data = get_request_json(request)
-        data = request_data.get("data", {})
-
-        mgr = DocumentManager()
-        existing_record = mgr.get_by_id(record_id=id, data_model=False)
-
-        if not existing_record:
-            return get_error_response(error="No se encontró el documento solicitado", status=404)
-
-        data["id"] = id
-        data["file_name"] = existing_record.get("file_name")
-        data["mime_type"] = existing_record.get("mime_type")
-        data["file_size"] = existing_record.get("file_size")
-
-        model = DocumentModel(**data)
-        result = mgr.update_query(model.to_update_dict(include_primary_key=True))
-
-        return get_success_response(
-            data=result,
-            message="Documento actualizado correctamente"
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return get_error_response(str(e))
-
-
 @require_http_methods(["GET"])
+@require_any_permission("DOCUMENT_LIST")
 def document_file(request, id: int):
     try:
         mgr = DocumentManager()
-        document = mgr.get_document(id)
+        session_user = getattr(request, "app_user", None) or {}
+        current_user_id = _get_current_user_id(request)
+        document = (
+            mgr.get_document(id)
+            if bool(session_user.get("is_superuser"))
+            else mgr.get_accessible_document(id, current_user_id or 0)
+        )
 
         if not document:
-            return get_error_response(error="No se encontró el documento solicitado", status=404)
+            return get_error_response(error="No se encontro el documento solicitado", status=404)
 
         file_binary = document.get("file_binary")
         if not file_binary:
@@ -167,10 +116,8 @@ def document_file(request, id: int):
 
 
 @require_http_methods(["GET"])
+@require_any_permission("DOCUMENT_LIST")
 def general_view(request):
-    if not is_authenticated(request):
-        return get_error_response("Debes iniciar sesion para acceder a esta seccion", status=401)
-
     current_user_id = _get_current_user_id(request)
     if not current_user_id:
         return get_error_response("No se pudo identificar al usuario de sesion", status=401)
@@ -178,16 +125,26 @@ def general_view(request):
     mgr = DocumentManager()
     departments = mgr.get_user_departments(current_user_id)
 
+    permission_flags = {
+        "can_list": user_has_permission(request, "DOCUMENT_LIST"),
+        "can_insert": user_has_permission(request, "DOCUMENT_INSERT"),
+        "can_update": user_has_permission(request, "DOCUMENT_UPDATE"),
+        "can_delete": user_has_permission(request, "DOCUMENT_DELETE"),
+    }
+
     context_page = {
         "document_entity_model": json.dumps(DocumentModel.config()),
         "current_user_id": current_user_id,
         "user_departments": departments,
+        "document_permissions": permission_flags,
+        "document_permissions_json": json.dumps(permission_flags),
     }
 
     return render(request, "document/general.html", context_page)
 
 
 @require_http_methods(["GET"])
+@require_any_permission("DOCUMENT_LIST")
 def general_data(request):
     try:
         current_user_id = _get_current_user_id(request)
@@ -230,6 +187,7 @@ def general_data(request):
 
 
 @require_http_methods(["POST"])
+@require_any_permission("DOCUMENT_INSERT")
 def general_create(request):
     try:
         current_user_id = _get_current_user_id(request)
@@ -283,6 +241,7 @@ def general_create(request):
 
 
 @require_http_methods(["PUT"])
+@require_any_permission("DOCUMENT_UPDATE")
 def general_update(request, id: int):
     try:
         current_user_id = _get_current_user_id(request)
@@ -318,6 +277,7 @@ def general_update(request, id: int):
 
 
 @require_http_methods(["DELETE"])
+@require_any_permission("DOCUMENT_DELETE")
 def general_delete(request, id: int):
     try:
         current_user_id = _get_current_user_id(request)

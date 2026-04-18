@@ -3,6 +3,7 @@ import json
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
+from backend.core.authorization import require_any_permission
 from backend.managers.department_manager import DepartmentManager
 from backend.models.department_model import DepartmentModel
 from backend.models.deparment_user_model import DepartmentUserModel
@@ -19,7 +20,8 @@ _views = build_crud_views(
     created_message="departamento creado correctamente",
     updated_message="departamento actualizado correctamente",
     deleted_message="departamento eliminado correctamente",
-    not_found_message="No se encontró el departamento solicitado",
+    not_found_message="No se encontro el departamento solicitado",
+    permission_prefix="DEPARTMENT",
 )
 
 data = _views["data"]
@@ -31,25 +33,21 @@ delete = _views["delete"]
 
 
 @require_http_methods(["GET"])
+@require_any_permission("DEPARTMENT_LIST")
 def list_view(request):
     context_page = {
         "entity_model": json.dumps(DepartmentModel.config()),
     }
     return render(request, "department/list.html", context_page)
 
+
 @require_http_methods(["GET"])
+@require_any_permission("DEPARTMENT_LIST", "DEPARTMENT_INSERT", "DEPARTMENT_UPDATE")
 def form_view(request):
-    """
-    Devuelve el HTML del formulario para ser cargado dentro del modal.
-    """
     context_page = {
         "entity_model": DepartmentModel.config(),
         "entity_model_department_user": json.dumps(DepartmentUserModel.config()),
         "entity_model_document_department": json.dumps(DocumentDepartmentModel.config()),
         "entity_model_publication_department": json.dumps(PublicationDepartmentModel.config()),
     }
-    return render(
-        request,
-        "department/form.html",
-        context_page
-    )
+    return render(request, "department/form.html", context_page)

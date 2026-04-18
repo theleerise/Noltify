@@ -105,6 +105,66 @@ class AppUserManager(DatabaseManager):
 
         return self.fetchone(sql=sql, params={"login_value": normalized_login}, data_model=False)
 
+    def get_by_username(self, username: str, *, exclude_id: int | None = None):
+        normalized_username = (username or "").strip()
+        if not normalized_username:
+            return None
+
+        sql = """
+            SELECT
+                  ID
+                , USERNAME
+                , EMAIL
+                , PASSWORD_HASH
+                , FIRST_NAME
+                , LAST_NAME
+                , IS_ACTIVE
+                , IS_SUPERUSER
+                , CREATED_AT
+                , UPDATED_AT
+            FROM PUBLIC.APP_USER
+            WHERE UPPER(USERNAME) = UPPER(%(username)s)
+        """
+
+        params = {"username": normalized_username}
+        if exclude_id is not None:
+            sql += "\n              AND ID <> %(exclude_id)s"
+            params["exclude_id"] = exclude_id
+
+        sql += "\n            ORDER BY ID ASC\n            LIMIT 1"
+
+        return self.fetchone(sql=sql, params=params, data_model=False)
+
+    def get_by_email(self, email: str, *, exclude_id: int | None = None):
+        normalized_email = (email or "").strip()
+        if not normalized_email:
+            return None
+
+        sql = """
+            SELECT
+                  ID
+                , USERNAME
+                , EMAIL
+                , PASSWORD_HASH
+                , FIRST_NAME
+                , LAST_NAME
+                , IS_ACTIVE
+                , IS_SUPERUSER
+                , CREATED_AT
+                , UPDATED_AT
+            FROM PUBLIC.APP_USER
+            WHERE UPPER(EMAIL) = UPPER(%(email)s)
+        """
+
+        params = {"email": normalized_email}
+        if exclude_id is not None:
+            sql += "\n              AND ID <> %(exclude_id)s"
+            params["exclude_id"] = exclude_id
+
+        sql += "\n            ORDER BY ID ASC\n            LIMIT 1"
+
+        return self.fetchone(sql=sql, params=params, data_model=False)
+
     def insert_query(self, data: dict):
         final_data = self._before_insert(data)
         self.execute_query_data(

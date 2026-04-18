@@ -7,11 +7,12 @@ _views = build_crud_views(
     manager_class=PublicationDepartmentManager,
     model_class=PublicationDepartmentModel,
     template_prefix="publication_department",
-    singular_name="Asignación publicación-departamento",
-    created_message="Asignación publicación-departamento creada correctamente",
-    updated_message="Asignación publicación-departamento actualizada correctamente",
-    deleted_message="Asignación publicación-departamento eliminada correctamente",
-    not_found_message="No se encontró la asignación publicación-departamento solicitada",
+    singular_name="Asignacion publicacion-departamento",
+    created_message="Asignacion publicacion-departamento creada correctamente",
+    updated_message="Asignacion publicacion-departamento actualizada correctamente",
+    deleted_message="Asignacion publicacion-departamento eliminada correctamente",
+    not_found_message="No se encontro la asignacion publicacion-departamento solicitada",
+    permission_prefix="PUBLICATION_DEPARTMENT",
 )
 
 list_view = _views["list_view"]

@@ -7,11 +7,12 @@ _views = build_crud_views(
     manager_class=RolePermissionManager,
     model_class=RolePermissionModel,
     template_prefix="role_permission",
-    singular_name="Asignación rol-permiso",
-    created_message="Asignación rol-permiso creada correctamente",
-    updated_message="Asignación rol-permiso actualizada correctamente",
-    deleted_message="Asignación rol-permiso eliminada correctamente",
-    not_found_message="No se encontró la asignación rol-permiso solicitada",
+    singular_name="Asignacion rol-permiso",
+    created_message="Asignacion rol-permiso creada correctamente",
+    updated_message="Asignacion rol-permiso actualizada correctamente",
+    deleted_message="Asignacion rol-permiso eliminada correctamente",
+    not_found_message="No se encontro la asignacion rol-permiso solicitada",
+    permission_prefix="ROLE_PERMISSION",
 )
 
 list_view = _views["list_view"]

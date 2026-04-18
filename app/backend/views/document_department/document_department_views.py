@@ -7,11 +7,12 @@ _views = build_crud_views(
     manager_class=DocumentDepartmentManager,
     model_class=DocumentDepartmentModel,
     template_prefix="document_department",
-    singular_name="Asignación documento-departamento",
-    created_message="Asignación documento-departamento creada correctamente",
-    updated_message="Asignación documento-departamento actualizada correctamente",
-    deleted_message="Asignación documento-departamento eliminada correctamente",
-    not_found_message="No se encontró la asignación documento-departamento solicitada",
+    singular_name="Asignacion documento-departamento",
+    created_message="Asignacion documento-departamento creada correctamente",
+    updated_message="Asignacion documento-departamento actualizada correctamente",
+    deleted_message="Asignacion documento-departamento eliminada correctamente",
+    not_found_message="No se encontro la asignacion documento-departamento solicitada",
+    permission_prefix="DOCUMENT_DEPARTMENT",
 )
 
 list_view = _views["list_view"]

@@ -7,11 +7,12 @@ _views = build_crud_views(
     manager_class=PermissionUserManager,
     model_class=PermissionUserModel,
     template_prefix="permission_user",
-    singular_name="Asignación permiso-usuario",
-    created_message="Asignación permiso-usuario creada correctamente",
-    updated_message="Asignación permiso-usuario actualizada correctamente",
-    deleted_message="Asignación permiso-usuario eliminada correctamente",
-    not_found_message="No se encontró la asignación permiso-usuario solicitada",
+    singular_name="Asignacion permiso-usuario",
+    created_message="Asignacion permiso-usuario creada correctamente",
+    updated_message="Asignacion permiso-usuario actualizada correctamente",
+    deleted_message="Asignacion permiso-usuario eliminada correctamente",
+    not_found_message="No se encontro la asignacion permiso-usuario solicitada",
+    permission_prefix="PERMISSION_USER",
 )
 
 list_view = _views["list_view"]

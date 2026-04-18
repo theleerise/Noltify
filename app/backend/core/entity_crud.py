@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
+from backend.core.authorization import build_crud_permission_map, require_any_permission
 from backend.core.response import get_error_response, get_request_json, get_success_response
 
 
@@ -17,6 +18,7 @@ def build_crud_views(
     updated_message: str,
     deleted_message: str,
     not_found_message: str,
+    permission_prefix: str | None = None,
 ):
     @require_http_methods(["GET"])
     def list_view(request):
@@ -149,7 +151,7 @@ def build_crud_views(
             traceback.print_exc()
             return get_error_response(str(e))
 
-    return {
+    views = {
         "list_view": list_view,
         "form_view": form_view,
         "data": data,
@@ -159,3 +161,13 @@ def build_crud_views(
         "update": update,
         "delete": delete,
     }
+
+    if not permission_prefix:
+        return views
+
+    permission_map = build_crud_permission_map(permission_prefix)
+
+    for view_name, permission_codes in permission_map.items():
+        views[view_name] = require_any_permission(*permission_codes)(views[view_name])
+
+    return views

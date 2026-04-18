@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% from 'macro/component.jinja2' import mac_list_title %}
 
+{% set doc_permissions = document_permissions or {} %}
+
 {% block title %}
  - Documentos
 {% endblock %}
@@ -81,6 +83,7 @@
                         role="tabpanel"
                         aria-labelledby="documents-department-{{ department.id }}-tab"
                         tabindex="0">
+                        {% if doc_permissions.can_insert %}
                         <div class="d-flex justify-content-end mb-3">
                             <button
                                 type="button"
@@ -91,6 +94,7 @@
                                 Crear
                             </button>
                         </div>
+                        {% endif %}
                         <div summary_name="document-general-department-{{ department.id }}-summary" class="mb-2"></div>
                         <div table_name="document-general-department-{{ department.id }}-table"></div>
                         <div pagination_name="document-general-department-{{ department.id }}-pagination" class="mt-2"></div>
@@ -114,9 +118,11 @@
             </div>
 
             <div class="tab-pane fade" id="documents-user-pane" role="tabpanel" aria-labelledby="documents-user-tab" tabindex="0">
+                {% if doc_permissions.can_insert %}
                 <div class="d-flex justify-content-end mb-3">
                     <button type="button" class="btn btn-sm btn-outline-primary" data-role="user-document-create">Crear</button>
                 </div>
+                {% endif %}
                 <div class="alert alert-light border mb-3">
                     Los documentos creados aqui pertenecen al usuario y no se asignan a ningun departamento.
                 </div>
@@ -137,6 +143,7 @@
 
     const entityConfig = {{ document_entity_model | safe }};
     const currentUserId = Number("{{ current_user_id }}") || null;
+    const documentPermissions = {{ document_permissions_json | safe }};
     const visibleColumns = ["title", "file_name", "mime_type", "file_size", "uploaded_by", "created_at"];
     const departmentTables = new Map();
     let publicDocumentsTable = null;
@@ -230,36 +237,40 @@
             return buttons;
         }
 
-        buttons.edit = {
-            position: "start",
-            title: "Editar",
-            className: "btn-outline-primary",
-            ButtonIconClass: "bi bi-pencil-square",
-            visible: (row) => canManageRow(row),
-            action: (row) => managerFactory()?.openEdit(row.id)
-        };
+        if (documentPermissions.can_update) {
+            buttons.edit = {
+                position: "start",
+                title: "Editar",
+                className: "btn-outline-primary",
+                ButtonIconClass: "bi bi-pencil-square",
+                visible: (row) => canManageRow(row),
+                action: (row) => managerFactory()?.openEdit(row.id)
+            };
+        }
 
-        buttons.del = {
-            position: "end",
-            title: "Eliminar",
-            className: "btn-outline-danger",
-            ButtonIconClass: "bi bi-trash",
-            visible: (row) => canManageRow(row),
-            action: (row) => {
-                deleteModal({
-                    containerName: "document-general-modal-container",
-                    url: buildActionUrl("delete", scope, departmentId, row.id),
-                    headers: { "X-CSRFToken": getCookie("csrftoken") },
-                    title: "Eliminar documento",
-                    message: `Seguro que deseas eliminar el documento <strong>${row.title}</strong>?`,
-                    onSuccess: (response, modal) => {
-                        modal.close();
-                        reloadTable?.();
-                    },
-                    onError: (error) => console.error(error)
-                });
-            }
-        };
+        if (documentPermissions.can_delete) {
+            buttons.del = {
+                position: "end",
+                title: "Eliminar",
+                className: "btn-outline-danger",
+                ButtonIconClass: "bi bi-trash",
+                visible: (row) => canManageRow(row),
+                action: (row) => {
+                    deleteModal({
+                        containerName: "document-general-modal-container",
+                        url: buildActionUrl("delete", scope, departmentId, row.id),
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
+                        title: "Eliminar documento",
+                        message: `Seguro que deseas eliminar el documento <strong>${row.title}</strong>?`,
+                        onSuccess: (response, modal) => {
+                            modal.close();
+                            reloadTable?.();
+                        },
+                        onError: (error) => console.error(error)
+                    });
+                }
+            };
+        }
 
         return buttons;
     }

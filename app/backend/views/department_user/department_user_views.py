@@ -7,11 +7,12 @@ _views = build_crud_views(
     manager_class=DepartmentUserManager,
     model_class=DepartmentUserModel,
     template_prefix="department_user",
-    singular_name="Asignación departamento-usuario",
-    created_message="Asignación departamento-usuario creada correctamente",
-    updated_message="Asignación departamento-usuario actualizada correctamente",
-    deleted_message="Asignación departamento-usuario eliminada correctamente",
-    not_found_message="No se encontró la asignación departamento-usuario solicitada",
+    singular_name="Asignacion departamento-usuario",
+    created_message="Asignacion departamento-usuario creada correctamente",
+    updated_message="Asignacion departamento-usuario actualizada correctamente",
+    deleted_message="Asignacion departamento-usuario eliminada correctamente",
+    not_found_message="No se encontro la asignacion departamento-usuario solicitada",
+    permission_prefix="DEPARTMENT_USER",
 )
 
 list_view = _views["list_view"]

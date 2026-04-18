@@ -7,11 +7,12 @@ _views = build_crud_views(
     manager_class=RoleUserManager,
     model_class=RoleUserModel,
     template_prefix="role_user",
-    singular_name="Asignación rol-usuario",
-    created_message="Asignación rol-usuario creada correctamente",
-    updated_message="Asignación rol-usuario actualizada correctamente",
-    deleted_message="Asignación rol-usuario eliminada correctamente",
-    not_found_message="No se encontró la asignación rol-usuario solicitada",
+    singular_name="Asignacion rol-usuario",
+    created_message="Asignacion rol-usuario creada correctamente",
+    updated_message="Asignacion rol-usuario actualizada correctamente",
+    deleted_message="Asignacion rol-usuario eliminada correctamente",
+    not_found_message="No se encontro la asignacion rol-usuario solicitada",
+    permission_prefix="ROLE_USER",
 )
 
 list_view = _views["list_view"]

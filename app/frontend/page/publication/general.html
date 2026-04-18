@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% from 'macro/component.jinja2' import mac_list_title %}
 
+{% set pub_permissions = publication_permissions or {} %}
+
 {% block title %}
  - Publicaciones
 {% endblock %}
@@ -57,6 +59,7 @@
                 <div class="tab-content">
                     {% for department in user_departments %}
                     <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="publications-department-{{ department.id }}-pane" role="tabpanel" aria-labelledby="publications-department-{{ department.id }}-tab" tabindex="0">
+                        {% if pub_permissions.can_insert %}
                         <div class="d-flex justify-content-end mb-3">
                             <button
                                 type="button"
@@ -67,6 +70,7 @@
                                 Crear
                             </button>
                         </div>
+                        {% endif %}
                         <div summary_name="publication-general-department-{{ department.id }}-summary" class="mb-2"></div>
                         <div table_name="publication-general-department-{{ department.id }}-table"></div>
                         <div pagination_name="publication-general-department-{{ department.id }}-pagination" class="mt-2"></div>
@@ -90,9 +94,11 @@
             </div>
 
             <div class="tab-pane fade" id="publications-user-pane" role="tabpanel" aria-labelledby="publications-user-tab" tabindex="0">
+                {% if pub_permissions.can_insert %}
                 <div class="d-flex justify-content-end mb-3">
                     <button type="button" class="btn btn-sm btn-outline-primary" data-role="user-publication-create">Crear</button>
                 </div>
+                {% endif %}
                 <div class="alert alert-light border mb-3">
                     Las publicaciones creadas aqui pertenecen al usuario y no se asignan a ningun departamento.
                 </div>
@@ -114,6 +120,7 @@
     const entityConfig = {{ publication_entity_model | safe }};
     const currentUserId = Number("{{ current_user_id }}") || null;
     const currentUserIsSuperuser = {{ "true" if current_user_is_superuser else "false" }};
+    const publicationPermissions = {{ publication_permissions_json | safe }};
     const visibleColumns = ["title", "status", "created_by", "created_at"];
     const departmentTables = new Map();
     let publicPublicationsTable = null;
@@ -229,19 +236,21 @@
 
     function buildButtons({ scope, departmentId = null, managerFactory = null, reloadTable = null }) {
         return {
-            edit: {
-                position: "start",
-                title: "Editar",
-                className: "btn-outline-primary",
-                ButtonIconClass: "bi bi-pencil-square",
-                visible: (row) => Boolean(managerFactory?.()) && canManagePublication(row),
-                action: (row) => {
-                    const manager = managerFactory?.();
-                    if (manager) {
-                        manager.openEdit(row.id);
+            ...(publicationPermissions.can_update ? {
+                edit: {
+                    position: "start",
+                    title: "Editar",
+                    className: "btn-outline-primary",
+                    ButtonIconClass: "bi bi-pencil-square",
+                    visible: (row) => Boolean(managerFactory?.()) && canManagePublication(row),
+                    action: (row) => {
+                        const manager = managerFactory?.();
+                        if (manager) {
+                            manager.openEdit(row.id);
+                        }
                     }
                 }
-            },
+            } : {}),
             read: {
                 position: "start",
                 title: "Leer",
@@ -249,27 +258,29 @@
                 ButtonIconClass: "bi bi-book",
                 action: (row) => showPublicationContent(row)
             },
-            del: {
-                position: "end",
-                title: "Eliminar",
-                className: "btn-outline-danger",
-                ButtonIconClass: "bi bi-trash",
-                visible: (row) => canManagePublication(row),
-                action: (row) => {
-                    deleteModal({
-                        containerName: "publication-general-modal-container",
-                        url: buildActionUrl("delete", scope, departmentId, row.id),
-                        headers: { "X-CSRFToken": getCookie("csrftoken") },
-                        title: "Eliminar publicacion",
-                        message: `Seguro que deseas eliminar la publicacion <strong>${row.title}</strong>?`,
-                        onSuccess: (response, modal) => {
-                            modal.close();
-                            reloadTable?.();
-                        },
-                        onError: (error) => console.error(error)
-                    });
+            ...(publicationPermissions.can_delete ? {
+                del: {
+                    position: "end",
+                    title: "Eliminar",
+                    className: "btn-outline-danger",
+                    ButtonIconClass: "bi bi-trash",
+                    visible: (row) => canManagePublication(row),
+                    action: (row) => {
+                        deleteModal({
+                            containerName: "publication-general-modal-container",
+                            url: buildActionUrl("delete", scope, departmentId, row.id),
+                            headers: { "X-CSRFToken": getCookie("csrftoken") },
+                            title: "Eliminar publicacion",
+                            message: `Seguro que deseas eliminar la publicacion <strong>${row.title}</strong>?`,
+                            onSuccess: (response, modal) => {
+                                modal.close();
+                                reloadTable?.();
+                            },
+                            onError: (error) => console.error(error)
+                        });
+                    }
                 }
-            }
+            } : {})
         };
     }
 

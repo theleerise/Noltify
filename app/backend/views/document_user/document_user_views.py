@@ -7,11 +7,12 @@ _views = build_crud_views(
     manager_class=DocumentUserManager,
     model_class=DocumentUserModel,
     template_prefix="document_user",
-    singular_name="Asignación documento-usuario",
-    created_message="Asignación documento-usuario creada correctamente",
-    updated_message="Asignación documento-usuario actualizada correctamente",
-    deleted_message="Asignación documento-usuario eliminada correctamente",
-    not_found_message="No se encontró la asignación documento-usuario solicitada",
+    singular_name="Asignacion documento-usuario",
+    created_message="Asignacion documento-usuario creada correctamente",
+    updated_message="Asignacion documento-usuario actualizada correctamente",
+    deleted_message="Asignacion documento-usuario eliminada correctamente",
+    not_found_message="No se encontro la asignacion documento-usuario solicitada",
+    permission_prefix="DOCUMENT_USER",
 )
 
 list_view = _views["list_view"]

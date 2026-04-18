@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
-from backend.core.auth_session import is_authenticated
+from backend.core.authorization import require_any_permission, user_has_permission
 from backend.core.response import get_error_response, get_request_json, get_success_response
 from backend.managers.publication_manager import PublicationManager
 from backend.models.publication_department_model import PublicationDepartmentModel
@@ -17,11 +17,12 @@ _views = build_crud_views(
     manager_class=PublicationManager,
     model_class=PublicationModel,
     template_prefix="publication",
-    singular_name="Publicación",
-    created_message="Publicación creada correctamente",
-    updated_message="Publicación actualizada correctamente",
-    deleted_message="Publicación eliminada correctamente",
-    not_found_message="No se encontró la publicación solicitada",
+    singular_name="Publicacion",
+    created_message="Publicacion creada correctamente",
+    updated_message="Publicacion actualizada correctamente",
+    deleted_message="Publicacion eliminada correctamente",
+    not_found_message="No se encontro la publicacion solicitada",
+    permission_prefix="PUBLICATION",
 )
 
 list_view = _views["list_view"]
@@ -34,6 +35,7 @@ delete = _views["delete"]
 
 
 @require_http_methods(["GET"])
+@require_any_permission("PUBLICATION_LIST", "PUBLICATION_INSERT", "PUBLICATION_UPDATE")
 def form_view(request):
     form_variant = (request.GET.get("variant") or "admin").strip().lower()
     entity_model = PublicationModel.config()
@@ -69,10 +71,8 @@ def _get_general_scope(request) -> str:
 
 
 @require_http_methods(["GET"])
+@require_any_permission("PUBLICATION_LIST")
 def general_view(request):
-    if not is_authenticated(request):
-        return get_error_response("Debes iniciar sesion para acceder a esta seccion", status=401)
-
     current_user_id = _get_current_user_id(request)
     if not current_user_id:
         return get_error_response("No se pudo identificar al usuario de sesion", status=401)
@@ -81,17 +81,27 @@ def general_view(request):
     departments = mgr.get_user_departments(current_user_id)
     session_user = getattr(request, "app_user", None) or {}
 
+    permission_flags = {
+        "can_list": user_has_permission(request, "PUBLICATION_LIST"),
+        "can_insert": user_has_permission(request, "PUBLICATION_INSERT"),
+        "can_update": user_has_permission(request, "PUBLICATION_UPDATE"),
+        "can_delete": user_has_permission(request, "PUBLICATION_DELETE"),
+    }
+
     context_page = {
         "publication_entity_model": json.dumps(PublicationModel.config()),
         "current_user_id": current_user_id,
         "current_user_is_superuser": bool(session_user.get("is_superuser")),
         "user_departments": departments,
+        "publication_permissions": permission_flags,
+        "publication_permissions_json": json.dumps(permission_flags),
     }
 
     return render(request, "publication/general.html", context_page)
 
 
 @require_http_methods(["GET"])
+@require_any_permission("PUBLICATION_LIST")
 def general_data(request):
     try:
         current_user_id = _get_current_user_id(request)
@@ -134,6 +144,7 @@ def general_data(request):
 
 
 @require_http_methods(["POST"])
+@require_any_permission("PUBLICATION_INSERT")
 def general_create(request):
     try:
         current_user_id = _get_current_user_id(request)
@@ -179,6 +190,7 @@ def general_create(request):
 
 
 @require_http_methods(["PUT"])
+@require_any_permission("PUBLICATION_UPDATE")
 def general_update(request, id: int):
     try:
         current_user_id = _get_current_user_id(request)
@@ -188,7 +200,11 @@ def general_update(request, id: int):
         session_user = getattr(request, "app_user", None) or {}
         is_superuser = bool(session_user.get("is_superuser"))
         mgr = PublicationManager()
-        existing_record = mgr.get_by_id(record_id=id, data_model=False) if is_superuser else mgr.get_owned_publication(publication_id=id, created_by=current_user_id)
+        existing_record = (
+            mgr.get_by_id(record_id=id, data_model=False)
+            if is_superuser
+            else mgr.get_owned_publication(publication_id=id, created_by=current_user_id)
+        )
 
         if not existing_record:
             return get_error_response("No tienes permisos para editar esta publicacion", status=403)
@@ -213,6 +229,7 @@ def general_update(request, id: int):
 
 
 @require_http_methods(["DELETE"])
+@require_any_permission("PUBLICATION_DELETE")
 def general_delete(request, id: int):
     try:
         current_user_id = _get_current_user_id(request)
@@ -222,7 +239,11 @@ def general_delete(request, id: int):
         session_user = getattr(request, "app_user", None) or {}
         is_superuser = bool(session_user.get("is_superuser"))
         mgr = PublicationManager()
-        existing_record = mgr.get_by_id(record_id=id, data_model=False) if is_superuser else mgr.get_owned_publication(publication_id=id, created_by=current_user_id)
+        existing_record = (
+            mgr.get_by_id(record_id=id, data_model=False)
+            if is_superuser
+            else mgr.get_owned_publication(publication_id=id, created_by=current_user_id)
+        )
 
         if not existing_record:
             return get_error_response("No tienes permisos para eliminar esta publicacion", status=403)

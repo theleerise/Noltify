@@ -107,6 +107,44 @@ class DocumentManager(DatabaseManager):
             data_model=False
         )
 
+    def get_accessible_document(self, document_id: int, user_id: int) -> dict | None:
+        sql = """
+            SELECT DISTINCT
+                  DOC.ID
+                , DOC.FILE_NAME
+                , DOC.FILE_BINARY
+                , DOC.MIME_TYPE
+            FROM PUBLIC.DOCUMENT AS DOC
+            WHERE DOC.ID = %(document_id)s
+              AND DOC.IS_ACTIVE = TRUE
+              AND (
+                    DOC.UPLOADED_BY = %(user_id)s
+                    OR NOT EXISTS (
+                        SELECT 1
+                        FROM PUBLIC.DOCUMENT_DEPARTMENT AS DD_SCOPE
+                        WHERE DD_SCOPE.DOCUMENT_ID = DOC.ID
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM PUBLIC.DOCUMENT_DEPARTMENT AS DD_ACCESS
+                        INNER JOIN PUBLIC.DEPARTMENT_USER AS DEUS
+                            ON DEUS.DEPARTMENT_ID = DD_ACCESS.DEPARTMENT_ID
+                        WHERE DD_ACCESS.DOCUMENT_ID = DOC.ID
+                          AND DEUS.USER_ID = %(user_id)s
+                    )
+              )
+            LIMIT 1
+        """
+
+        return self.fetchone(
+            sql=sql,
+            params={
+                "document_id": document_id,
+                "user_id": user_id,
+            },
+            data_model=False,
+        )
+
     def get_user_departments(self, user_id: int) -> list[dict]:
         sql = """
             SELECT DISTINCT

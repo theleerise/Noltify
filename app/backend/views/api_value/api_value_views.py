@@ -3,11 +3,13 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
+from backend.core.authorization import require_app_session
 from backend.core.response import *
 from backend.managers.api_value_manager import ApiValueManager
 from backend.models.api_value_model import ApiValueModel
 
 @require_http_methods(["GET"])
+@require_app_session
 def data(request, master):
     try:
         request_data = request.GET.dict()
@@ -36,6 +38,7 @@ def data(request, master):
 
 
 @require_http_methods(["GET"])
+@require_app_session
 def data_page(request, master):
     try:
         request_data = request.GET.dict()

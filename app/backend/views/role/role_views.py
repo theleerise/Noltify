@@ -3,6 +3,7 @@ import json
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
+from backend.core.authorization import require_any_permission
 from backend.managers.role_manager import RoleManager
 from backend.models.role_model import RoleModel
 from backend.models.role_permission_model import RolePermissionModel
@@ -18,7 +19,8 @@ _views = build_crud_views(
     created_message="Rol creado correctamente",
     updated_message="Rol actualizado correctamente",
     deleted_message="Rol eliminado correctamente",
-    not_found_message="No se encontró el rol solicitado",
+    not_found_message="No se encontro el rol solicitado",
+    permission_prefix="ROLE",
 )
 
 list_view = _views["list_view"]
@@ -31,6 +33,7 @@ delete = _views["delete"]
 
 
 @require_http_methods(["GET"])
+@require_any_permission("ROLE_LIST", "ROLE_INSERT", "ROLE_UPDATE")
 def form_view(request):
     context_page = {
         "entity_model": RoleModel.config(),
