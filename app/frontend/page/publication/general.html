@@ -116,6 +116,7 @@
     import RenderPaginateTable from "/static/js/render-paginate-table.js";
     import ModalFormManager from "/static/js/modal-form-manager.js";
     import { CustomModal, deleteModal } from "/static/js/modals.js";
+    import { fetchApiValueRecords, getApiValueLabel } from "/static/js/api-value-service.js";
 
     const entityConfig = {{ publication_entity_model | safe }};
     const currentUserId = Number("{{ current_user_id }}") || null;
@@ -211,14 +212,26 @@
         });
     }
 
-    function showPublicationContent(row) {
+    async function resolvePublicationStatusLabel(rawStatus) {
+        try {
+            const records = await fetchApiValueRecords("PUBLICATIONS_STATUS");
+            return getApiValueLabel(records, rawStatus) || rawStatus || "";
+        } catch (error) {
+            console.error(error);
+            return rawStatus || "";
+        }
+    }
+
+    async function showPublicationContent(row) {
+        const statusLabel = await resolvePublicationStatusLabel(row.status);
+
         const modal = new CustomModal({
             containerName: "publication-general-modal-container",
             title: row.title || "Publicacion",
             size: "modal-lg",
             body: `
                 <div class="mb-2 text-muted small">
-                    <strong>Estado:</strong> ${row.status || ""}
+                    <strong>Estado:</strong> ${statusLabel}
                 </div>
                 <div class="border rounded p-3 bg-light">
                     ${row.content || "<p class=\"mb-0 text-muted\">Sin contenido disponible.</p>"}

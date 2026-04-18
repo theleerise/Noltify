@@ -42,6 +42,19 @@
             <li class="nav-item" role="presentation">
                 <button
                     class="nav-link"
+                    id="documents-assigned-user-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#documents-assigned-user-pane"
+                    type="button"
+                    role="tab"
+                    aria-controls="documents-assigned-user-pane"
+                    aria-selected="false">
+                    Documentos asignados al usuario
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button
+                    class="nav-link"
                     id="documents-user-tab"
                     data-bs-toggle="tab"
                     data-bs-target="#documents-user-pane"
@@ -117,6 +130,15 @@
                 <div pagination_name="document-general-public-pagination" class="mt-2"></div>
             </div>
 
+            <div class="tab-pane fade" id="documents-assigned-user-pane" role="tabpanel" aria-labelledby="documents-assigned-user-tab" tabindex="0">
+                <div class="alert alert-light border mb-3">
+                    Estos documentos fueron asignados directamente al usuario mediante la relacion de documento-usuario.
+                </div>
+                <div summary_name="document-general-assigned-user-summary" class="mb-2"></div>
+                <div table_name="document-general-assigned-user-table"></div>
+                <div pagination_name="document-general-assigned-user-pagination" class="mt-2"></div>
+            </div>
+
             <div class="tab-pane fade" id="documents-user-pane" role="tabpanel" aria-labelledby="documents-user-tab" tabindex="0">
                 {% if doc_permissions.can_insert %}
                 <div class="d-flex justify-content-end mb-3">
@@ -147,6 +169,7 @@
     const visibleColumns = ["title", "file_name", "mime_type", "file_size", "uploaded_by", "created_at"];
     const departmentTables = new Map();
     let publicDocumentsTable = null;
+    let assignedUserDocumentsTable = null;
     let userDocumentsTable = null;
 
     function buildActionUrl(action, scope, departmentId = null, documentId = null) {
@@ -421,10 +444,38 @@
         });
     }
 
+    function initializeAssignedUserTable() {
+        assignedUserDocumentsTable = new RenderPaginateTable({
+            tableName: "document-general-assigned-user-table",
+            paginationContainerName: "document-general-assigned-user-pagination",
+            summaryContainerName: "document-general-assigned-user-summary",
+            entityConfig,
+            columns: visibleColumns,
+            buttons: buildButtons({
+                scope: "assigned_user",
+                managerFactory: () => window.userDocumentManager,
+                reloadTable: () => assignedUserDocumentsTable?.reload(),
+                allowManage: true
+            }),
+            url: "/document/general/data/",
+            method: "GET",
+            rowsPerPage: 10,
+            autoLoad: false,
+            extraParams: {
+                scope: "assigned_user"
+            }
+        });
+
+        document.getElementById("documents-assigned-user-tab")?.addEventListener("shown.bs.tab", () => {
+            assignedUserDocumentsTable?.load();
+        });
+    }
+
     initializeDepartmentManagers();
     initializeDepartmentTables();
     initializePublicTable();
     initializeUserTable();
+    initializeAssignedUserTable();
 </script>
 
 {% endblock %}

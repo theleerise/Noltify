@@ -132,6 +132,34 @@ class ApiValueManager(DatabaseManager):
         """
         return query
 
+    def _query_PUBLICATIONS_STATUS(self) -> str:
+        query = """
+            SELECT
+                  ID_ROW
+                , DISPLAY_VALUE
+            FROM (
+                SELECT 'DRAFT', 'BORRADOR'
+                UNION ALL
+                SELECT 'PENDING_REVIEW', 'PENDIENTE DE REVISIÓN'
+                UNION ALL
+                SELECT 'REJECTED', 'RECHAZADO'
+                UNION ALL
+                SELECT 'APPROVED', 'APROBADO'
+                UNION ALL
+                SELECT 'SCHEDULED', 'PROGRAMADO'
+                UNION ALL
+                SELECT 'PUBLISHED', 'PUBLICADO'
+                UNION ALL
+                SELECT 'UNPUBLISHED', 'NO PUBLICADO'
+                UNION ALL
+                SELECT 'ARCHIVED', 'ARCHIVADO'
+                UNION ALL
+                SELECT 'DELETED', 'ELIMINADO'
+            ) AS ESTADOS(ID_ROW, DISPLAY_VALUE)
+            WHERE 1=1
+        """
+        return query
+
     def _query_ROLES(self) -> str:
         query = """
             SELECT

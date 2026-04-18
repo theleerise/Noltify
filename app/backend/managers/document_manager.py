@@ -119,6 +119,12 @@ class DocumentManager(DatabaseManager):
               AND DOC.IS_ACTIVE = TRUE
               AND (
                     DOC.UPLOADED_BY = %(user_id)s
+                    OR EXISTS (
+                        SELECT 1
+                        FROM PUBLIC.DOCUMENT_USER AS DU_ACCESS
+                        WHERE DU_ACCESS.DOCUMENT_ID = DOC.ID
+                          AND DU_ACCESS.USER_ID = %(user_id)s
+                    )
                     OR NOT EXISTS (
                         SELECT 1
                         FROM PUBLIC.DOCUMENT_DEPARTMENT AS DD_SCOPE
@@ -236,6 +242,15 @@ class DocumentManager(DatabaseManager):
             """
         elif scope == "user":
             scope_condition = f"DOC.UPLOADED_BY = {int(user_id)}"
+        elif scope == "assigned_user":
+            scope_condition = f"""
+                EXISTS (
+                    SELECT 1
+                    FROM PUBLIC.DOCUMENT_USER AS DU_SCOPE
+                    WHERE DU_SCOPE.DOCUMENT_ID = DOC.ID
+                      AND DU_SCOPE.USER_ID = {int(user_id)}
+                )
+            """
         else:
             raise ValueError("El scope indicado para documentos generales no es valido.")
 

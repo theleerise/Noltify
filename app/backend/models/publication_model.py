@@ -18,7 +18,12 @@ class PublicationModel(EntityModel):
         height="320px"
     )
 
-    status: str = Field(default="DRAFT", title="Estado", description="Estado de la publicación")
+    status: str = Field(
+        default="DRAFT",
+        title="Estado",
+        description="Estado de la publicación",
+        master_key="PUBLICATIONS_STATUS"
+    )
 
     created_by: int | None = Field(default=None, title="Creado por", description="Usuario que creó la publicación", master_key="APP_USERS")
 
