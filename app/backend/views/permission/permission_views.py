@@ -3,7 +3,7 @@ import json
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
-from backend.core.authorization import require_any_permission
+from backend.core.authorization import require_any_permission, require_superuser
 from backend.managers.permission_manager import PermissionManager
 from backend.models.permission_model import PermissionModel
 from backend.models.permission_user_model import PermissionUserModel
@@ -24,15 +24,15 @@ _views = build_crud_views(
 
 list_view = _views["list_view"]
 data = _views["data"]
-new_view = _views["new_view"]
-edit_view = _views["edit_view"]
-create = _views["create"]
-update = _views["update"]
-delete = _views["delete"]
+new_view = require_superuser()(_views["new_view"])
+edit_view = require_superuser()(_views["edit_view"])
+create = require_superuser()(_views["create"])
+update = require_superuser()(_views["update"])
+delete = require_superuser()(_views["delete"])
 
 
 @require_http_methods(["GET"])
-@require_any_permission("PERMISSION_LIST", "PERMISSION_INSERT", "PERMISSION_UPDATE")
+@require_superuser()
 def form_view(request):
     context_page = {
         "entity_model": PermissionModel.config(),

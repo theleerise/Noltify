@@ -1,3 +1,4 @@
+from backend.core.authorization import require_superuser
 from backend.managers.role_permission_manager import RolePermissionManager
 from backend.models.role_permission_model import RolePermissionModel
 from app.backend.core.entity_crud import build_crud_views
@@ -12,14 +13,13 @@ _views = build_crud_views(
     updated_message="Asignacion rol-permiso actualizada correctamente",
     deleted_message="Asignacion rol-permiso eliminada correctamente",
     not_found_message="No se encontro la asignacion rol-permiso solicitada",
-    permission_prefix="ROLE_PERMISSION",
 )
 
-list_view = _views["list_view"]
-form_view = _views["form_view"]
-data = _views["data"]
-new_view = _views["new_view"]
-edit_view = _views["edit_view"]
-create = _views["create"]
-update = _views["update"]
-delete = _views["delete"]
+list_view = require_superuser()(_views["list_view"])
+form_view = require_superuser()(_views["form_view"])
+data = require_superuser()(_views["data"])
+new_view = require_superuser()(_views["new_view"])
+edit_view = require_superuser()(_views["edit_view"])
+create = require_superuser()(_views["create"])
+update = require_superuser()(_views["update"])
+delete = require_superuser()(_views["delete"])

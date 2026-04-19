@@ -14,7 +14,9 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
                 <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#permission-filters-collapse">Filtros</a>
+                {% if app_is_superuser %}
                 <a class="btn btn-sm btn-outline-primary" onclick="window.permissionOpenNew()">Crear</a>
+                {% endif %}
             </div>
             <div filters_actions="permission-filters-actions"></div>
         </div>
@@ -63,6 +65,7 @@
         entityConfig,
         columns: visibleColumns,
         buttons: {
+            {% if app_is_superuser %}
             edit: {
                 position: "start",
                 title: "Editar",
@@ -93,6 +96,7 @@
                     });
                 }
             }
+            {% endif %}
         },
         url: "/permission/data/",
         method: "GET",
@@ -114,6 +118,7 @@
     filters.render();
     table.load();
 
+    {% if app_is_superuser %}
     window.permissionOpenNew = () => {
         window.permissionUserFilterValue = null;
         window.entityFormMgr.openNew();
@@ -141,6 +146,7 @@
         },
         onError: (error) => console.error(error)
     });
+    {% endif %}
 </script>
 
 {% endblock %}

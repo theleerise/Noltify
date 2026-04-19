@@ -98,9 +98,11 @@
                         <li><a class="dropdown-item" href="{{ url('permission:list') }}">
                             <i class="bi bi-person-lock me-2 text-muted"></i>Permisos
                         </a></li>
+                        {% if app_is_superuser %}
                         <li><a class="dropdown-item" href="{{ url('role_permission:list') }}">
                             <i class="bi bi-person-video2 me-2 text-muted"></i>Permisos asignados a roles
                         </a></li>
+                        {% endif %}
                     </ul>
                 </li>
                 {% endif %}

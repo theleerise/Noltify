@@ -155,6 +155,22 @@ def require_app_session(view_func: Callable):
     return wrapper
 
 
+def require_superuser(message: str | None = None):
+    def decorator(view_func: Callable):
+        @wraps(view_func)
+        @require_app_session
+        def wrapper(request, *args, **kwargs):
+            if _is_superuser(request):
+                return view_func(request, *args, **kwargs)
+
+            final_message = message or "Solo los superusuarios pueden acceder a este recurso"
+            return _build_forbidden_response(request, final_message)
+
+        return wrapper
+
+    return decorator
+
+
 def require_permission(*permission_codes: str, require_all: bool = False, message: str | None = None):
     normalized_codes = _normalize_codes(*permission_codes)
 
