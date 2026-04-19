@@ -201,3 +201,23 @@ CREATE TABLE DOCUMENT_DEPARTMENT (
         REFERENCES DEPARTMENT (ID)
         ON DELETE CASCADE
 );
+
+INSERT INTO PUBLIC.APP_USER (
+    USERNAME,
+    EMAIL,
+    PASSWORD_HASH,
+    FIRST_NAME,
+    LAST_NAME,
+    IS_ACTIVE,
+    IS_SUPERUSER
+) VALUES (
+    'superusuario',
+    'superusuario@noltify.com',
+    'pbkdf2_sha256$1200000$gWCdgIsli5FULm1uyQkjro$v3H50CiKqUP+nFarGUe7WODWSYupREhz7aOk9DSq3Eo=',
+    'Super',
+    'Usuario',
+    TRUE,
+    TRUE
+);
+
+COMMIT;
