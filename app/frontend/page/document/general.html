@@ -15,53 +15,22 @@
     <div class="card-body">
         <ul class="nav nav-tabs" id="document-general-tabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active"
-                    id="documents-by-department-tab"
-                    data-bs-toggle="tab"
-                    data-bs-target="#documents-by-department-pane"
-                    type="button"
-                    role="tab"
-                    aria-controls="documents-by-department-pane"
-                    aria-selected="true">
+                <button class="nav-link active" id="documents-by-department-tab" data-bs-toggle="tab" data-bs-target="#documents-by-department-pane" type="button" role="tab" aria-controls="documents-by-department-pane" aria-selected="true">
                     Documentos por departamento
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button
-                    class="nav-link"
-                    id="documents-general-tab"
-                    data-bs-toggle="tab"
-                    data-bs-target="#documents-general-pane"
-                    type="button"
-                    role="tab"
-                    aria-controls="documents-general-pane"
-                    aria-selected="false">
+                <button class="nav-link" id="documents-general-tab" data-bs-toggle="tab" data-bs-target="#documents-general-pane" type="button" role="tab" aria-controls="documents-general-pane" aria-selected="false">
                     Documentos generales
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button
-                    class="nav-link"
-                    id="documents-assigned-user-tab"
-                    data-bs-toggle="tab"
-                    data-bs-target="#documents-assigned-user-pane"
-                    type="button"
-                    role="tab"
-                    aria-controls="documents-assigned-user-pane"
-                    aria-selected="false">
-                    Documentos asignados al usuario
+                <button class="nav-link" id="documents-assigned-user-tab" data-bs-toggle="tab" data-bs-target="#documents-assigned-user-pane" type="button" role="tab" aria-controls="documents-assigned-user-pane" aria-selected="false">
+                    Documentos asignados
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button
-                    class="nav-link"
-                    id="documents-user-tab"
-                    data-bs-toggle="tab"
-                    data-bs-target="#documents-user-pane"
-                    type="button"
-                    role="tab"
-                    aria-controls="documents-user-pane"
-                    aria-selected="false">
+                <button class="nav-link" id="documents-user-tab" data-bs-toggle="tab" data-bs-target="#documents-user-pane" type="button" role="tab" aria-controls="documents-user-pane" aria-selected="false">
                     Documentos del usuario
                 </button>
             </li>
@@ -116,7 +85,7 @@
                 </div>
                 {% else %}
                 <div class="alert alert-info mb-0">
-                    El usuario no tiene departamentos asignados, por lo que no hay subpestañas disponibles.
+                    El usuario no tiene departamentos asignados.
                 </div>
                 {% endif %}
             </div>
@@ -131,9 +100,6 @@
             </div>
 
             <div class="tab-pane fade" id="documents-assigned-user-pane" role="tabpanel" aria-labelledby="documents-assigned-user-tab" tabindex="0">
-                <div class="alert alert-light border mb-3">
-                    Estos documentos fueron asignados directamente al usuario mediante la relacion de documento-usuario.
-                </div>
                 <div summary_name="document-general-assigned-user-summary" class="mb-2"></div>
                 <div table_name="document-general-assigned-user-table"></div>
                 <div pagination_name="document-general-assigned-user-pagination" class="mt-2"></div>
@@ -145,9 +111,6 @@
                     <button type="button" class="btn btn-sm btn-outline-primary" data-role="user-document-create">Crear</button>
                 </div>
                 {% endif %}
-                <div class="alert alert-light border mb-3">
-                    Los documentos creados aqui pertenecen al usuario y no se asignan a ningun departamento.
-                </div>
                 <div summary_name="document-general-user-summary" class="mb-2"></div>
                 <div table_name="document-general-user-table"></div>
                 <div pagination_name="document-general-user-pagination" class="mt-2"></div>

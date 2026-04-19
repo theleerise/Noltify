@@ -175,6 +175,15 @@ class PublicationManager(DatabaseManager):
             """
         elif scope == "user":
             scope_condition = f"PUB.CREATED_BY = {int(user_id)}"
+        elif scope == "assigned_user":
+            scope_condition = f"""
+                EXISTS (
+                    SELECT 1
+                    FROM PUBLIC.PUBLICATION_USER AS PU_SCOPE
+                    WHERE PU_SCOPE.PUBLICATION_ID = PUB.ID
+                      AND PU_SCOPE.USER_ID = {int(user_id)}
+                )
+            """
         else:
             raise ValueError("El scope indicado para publicaciones generales no es valido.")
 

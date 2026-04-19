@@ -29,6 +29,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="publications-assigned-user-tab" data-bs-toggle="tab" data-bs-target="#publications-assigned-user-pane" type="button" role="tab" aria-controls="publications-assigned-user-pane" aria-selected="false">
+                    Publicaciones asignadas
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="publications-user-tab" data-bs-toggle="tab" data-bs-target="#publications-user-pane" type="button" role="tab" aria-controls="publications-user-pane" aria-selected="false">
                     Publicaciones del usuario
                 </button>
@@ -79,7 +84,7 @@
                 </div>
                 {% else %}
                 <div class="alert alert-info mb-0">
-                    El usuario no tiene departamentos asignados, por lo que no hay subpestañas disponibles.
+                    El usuario no tiene departamentos asignados.
                 </div>
                 {% endif %}
             </div>
@@ -93,15 +98,18 @@
                 <div pagination_name="publication-general-public-pagination" class="mt-2"></div>
             </div>
 
+            <div class="tab-pane fade" id="publications-assigned-user-pane" role="tabpanel" aria-labelledby="publications-assigned-user-tab" tabindex="0">
+                <div summary_name="publication-general-assigned-user-summary" class="mb-2"></div>
+                <div table_name="publication-general-assigned-user-table"></div>
+                <div pagination_name="publication-general-assigned-user-pagination" class="mt-2"></div>
+            </div>
+
             <div class="tab-pane fade" id="publications-user-pane" role="tabpanel" aria-labelledby="publications-user-tab" tabindex="0">
                 {% if pub_permissions.can_insert %}
                 <div class="d-flex justify-content-end mb-3">
                     <button type="button" class="btn btn-sm btn-outline-primary" data-role="user-publication-create">Crear</button>
                 </div>
                 {% endif %}
-                <div class="alert alert-light border mb-3">
-                    Las publicaciones creadas aqui pertenecen al usuario y no se asignan a ningun departamento.
-                </div>
                 <div summary_name="publication-general-user-summary" class="mb-2"></div>
                 <div table_name="publication-general-user-table"></div>
                 <div pagination_name="publication-general-user-pagination" class="mt-2"></div>
@@ -125,6 +133,7 @@
     const visibleColumns = ["title", "status", "created_by", "created_at"];
     const departmentTables = new Map();
     let publicPublicationsTable = null;
+    let assignedUserPublicationsTable = null;
     let userPublicationsTable = null;
 
     function canManagePublication(row) {
@@ -140,6 +149,11 @@
 
             if (scope === "general") {
                 publicPublicationsTable?.reload();
+                return;
+            }
+
+            if (scope === "assigned_user") {
+                assignedUserPublicationsTable?.reload();
                 return;
             }
 
@@ -307,6 +321,10 @@
                 return window.userPublicationManager;
             }
 
+            if (scope === "assigned_user") {
+                return window.userPublicationManager;
+            }
+
             return null;
         };
 
@@ -430,10 +448,24 @@
         });
     }
 
+    function initializeAssignedUserTable() {
+        assignedUserPublicationsTable = createPublicationTable({
+            tableName: "publication-general-assigned-user-table",
+            paginationContainerName: "publication-general-assigned-user-pagination",
+            summaryContainerName: "publication-general-assigned-user-summary",
+            scope: "assigned_user"
+        });
+
+        document.getElementById("publications-assigned-user-tab")?.addEventListener("shown.bs.tab", () => {
+            assignedUserPublicationsTable?.load();
+        });
+    }
+
     initializeDepartmentManagers();
     initializeDepartmentTables();
     initializePublicTable();
     initializeUserTable();
+    initializeAssignedUserTable();
 </script>
 
 {% endblock %}
