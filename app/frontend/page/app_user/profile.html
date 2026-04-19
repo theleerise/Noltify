@@ -307,7 +307,7 @@
         summaryContainerName: "profile-departments-summary",
         entityConfig: departmentUserConfig,
         columns: ["department_id", "assigned_at"],
-        url: "/department_user/data/",
+        url: "/department_user/profile/data/",
         method: "GET",
         rowsPerPage: 10,
         autoLoad: false
@@ -343,11 +343,7 @@
         }
     });
 
-    departmentsTable.load({
-        filters: {
-            USER_ID: baseIntegerFilter(profileUserId)
-        }
-    });
+    departmentsTable.load();
 
     publicationsTable.load({
         filters: {

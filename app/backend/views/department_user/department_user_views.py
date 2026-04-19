@@ -1,3 +1,10 @@
+import json
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+
+from backend.core.authorization import require_app_session
+from backend.core.response import get_error_response
 from backend.managers.department_user_manager import DepartmentUserManager
 from backend.models.deparment_user_model import DepartmentUserModel
 from app.backend.core.entity_crud import build_crud_views
@@ -23,3 +30,37 @@ edit_view = _views["edit_view"]
 create = _views["create"]
 update = _views["update"]
 delete = _views["delete"]
+
+
+@require_http_methods(["GET"])
+@require_app_session
+def profile_data(request):
+    try:
+        session_user = getattr(request, "app_user", None) or {}
+        current_user_id = int(session_user.get("id"))
+
+        raw_orders = request.GET.get("orders", "{}")
+        orders = json.loads(raw_orders) if raw_orders else {}
+        page = int(request.GET.get("page", 1))
+
+        mgr = DepartmentUserManager()
+        records = mgr.get_list_page(
+            params={
+                "USER_ID": {
+                    "type": "integer",
+                    "filter": "EQUAL",
+                    "values": current_user_id,
+                }
+            },
+            order_by=orders,
+            page=page,
+            data_model=False,
+        )
+
+        return JsonResponse(records, status=200)
+    except (TypeError, ValueError):
+        return get_error_response("No se pudo identificar al usuario de sesion", status=401)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return get_error_response(str(e))
