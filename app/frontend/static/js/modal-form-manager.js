@@ -598,6 +598,23 @@ export default class ModalFormManager {
         }
 
         if (tagName === "select") {
+            if (field.dataset.apiValueSelect === "true") {
+                const selectedValue = field.value
+                    || field.dataset.selectedValue
+                    || field.dataset.initialValue
+                    || "";
+
+                if (field.multiple) {
+                    return Array.from(field.selectedOptions).map((option) => option.value);
+                }
+
+                if (fieldConfig.type === "boolean") {
+                    return this._normalizeBooleanValue(selectedValue, fieldConfig);
+                }
+
+                return selectedValue;
+            }
+
             if (field.multiple) {
                 return Array.from(field.selectedOptions).map((option) => option.value);
             }

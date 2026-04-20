@@ -73,6 +73,15 @@
         if (field.dataset.apiValueSelect === "true") {
             field.dataset.selectedValue = String(value);
             field.dataset.initialValue = String(value);
+
+            const existingOption = Array.from(field.options).find((option) => option.value === String(value));
+            if (!existingOption) {
+                const inheritedOption = document.createElement("option");
+                inheritedOption.value = String(value);
+                inheritedOption.textContent = String(value);
+                inheritedOption.selected = true;
+                field.appendChild(inheritedOption);
+            }
         }
 
         field.value = String(value);

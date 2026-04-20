@@ -29,8 +29,6 @@ list_view = _views["list_view"]
 data = _views["data"]
 new_view = _views["new_view"]
 edit_view = _views["edit_view"]
-create = _views["create"]
-update = _views["update"]
 delete = _views["delete"]
 
 
@@ -81,6 +79,72 @@ def _get_current_user_id(request) -> int | None:
 
 def _get_general_scope(request) -> str:
     return (request.GET.get("scope") or "").strip().lower()
+
+
+def _get_document_request_data(request) -> dict:
+    content_type = request.content_type or ""
+
+    if content_type.startswith("multipart/form-data"):
+        return _get_multipart_document_data(request)
+
+    request_data = get_request_json(request)
+    return request_data.get("data", {})
+
+
+@require_http_methods(["POST"])
+@require_any_permission("DOCUMENT_INSERT")
+def create(request):
+    try:
+        data = _get_document_request_data(request)
+        model = DocumentModel(**data)
+
+        mgr = DocumentManager()
+        result = mgr.insert_query(model.to_insert_dict())
+
+        return get_success_response(
+            data=result,
+            message="Documento creado correctamente",
+            status=201,
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return get_error_response(str(e))
+
+
+@require_http_methods(["PUT"])
+@require_any_permission("DOCUMENT_UPDATE")
+def update(request, id: int):
+    try:
+        mgr = DocumentManager()
+        existing_record = mgr.get_by_id(record_id=id, data_model=False)
+
+        if not existing_record:
+            return get_error_response(error="No se encontro el documento solicitado", status=404)
+
+        data = _get_document_request_data(request)
+        data["id"] = id
+        data["file_name"] = existing_record.get("file_name")
+        data["mime_type"] = existing_record.get("mime_type")
+        data["file_size"] = existing_record.get("file_size")
+
+        if data.get("uploaded_by") is None:
+            data["uploaded_by"] = existing_record.get("uploaded_by")
+
+        if data.get("is_active") is None:
+            data["is_active"] = existing_record.get("is_active", True)
+
+        model = DocumentModel(**data)
+        result = mgr.update_query(model.to_update_dict(include_primary_key=True))
+
+        return get_success_response(
+            data=result,
+            message="Documento actualizado correctamente",
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return get_error_response(str(e))
 
 
 @require_http_methods(["GET"])
