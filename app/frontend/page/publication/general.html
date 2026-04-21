@@ -177,6 +177,10 @@
             url.searchParams.set("variant", variant || (scope === "department" ? "department" : "user"));
         }
 
+        if (action === "new" || action === "edit") {
+            url.searchParams.set("variant", variant || (scope === "department" ? "department" : "user"));
+        }
+
         if (action === "create") {
             url.searchParams.set("scope", scope);
         }

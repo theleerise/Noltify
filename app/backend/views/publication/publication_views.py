@@ -30,15 +30,19 @@ _views = build_crud_views(
 
 list_view = require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["list_view"])
 data = require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["data"])
-new_view = require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["new_view"])
-edit_view = require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["edit_view"])
 delete = require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["delete"])
 
 
+def _is_admin_variant(request) -> bool:
+    return (request.GET.get("variant") or "admin").strip().lower() == "admin"
+
+
 @require_http_methods(["GET"])
-@require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)
 @require_any_permission("PUBLICATION_LIST", "PUBLICATION_INSERT", "PUBLICATION_UPDATE")
 def form_view(request):
+    if _is_admin_variant(request):
+        return require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["form_view"])(request)
+
     form_variant = (request.GET.get("variant") or "admin").strip().lower()
     entity_model = PublicationModel.config()
     entity_model["created_by"]["hidden_form"] = True
@@ -55,6 +59,41 @@ def form_view(request):
         "show_assignment_tabs": form_variant == "admin",
     }
     return render(request, "publication/form.html", context_page)
+
+
+@require_http_methods(["GET"])
+def new_view(request):
+    if _is_admin_variant(request):
+        return require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["new_view"])(request)
+
+    return _views["new_view"](request)
+
+
+@require_http_methods(["GET"])
+def edit_view(request, id: int):
+    if _is_admin_variant(request):
+        return require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["edit_view"])(request, id=id)
+
+    current_user_id = _get_current_user_id(request)
+    if not current_user_id:
+        return get_error_response("No se pudo identificar al usuario de sesion", status=401)
+
+    session_user = getattr(request, "app_user", None) or {}
+    is_superuser = bool(session_user.get("is_superuser"))
+    mgr = PublicationManager()
+    existing_record = (
+        mgr.get_by_id(record_id=id, data_model=False)
+        if is_superuser
+        else mgr.get_owned_publication(publication_id=id, created_by=current_user_id)
+    )
+
+    if not existing_record:
+        return get_error_response("No tienes permisos para editar esta publicacion", status=403)
+
+    return get_success_response(
+        data=PublicationModel.serialize_record(existing_record),
+        message="Publicacion obtenida correctamente",
+    )
 
 
 def _get_current_user_id(request) -> int | None:

@@ -30,15 +30,19 @@ _views = build_crud_views(
 
 list_view = require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["list_view"])
 data = require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["data"])
-new_view = require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["new_view"])
-edit_view = require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["edit_view"])
 delete = require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["delete"])
 
 
+def _is_admin_variant(request) -> bool:
+    return (request.GET.get("variant") or "admin").strip().lower() == "admin"
+
+
 @require_http_methods(["GET"])
-@require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)
 @require_any_permission("DOCUMENT_LIST", "DOCUMENT_INSERT", "DOCUMENT_UPDATE")
 def form_view(request):
+    if _is_admin_variant(request):
+        return require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["form_view"])(request)
+
     form_variant = (request.GET.get("variant") or "admin").strip().lower()
     entity_model = DocumentModel.config()
     entity_model["uploaded_by"]["hidden_form"] = True
@@ -50,6 +54,35 @@ def form_view(request):
         "show_assignment_tabs": form_variant == "admin",
     }
     return render(request, "document/form.html", context_page)
+
+
+@require_http_methods(["GET"])
+def new_view(request):
+    if _is_admin_variant(request):
+        return require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["new_view"])(request)
+
+    return _views["new_view"](request)
+
+
+@require_http_methods(["GET"])
+def edit_view(request, id: int):
+    if _is_admin_variant(request):
+        return require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["edit_view"])(request, id=id)
+
+    current_user_id = _get_current_user_id(request)
+    if not current_user_id:
+        return get_error_response("No se pudo identificar al usuario de sesion", status=401)
+
+    mgr = DocumentManager()
+    existing_record = mgr.get_owned_document(document_id=id, uploaded_by=current_user_id)
+
+    if not existing_record:
+        return get_error_response("No tienes permisos para editar este documento", status=403)
+
+    return get_success_response(
+        data=DocumentModel.serialize_record(existing_record),
+        message="Documento obtenido correctamente",
+    )
 
 
 def _get_multipart_document_data(request) -> dict:
