@@ -62,19 +62,23 @@
                     </a>
                 </li>
                 {% endif %}
-                {% if app_can_view_admin_menu %}
+                {% if app_can_view_management_menu %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarGestion" role="button"
                         data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-kanban-fill me-1"></i>Gestión
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarGestion">
+                        {% if app_can_view_document_admin %}
                         <li><a class="dropdown-item" href="{{ url('document:list') }}">
                             <i class="bi bi-building me-2 text-muted"></i>Gestion general de Documentos
                         </a></li>
+                        {% endif %}
+                        {% if app_can_view_publication_admin %}
                         <li><a class="dropdown-item" href="{{ url('publication:list') }}">
                             <i class="bi bi-people me-2 text-muted"></i>Gestion general de Publicaciones
                         </a></li>
+                        {% endif %}
                     </ul>
                 </li>
                 {% endif %}

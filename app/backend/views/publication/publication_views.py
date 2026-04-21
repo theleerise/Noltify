@@ -4,13 +4,16 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
-from backend.core.authorization import require_any_permission, user_has_permission
+from backend.core.authorization import require_any_permission, require_any_role, user_has_permission
 from backend.core.response import get_error_response, get_request_json, get_success_response
 from backend.managers.publication_manager import PublicationManager
 from backend.models.publication_department_model import PublicationDepartmentModel
 from backend.models.publication_model import PublicationModel
 from backend.models.publication_user_model import PublicationUserModel
 from app.backend.core.entity_crud import build_crud_views
+
+
+PUBLICATION_ADMIN_ROLE_CODES = ("ADMIN_GENERAL", "PUBLICATION_ADMIN")
 
 
 _views = build_crud_views(
@@ -25,14 +28,15 @@ _views = build_crud_views(
     permission_prefix="PUBLICATION",
 )
 
-list_view = _views["list_view"]
-data = _views["data"]
-new_view = _views["new_view"]
-edit_view = _views["edit_view"]
-delete = _views["delete"]
+list_view = require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["list_view"])
+data = require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["data"])
+new_view = require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["new_view"])
+edit_view = require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["edit_view"])
+delete = require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["delete"])
 
 
 @require_http_methods(["GET"])
+@require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)
 @require_any_permission("PUBLICATION_LIST", "PUBLICATION_INSERT", "PUBLICATION_UPDATE")
 def form_view(request):
     form_variant = (request.GET.get("variant") or "admin").strip().lower()
@@ -67,6 +71,7 @@ def _get_general_scope(request) -> str:
 
 
 @require_http_methods(["POST"])
+@require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)
 @require_any_permission("PUBLICATION_INSERT")
 def create(request):
     try:
@@ -94,6 +99,7 @@ def create(request):
 
 
 @require_http_methods(["PUT"])
+@require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)
 @require_any_permission("PUBLICATION_UPDATE")
 def update(request, id: int):
     try:

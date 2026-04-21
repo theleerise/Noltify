@@ -171,6 +171,31 @@ def require_superuser(message: str | None = None):
     return decorator
 
 
+def require_role(*role_codes: str, message: str | None = None):
+    normalized_codes = _normalize_codes(*role_codes)
+
+    def decorator(view_func: Callable):
+        @wraps(view_func)
+        @require_app_session
+        def wrapper(request, *args, **kwargs):
+            if not normalized_codes:
+                return view_func(request, *args, **kwargs)
+
+            if user_has_role(request, *normalized_codes):
+                return view_func(request, *args, **kwargs)
+
+            final_message = message or "No tienes el rol necesario para acceder a este recurso"
+            return _build_forbidden_response(request, final_message)
+
+        return wrapper
+
+    return decorator
+
+
+def require_any_role(*role_codes: str, message: str | None = None):
+    return require_role(*role_codes, message=message)
+
+
 def require_permission(*permission_codes: str, require_all: bool = False, message: str | None = None):
     normalized_codes = _normalize_codes(*permission_codes)
 
