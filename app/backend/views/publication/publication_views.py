@@ -29,8 +29,6 @@ list_view = _views["list_view"]
 data = _views["data"]
 new_view = _views["new_view"]
 edit_view = _views["edit_view"]
-create = _views["create"]
-update = _views["update"]
 delete = _views["delete"]
 
 
@@ -39,9 +37,7 @@ delete = _views["delete"]
 def form_view(request):
     form_variant = (request.GET.get("variant") or "admin").strip().lower()
     entity_model = PublicationModel.config()
-
-    if form_variant in {"user", "department", "viewer"}:
-        entity_model["created_by"]["hidden_form"] = True
+    entity_model["created_by"]["hidden_form"] = True
 
     if form_variant == "viewer":
         for field_name in ("title", "content", "status", "is_active"):
@@ -68,6 +64,62 @@ def _get_current_user_id(request) -> int | None:
 
 def _get_general_scope(request) -> str:
     return (request.GET.get("scope") or "").strip().lower()
+
+
+@require_http_methods(["POST"])
+@require_any_permission("PUBLICATION_INSERT")
+def create(request):
+    try:
+        current_user_id = _get_current_user_id(request)
+        if not current_user_id:
+            return get_error_response("No se pudo identificar al usuario de sesion", status=401)
+
+        request_data = get_request_json(request)
+        data = request_data.get("data", {})
+        data["created_by"] = current_user_id
+        model = PublicationModel(**data)
+
+        mgr = PublicationManager()
+        result = mgr.insert_query(model.to_insert_dict())
+
+        return get_success_response(
+            data=result,
+            message="Publicacion creada correctamente",
+            status=201,
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return get_error_response(str(e))
+
+
+@require_http_methods(["PUT"])
+@require_any_permission("PUBLICATION_UPDATE")
+def update(request, id: int):
+    try:
+        mgr = PublicationManager()
+        existing_record = mgr.get_by_id(record_id=id, data_model=False)
+
+        if not existing_record:
+            return get_error_response(error="No se encontro la publicacion solicitada", status=404)
+
+        request_data = get_request_json(request)
+        data = request_data.get("data", {})
+        data["id"] = id
+        data["created_by"] = existing_record.get("created_by")
+        data["is_active"] = existing_record.get("is_active", True)
+
+        model = PublicationModel(**data)
+        result = mgr.update_query(model.to_update_dict(include_primary_key=True))
+
+        return get_success_response(
+            data=result,
+            message="Publicacion actualizada correctamente",
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return get_error_response(str(e))
 
 
 @require_http_methods(["GET"])
@@ -157,6 +209,7 @@ def general_create(request):
 
         request_data = get_request_json(request)
         data = request_data.get("data", {})
+        data["created_by"] = current_user_id
         model = PublicationModel(**data)
         mgr = PublicationManager()
 

@@ -37,9 +37,7 @@ delete = _views["delete"]
 def form_view(request):
     form_variant = (request.GET.get("variant") or "admin").strip().lower()
     entity_model = DocumentModel.config()
-
-    if form_variant in {"user", "department"}:
-        entity_model["uploaded_by"]["hidden_form"] = True
+    entity_model["uploaded_by"]["hidden_form"] = True
 
     context_page = {
         "entity_model": entity_model,
@@ -95,7 +93,12 @@ def _get_document_request_data(request) -> dict:
 @require_any_permission("DOCUMENT_INSERT")
 def create(request):
     try:
+        current_user_id = _get_current_user_id(request)
+        if not current_user_id:
+            return get_error_response("No se pudo identificar al usuario de sesion", status=401)
+
         data = _get_document_request_data(request)
+        data["uploaded_by"] = current_user_id
         model = DocumentModel(**data)
 
         mgr = DocumentManager()
@@ -127,9 +130,7 @@ def update(request, id: int):
         data["file_name"] = existing_record.get("file_name")
         data["mime_type"] = existing_record.get("mime_type")
         data["file_size"] = existing_record.get("file_size")
-
-        if data.get("uploaded_by") is None:
-            data["uploaded_by"] = existing_record.get("uploaded_by")
+        data["uploaded_by"] = existing_record.get("uploaded_by")
 
         if data.get("is_active") is None:
             data["is_active"] = existing_record.get("is_active", True)
@@ -272,6 +273,7 @@ def general_create(request):
         if not data.get("file_binary"):
             return get_error_response("Debes seleccionar un archivo para crear el documento", status=400)
 
+        data["uploaded_by"] = current_user_id
         model = DocumentModel(**data)
         mgr = DocumentManager()
 
@@ -321,7 +323,7 @@ def general_update(request, id: int):
         request_data = get_request_json(request)
         data = request_data.get("data", {})
         data["id"] = id
-        data["uploaded_by"] = current_user_id
+        data["uploaded_by"] = existing_record.get("uploaded_by")
         data["file_name"] = existing_record.get("file_name")
         data["mime_type"] = existing_record.get("mime_type")
         data["file_size"] = existing_record.get("file_size")
