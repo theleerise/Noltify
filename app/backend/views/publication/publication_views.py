@@ -41,7 +41,9 @@ def _is_admin_variant(request) -> bool:
 @require_any_permission("PUBLICATION_LIST", "PUBLICATION_INSERT", "PUBLICATION_UPDATE")
 def form_view(request):
     if _is_admin_variant(request):
-        return require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(_views["form_view"])(request)
+        admin_response = require_any_role(*PUBLICATION_ADMIN_ROLE_CODES)(lambda req: None)(request)
+        if admin_response is not None:
+            return admin_response
 
     form_variant = (request.GET.get("variant") or "admin").strip().lower()
     entity_model = PublicationModel.config()

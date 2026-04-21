@@ -41,7 +41,9 @@ def _is_admin_variant(request) -> bool:
 @require_any_permission("DOCUMENT_LIST", "DOCUMENT_INSERT", "DOCUMENT_UPDATE")
 def form_view(request):
     if _is_admin_variant(request):
-        return require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["form_view"])(request)
+        admin_response = require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(lambda req: None)(request)
+        if admin_response is not None:
+            return admin_response
 
     form_variant = (request.GET.get("variant") or "admin").strip().lower()
     entity_model = DocumentModel.config()
@@ -192,13 +194,7 @@ def update(request, id: int):
 def document_file(request, id: int):
     try:
         mgr = DocumentManager()
-        session_user = getattr(request, "app_user", None) or {}
-        current_user_id = _get_current_user_id(request)
-        document = (
-            mgr.get_document(id)
-            if bool(session_user.get("is_superuser"))
-            else mgr.get_accessible_document(id, current_user_id or 0)
-        )
+        document = mgr.get_document(id)
 
         if not document:
             return get_error_response(error="No se encontro el documento solicitado", status=404)
