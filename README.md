@@ -184,7 +184,7 @@ La aplicacion redirige al login si no hay sesion iniciada.
 
 El superusuario que se crea por defecto es el usuario
 
-- `superusuario`
+- `superusuario` ccon la contraseña por defecto `123456`
 
 Si cargaste los datos de ejemplo, puedes entrar con cualquiera de estos usuarios:
 
