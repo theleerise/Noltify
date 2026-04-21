@@ -184,7 +184,7 @@ La aplicacion redirige al login si no hay sesion iniciada.
 
 El superusuario que se crea por defecto es el usuario
 
-- `superusuario` ccon la contraseña por defecto `123456`
+- `superusuario` con la contraseña por defecto `123456`
 
 Si cargaste los datos de ejemplo, puedes entrar con cualquiera de estos usuarios:
 
@@ -194,7 +194,7 @@ Si cargaste los datos de ejemplo, puedes entrar con cualquiera de estos usuarios
 - `paula.example`
 - `carla.example`
 
-Contrasena comun de los usuarios de ejemplo:
+Contraseña comun de los usuarios de ejemplo:
 
 ```text
 123456
