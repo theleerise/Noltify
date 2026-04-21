@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 
 from django.contrib import messages
 from django.contrib.auth.hashers import check_password
@@ -9,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 
 from backend.core.auth_session import login_app_user, logout_app_user
 from backend.core.authorization import require_any_permission, require_app_session
+from backend.core.response import get_error_response, get_request_json, get_success_response
 from backend.managers.app_user_manager import AppUserManager
 from backend.models.app_user_model import AppUserModel
 from backend.models.deparment_user_model import DepartmentUserModel
@@ -37,8 +39,6 @@ list_view = _views["list_view"]
 data = _views["data"]
 new_view = _views["new_view"]
 edit_view = _views["edit_view"]
-create = _views["create"]
-update = _views["update"]
 delete = _views["delete"]
 
 
@@ -50,11 +50,33 @@ class _PasswordValidationUser:
         self.last_name = last_name or ""
 
 
+def _request_user_is_superuser(request) -> bool:
+    session_user = getattr(request, "app_user", None) or {}
+    return bool(session_user.get("is_superuser"))
+
+
+def _normalize_bool(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return str(value).strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
+
+def _build_app_user_entity_model(request) -> dict:
+    entity_model = deepcopy(AppUserModel.config())
+    if not _request_user_is_superuser(request) and "is_superuser" in entity_model:
+        entity_model["is_superuser"]["hidden_form"] = True
+    return entity_model
+
+
 @require_http_methods(["GET"])
 @require_any_permission("APP_USER_LIST", "APP_USER_INSERT", "APP_USER_UPDATE")
 def form_view(request):
     context_page = {
-        "entity_model": AppUserModel.config(),
+        "entity_model": _build_app_user_entity_model(request),
         "entity_model_department_user": json.dumps(DepartmentUserModel.config()),
         "entity_model_role_user": json.dumps(RoleUserModel.config()),
         "entity_model_permission_user": json.dumps(PermissionUserModel.config()),
@@ -115,6 +137,32 @@ def _build_profile_context(request, *, form_data: dict | None = None, form_error
         "profile_form_errors": form_errors or {},
     }
     return context_page
+
+
+def _validate_superuser_assignment(request, data: dict, existing_user: dict | None = None):
+    current_is_superuser = bool(existing_user.get("is_superuser", False)) if existing_user else False
+
+    if existing_user and "is_superuser" not in data:
+        data["is_superuser"] = current_is_superuser
+
+    if _request_user_is_superuser(request):
+        return None
+
+    requested_is_superuser = _normalize_bool(
+        data.get(
+            "is_superuser",
+            current_is_superuser,
+        )
+    )
+
+    if requested_is_superuser != current_is_superuser:
+        return get_error_response(
+            "Solo los superusuarios pueden asignar o retirar el estado de superusuario.",
+            status=403,
+        )
+
+    data["is_superuser"] = current_is_superuser
+    return None
 
 
 def _validate_profile_input(manager: AppUserManager, profile_user: dict, post_data) -> tuple[dict, dict]:
@@ -188,6 +236,63 @@ def _validate_profile_input(manager: AppUserManager, profile_user: dict, post_da
         update_data["password_hash"] = new_password
 
     return update_data, {"form_data": form_data, "errors": errors}
+
+
+@require_http_methods(["POST"])
+@require_any_permission("APP_USER_INSERT")
+def create(request):
+    try:
+        request_data = get_request_json(request)
+        data = request_data.get("data", {})
+
+        superuser_error = _validate_superuser_assignment(request, data)
+        if superuser_error:
+            return superuser_error
+
+        model = AppUserModel(**data)
+
+        mgr = AppUserManager()
+        result = mgr.insert_query(model.to_insert_dict())
+
+        return get_success_response(
+            data=result,
+            message="Usuario creado correctamente",
+            status=201,
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return get_error_response(str(e))
+
+
+@require_http_methods(["PUT"])
+@require_any_permission("APP_USER_UPDATE")
+def update(request, id: int):
+    try:
+        request_data = get_request_json(request)
+        data = request_data.get("data", {})
+
+        mgr = AppUserManager()
+        existing_user = mgr.get_by_id(record_id=id, data_model=False)
+        if not existing_user:
+            return get_error_response(error="No se encontro el usuario solicitado", status=404)
+
+        superuser_error = _validate_superuser_assignment(request, data, existing_user=existing_user)
+        if superuser_error:
+            return superuser_error
+
+        data["id"] = id
+        model = AppUserModel(**data)
+        result = mgr.update_query(model.to_update_dict(include_primary_key=True))
+
+        return get_success_response(
+            data=result,
+            message="Usuario actualizado correctamente",
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return get_error_response(str(e))
 
 
 @require_http_methods(["GET"])
