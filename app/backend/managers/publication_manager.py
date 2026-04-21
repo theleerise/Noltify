@@ -63,7 +63,6 @@ class PublicationManager(DatabaseManager):
                   TITLE = %(title)s
                 , CONTENT = %(content)s
                 , STATUS = %(status)s
-                , CREATED_BY = %(created_by)s
                 , IS_ACTIVE = %(is_active)s
                 , UPDATED_AT = %(updated_at)s
             WHERE ID = %(id)s
@@ -76,11 +75,22 @@ class PublicationManager(DatabaseManager):
         """
 
     def _before_insert(self, data: dict) -> dict:
-        data["created_at"] = datetime.now()
-        data["updated_at"] = datetime.now()
-        return data
+        return self._apply_timestamp_audit_on_insert(data)
 
     def _before_update(self, data: dict) -> dict:
+        data = self._apply_timestamp_audit_on_update(data)
+        data.pop("created_by", None)
+        return data
+
+    @staticmethod
+    def _apply_timestamp_audit_on_insert(data: dict) -> dict:
+        now = datetime.now()
+        data["created_at"] = now
+        data["updated_at"] = now
+        return data
+
+    @staticmethod
+    def _apply_timestamp_audit_on_update(data: dict) -> dict:
         data["updated_at"] = datetime.now()
         return data
 

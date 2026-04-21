@@ -65,10 +65,19 @@ class DepartmentManager(DatabaseManager):
         return query
     
     def _before_update(self, data: dict) -> dict:
-        data["updated_at"] = datetime.now()
-        return data
+        return self._apply_timestamp_audit_on_update(data)
     
     def _before_insert(self, data: dict) -> dict:
-        data["created_at"] = datetime.now()
+        return self._apply_timestamp_audit_on_insert(data)
+
+    @staticmethod
+    def _apply_timestamp_audit_on_insert(data: dict) -> dict:
+        now = datetime.now()
+        data["created_at"] = now
+        data["updated_at"] = now
+        return data
+
+    @staticmethod
+    def _apply_timestamp_audit_on_update(data: dict) -> dict:
         data["updated_at"] = datetime.now()
         return data

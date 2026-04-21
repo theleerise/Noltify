@@ -39,7 +39,6 @@ class RolePermissionManager(DatabaseManager):
             SET
                   ROLE_ID = %(role_id)s
                 , PERMISSION_ID = %(permission_id)s
-                , ASSIGNED_AT = %(assigned_at)s
             WHERE ID = %(id)s
         """
 
@@ -50,5 +49,13 @@ class RolePermissionManager(DatabaseManager):
         """
 
     def _before_insert(self, data: dict) -> dict:
+        return self._apply_assignment_audit_on_insert(data)
+
+    def _before_update(self, data: dict) -> dict:
+        data.pop("assigned_at", None)
+        return data
+
+    @staticmethod
+    def _apply_assignment_audit_on_insert(data: dict) -> dict:
         data["assigned_at"] = datetime.now()
         return data

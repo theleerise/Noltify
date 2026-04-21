@@ -190,9 +190,7 @@ class AppUserManager(DatabaseManager):
             raise ValueError("La contrasena es obligatoria para crear un usuario.")
 
         data["password_hash"] = make_password(password)
-        data["created_at"] = datetime.now()
-        data["updated_at"] = datetime.now()
-        return data
+        return self._apply_timestamp_audit_on_insert(data)
 
     def _before_update(self, data: dict) -> dict:
         password = self._normalize_password(data.get("password_hash"))
@@ -202,8 +200,7 @@ class AppUserManager(DatabaseManager):
         else:
             data.pop("password_hash", None)
 
-        data["updated_at"] = datetime.now()
-        return data
+        return self._apply_timestamp_audit_on_update(data)
 
     @staticmethod
     def _normalize_password(password: str | None) -> str | None:
@@ -212,3 +209,15 @@ class AppUserManager(DatabaseManager):
 
         normalized_password = password.strip()
         return normalized_password or None
+
+    @staticmethod
+    def _apply_timestamp_audit_on_insert(data: dict) -> dict:
+        now = datetime.now()
+        data["created_at"] = now
+        data["updated_at"] = now
+        return data
+
+    @staticmethod
+    def _apply_timestamp_audit_on_update(data: dict) -> dict:
+        data["updated_at"] = datetime.now()
+        return data
