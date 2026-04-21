@@ -146,9 +146,9 @@ Este proyecto utiliza scripts SQL manuales para crear sus tablas principales.
 
 Ejecuta los scripts en este orden:
 
-1. `docs/database_tables.sql`
-2. `docs/permissions_and_roles.sql`
-3. `docs/create_example_users.sql` opcional, solo si quieres datos de prueba
+1. `docs/scripts/database_tables.sql`
+2. `docs/scripts/permissions_and_roles.sql`
+3. `docs/scripts/create_example_users.sql` opcional, solo si quieres datos de prueba
 
 Ejemplo con `psql`:
 
