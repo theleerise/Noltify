@@ -182,6 +182,11 @@ class PublicationManager(DatabaseManager):
                     FROM PUBLIC.PUBLICATION_DEPARTMENT AS PD_SCOPE
                     WHERE PD_SCOPE.PUBLICATION_ID = PUB.ID
                 )
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM PUBLIC.PUBLICATION_USER AS PU_SCOPE
+                    WHERE PU_SCOPE.PUBLICATION_ID = PUB.ID
+                )
             """
         elif scope == "user":
             scope_condition = f"PUB.CREATED_BY = {int(user_id)}"

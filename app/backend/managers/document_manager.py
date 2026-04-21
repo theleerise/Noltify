@@ -140,6 +140,11 @@ class DocumentManager(DatabaseManager):
                         FROM PUBLIC.DOCUMENT_DEPARTMENT AS DD_SCOPE
                         WHERE DD_SCOPE.DOCUMENT_ID = DOC.ID
                     )
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM PUBLIC.DOCUMENT_USER AS DU_SCOPE
+                        WHERE DU_SCOPE.DOCUMENT_ID = DOC.ID
+                    )
                     OR EXISTS (
                         SELECT 1
                         FROM PUBLIC.DOCUMENT_DEPARTMENT AS DD_ACCESS
@@ -248,6 +253,11 @@ class DocumentManager(DatabaseManager):
                     SELECT 1
                     FROM PUBLIC.DOCUMENT_DEPARTMENT AS DD_SCOPE
                     WHERE DD_SCOPE.DOCUMENT_ID = DOC.ID
+                )
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM PUBLIC.DOCUMENT_USER AS DU_SCOPE
+                    WHERE DU_SCOPE.DOCUMENT_ID = DOC.ID
                 )
             """
         elif scope == "user":
