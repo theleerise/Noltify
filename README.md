@@ -153,9 +153,9 @@ Ejecuta los scripts en este orden:
 Ejemplo con `psql`:
 
 ```powershell
-psql -U noltify_app_user -d noltify -h localhost -f docs/database_tables.sql
-psql -U noltify_app_user -d noltify -h localhost -f docs/permissions_and_roles.sql
-psql -U noltify_app_user -d noltify -h localhost -f docs/create_example_users.sql
+psql -U noltify_app_user -d noltify -h localhost -f docs/scripts/database_tables.sql
+psql -U noltify_app_user -d noltify -h localhost -f docs/scripts/permissions_and_roles.sql
+psql -U noltify_app_user -d noltify -h localhost -f docs/scripts/create_example_users.sql
 ```
 
 ### 7. Ejecutar Django
@@ -181,6 +181,10 @@ http://127.0.0.1:8000/
 ### 8. Acceder a la aplicacion
 
 La aplicacion redirige al login si no hay sesion iniciada.
+
+El superusuario que se crea por defecto es el usuario
+
+- `superusuario`
 
 Si cargaste los datos de ejemplo, puedes entrar con cualquiera de estos usuarios:
 
