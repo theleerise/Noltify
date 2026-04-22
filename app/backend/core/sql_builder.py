@@ -1,3 +1,5 @@
+"""Utilities for composing dynamic SQL filters, sorting, and wrappers."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -5,6 +7,7 @@ from typing import Any
 
 
 def get_query_row_count(sql: str) -> str:
+    """Wrap a query so it returns the number of rows it would produce."""
     query = f"""
         SELECT COUNT(*) AS ROWS
         FROM (
@@ -13,7 +16,9 @@ def get_query_row_count(sql: str) -> str:
     """
     return query
 
+
 def get_query_paginator(sql: str) -> str:
+    """Wrap a query with `LIMIT` and `OFFSET` pagination placeholders."""
     query = f"""
         SELECT *
         FROM (
@@ -24,30 +29,22 @@ def get_query_paginator(sql: str) -> str:
     """
     return query
 
+
 def get_query_base_wrapper(sql: str) -> str:
+    """Wrap a query in a neutral `WHERE 1=1` block for extra conditions."""
     query = f"""
         SELECT *
         FROM (
             {sql}
         ) WHERE 1=1
     """
-    
+
     return query
 
 
 class QueryBuilder:
-    """Clase utilizada para construir consultas SQL Dinamicas
+    """Build SQL `WHERE` and `ORDER BY` clauses from frontend filter payloads."""
 
-    Raises:
-        ValueError: _description_
-        ValueError: _description_
-        ValueError: _description_
-        ValueError: _description_
-
-    Returns:
-        _type_: _description_
-    """
-    
     FILTER_EQUAL = "EQUAL"
     FILTER_NOT_EQUAL = "NOT_EQUAL"
     FILTER_LIKE_CONTAINS = "LIKE_CONTAINS"
@@ -72,7 +69,8 @@ class QueryBuilder:
     TYPE_DATE = "date"
     TYPE_BOOLEAN = "boolean"
 
-    def build(self, base_sql: str, filters: dict[str, dict[str, Any]] | None = None ) -> tuple[str, dict[str, Any]]:
+    def build(self, base_sql: str, filters: dict[str, dict[str, Any]] | None = None) -> tuple[str, dict[str, Any]]:
+        """Append validated filter conditions to a base SQL query."""
         filters = filters or {}
 
         sql_lines = [base_sql.strip()]
@@ -113,6 +111,7 @@ class QueryBuilder:
         base_sql: str,
         order_by: dict[str, str] | None = None
     ) -> str:
+        """Append a validated `ORDER BY` clause to a base SQL query."""
         order_by = order_by or {}
 
         sql_lines = [base_sql.strip()]
@@ -127,13 +126,13 @@ class QueryBuilder:
 
             if normalized_direction not in (self.ORDER_ASC, self.ORDER_DESC):
                 raise ValueError(
-                    f"La dirección de orden '{direction}' no es válida para la columna '{column_name}'. "
+                    f"La direcciÃ³n de orden '{direction}' no es vÃ¡lida para la columna '{column_name}'. "
                     f"Solo se permite ASC o DESC."
                 )
 
             if not self._is_safe_sql_identifier(normalized_column):
                 raise ValueError(
-                    f"El nombre de columna '{column_name}' no es válido para ORDER BY."
+                    f"El nombre de columna '{column_name}' no es vÃ¡lido para ORDER BY."
                 )
 
             order_clauses.append(f"{normalized_column} {normalized_direction}")
@@ -151,6 +150,7 @@ class QueryBuilder:
         filter_values: Any,
         boolean_config: dict[str, Any] | None = None
     ) -> tuple[str | None, dict[str, Any]]:
+        """Build the SQL fragment and parameters for one filter definition."""
         normalized_operator = str(filter_operator).upper()
         normalized_column = column_name.upper()
         normalized_param = column_name.lower()
@@ -318,6 +318,7 @@ class QueryBuilder:
         is_not_in: bool = False,
         boolean_config: dict[str, Any] | None = None
     ) -> tuple[str | None, dict[str, Any]]:
+        """Build an `IN` or `NOT IN` condition with independent placeholders."""
         if not isinstance(filter_values, (tuple, list)) or len(filter_values) == 0:
             return None, {}
 
@@ -346,6 +347,7 @@ class QueryBuilder:
         value: Any,
         boolean_config: dict[str, Any] | None = None
     ) -> Any:
+        """Convert an arbitrary filter value to the expected Python type."""
         if value is None:
             return None
 
@@ -379,6 +381,7 @@ class QueryBuilder:
         value: Any,
         boolean_config: dict[str, Any] | None = None
     ) -> Any:
+        """Normalize boolean filter values using explicit or default mappings."""
         if boolean_config:
             normalized_config = self._normalize_boolean_config(boolean_config)
 
@@ -393,7 +396,7 @@ class QueryBuilder:
 
         normalized_value = str(value).strip().lower()
 
-        if normalized_value in ("true", "1", "yes", "y", "s", "si", "sí"):
+        if normalized_value in ("true", "1", "yes", "y", "s", "si", "sí­"):
             return True
 
         if normalized_value in ("false", "0", "no", "n"):
@@ -406,6 +409,7 @@ class QueryBuilder:
         value: Any,
         boolean_config: dict[str, Any]
     ) -> bool:
+        """Return whether a raw value should be interpreted as boolean `true`."""
         return (
             value is True
             or self._same_value(value, boolean_config["values"]["true"])
@@ -417,6 +421,7 @@ class QueryBuilder:
         value: Any,
         boolean_config: dict[str, Any]
     ) -> bool:
+        """Return whether a raw value should be interpreted as boolean `false`."""
         return (
             value is False
             or self._same_value(value, boolean_config["values"]["false"])
@@ -427,6 +432,7 @@ class QueryBuilder:
         self,
         boolean_config: dict[str, Any] | None
     ) -> dict[str, Any]:
+        """Fill missing boolean conversion metadata with default values."""
         boolean_config = boolean_config or {}
 
         values = boolean_config.get("values") or {}
@@ -444,6 +450,7 @@ class QueryBuilder:
         }
 
     def _same_value(self, left_value: Any, right_value: Any) -> bool:
+        """Compare two values using direct and normalized string equality."""
         if left_value == right_value:
             return True
 
@@ -453,6 +460,7 @@ class QueryBuilder:
         return str(left_value).strip().lower() == str(right_value).strip().lower()
 
     def _convert_date(self, value: Any) -> datetime:
+        """Parse a supported date or datetime value into a `datetime` object."""
         if isinstance(value, datetime):
             return value
 
@@ -471,6 +479,7 @@ class QueryBuilder:
         raise ValueError(f"No se puede convertir el valor '{value}' a fecha.")
 
     def _is_empty(self, value: Any) -> bool:
+        """Return whether a filter value should be treated as empty."""
         if value is None:
             return True
 
@@ -483,6 +492,7 @@ class QueryBuilder:
         return False
 
     def _is_safe_sql_identifier(self, value: str) -> bool:
+        """Validate that a string is safe to use as a SQL identifier."""
         allowed_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
 
         if not value:

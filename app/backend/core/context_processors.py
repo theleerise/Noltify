@@ -1,3 +1,11 @@
+"""
+Context processors compartidos para las plantillas del proyecto.
+
+Este módulo expone en las vistas renderizadas información del usuario en
+sesión, sus roles, permisos y distintas banderas de acceso para controlar la
+visibilidad de menús y secciones del frontend.
+"""
+
 from backend.core.auth_session import get_session_user
 from backend.core.authorization import (
     ADMIN_GENERAL_ROLE_CODE,
@@ -9,6 +17,20 @@ from backend.core.authorization import (
 
 
 def auth_app_context(request):
+    """
+    Construye el contexto de autenticación y autorización para las plantillas.
+
+    El objetivo de esta función es facilitar a las vistas HTML un conjunto
+    estándar de variables relacionadas con el usuario autenticado, sus permisos
+    y su capacidad para visualizar determinadas secciones de la aplicación.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        dict: Diccionario con información del usuario en sesión, banderas de
+        autenticación, roles, permisos y accesos habilitados para el frontend.
+    """
     session_user = get_session_user(request)
     permission_codes = get_request_permission_codes(request) if session_user and session_user.get("id") else set()
     role_codes = get_request_role_codes(request) if session_user and session_user.get("id") else set()

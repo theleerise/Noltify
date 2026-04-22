@@ -1,3 +1,5 @@
+"""PostgreSQL connection-pool management for the backend data layer."""
+
 import psycopg
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
@@ -6,16 +8,13 @@ from django.conf import settings
 
 
 class DatabaseConnection:
-    """
-    Gestiona el pool de conexiones a PostgreSQL.
-    """
+    """Manage the shared PostgreSQL connection pool for the application."""
 
     _pool: ConnectionPool | None = None
 
-
     @classmethod
     def initialize_pool(cls):
-
+        """Initialize the shared psycopg connection pool only once."""
         if cls._pool is not None:
             return
 
@@ -38,25 +37,16 @@ class DatabaseConnection:
             }
         )
 
-
     @classmethod
     def get_connection(cls):
-        """
-        Devuelve una conexion a base de datos disponible dentro del pool de conexiones
-
-        Returns:
-            _type_: conexion a base de datos
-        """
+        """Return an available database connection from the shared pool."""
         if cls._pool is None:
             cls.initialize_pool()
 
         return cls._pool.connection()
 
-
     @classmethod
     def close_pool(cls):
-        """
-        Cierra el pool de conexiones de la aplicación
-        """
+        """Close the shared connection pool used by the application."""
         if cls._pool:
             cls._pool.close()

@@ -1,3 +1,11 @@
+"""
+Middleware de autenticación de la aplicación.
+
+Este middleware sincroniza el usuario guardado en sesión con el objeto
+`request`, restringe el acceso a rutas privadas y gestiona redirecciones
+automáticas hacia login o hacia la página principal cuando corresponde.
+"""
+
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
@@ -5,6 +13,13 @@ from backend.core.auth_session import get_session_user
 
 
 class AuthAppMiddleware:
+    """
+    Middleware encargado de validar el acceso básico a las rutas de la aplicación.
+
+    Se aplica a cada petición HTTP y decide si el usuario puede continuar con
+    el flujo normal o si debe ser redirigido al inicio de sesión.
+    """
+
     PUBLIC_PREFIXES = (
         "/admin/",
         "/health/",
@@ -13,9 +28,34 @@ class AuthAppMiddleware:
     )
 
     def __init__(self, get_response):
+        """
+        Inicializa el middleware con la función siguiente de la cadena.
+
+        Args:
+            get_response: Callable que representa el siguiente middleware o la
+                vista final que procesará la petición.
+
+        Returns:
+            None: El método únicamente deja configurada la instancia.
+        """
         self.get_response = get_response
 
     def __call__(self, request):
+        """
+        Procesa cada petición entrante y aplica reglas básicas de autenticación.
+
+        Este método carga el usuario desde sesión, determina si la ruta actual
+        es pública o privada, y ejecuta las redirecciones necesarias cuando el
+        usuario no está autenticado o intenta acceder al login estando ya
+        autenticado.
+
+        Args:
+            request: Objeto request actual de Django.
+
+        Returns:
+            _type_: Respuesta HTTP generada por el middleware o por la vista
+            siguiente en la cadena de ejecución.
+        """
         request.app_user = get_session_user(request)
 
         login_url = reverse("auth_app:login")

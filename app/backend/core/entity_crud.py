@@ -1,3 +1,5 @@
+"""Factory helpers for building standard CRUD views from managers and models."""
+
 import json
 
 from django.http import JsonResponse
@@ -20,8 +22,11 @@ def build_crud_views(
     not_found_message: str,
     permission_prefix: str | None = None,
 ):
+    """Build the default CRUD view set for a model-manager pair."""
+
     @require_http_methods(["GET"])
     def list_view(request):
+        """Render the list template for the entity."""
         context_page = {
             "entity_model": json.dumps(model_class.config())
         }
@@ -29,6 +34,7 @@ def build_crud_views(
 
     @require_http_methods(["GET"])
     def form_view(request):
+        """Render the form template for the entity."""
         context_page = {
             "entity_model": model_class.config()
         }
@@ -36,6 +42,7 @@ def build_crud_views(
 
     @require_http_methods(["GET"])
     def data(request):
+        """Return paginated records for the entity as JSON."""
         try:
             request_data = request.GET.dict()
 
@@ -61,6 +68,7 @@ def build_crud_views(
 
     @require_http_methods(["GET"])
     def new_view(request):
+        """Return the default payload used to initialize a creation form."""
         try:
             model_data = model_class.to_json_default_dict()
             return get_success_response(
@@ -74,6 +82,7 @@ def build_crud_views(
 
     @require_http_methods(["GET"])
     def edit_view(request, id: int):
+        """Return the serialized record required to edit one entity instance."""
         try:
             mgr = manager_class()
             record = mgr.get_by_id(record_id=id, data_model=False)
@@ -97,6 +106,7 @@ def build_crud_views(
 
     @require_http_methods(["POST"])
     def create(request):
+        """Create a new entity instance from the request payload."""
         try:
             request_data = get_request_json(request)
             data = request_data.get("data", {})
@@ -117,6 +127,7 @@ def build_crud_views(
 
     @require_http_methods(["PUT"])
     def update(request, id: int):
+        """Update an existing entity instance from the request payload."""
         try:
             request_data = get_request_json(request)
             data = request_data.get("data", {})
@@ -137,6 +148,7 @@ def build_crud_views(
 
     @require_http_methods(["DELETE"])
     def delete(request, id: int):
+        """Delete an entity instance by its identifier."""
         try:
             mgr = manager_class()
             params = {mgr.primary_key: id}

@@ -1,3 +1,10 @@
+"""Base entity model shared by backend domain models.
+
+The class defined here extends Pydantic to standardize validation, JSON
+serialization, frontend field metadata generation, and common CRUD-oriented
+transformations used across the project.
+"""
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -12,14 +19,14 @@ from pydantic.fields import PydanticUndefined
 
 class EntityModel(BaseModel):
     """
-    Modelo base para todas las entidades de la aplicación.
+    Modelo base para todas las entidades de la aplicaciÃ³n.
 
     Responsabilidades:
         - Validar datos de entrada con Pydantic.
         - Permitir poblar modelos desde diccionarios.
-        - Facilitar la conversión a dict/JSON para views y managers.
-        - Ofrecer utilidades comunes para inserción, actualización y filtros.
-        - Exponer una configuración de campos consumible por el frontend.
+        - Facilitar la conversiÃ³n a dict/JSON para views y managers.
+        - Ofrecer utilidades comunes para inserciÃ³n, actualizaciÃ³n y filtros.
+        - Exponer una configuraciÃ³n de campos consumible por el frontend.
     """
 
     model_config = ConfigDict(
@@ -95,7 +102,7 @@ class EntityModel(BaseModel):
 
     def to_json_dict(self) -> dict[str, Any]:
         """
-        Convierte la entidad a un diccionario seguro para serialización JSON.
+        Convierte la entidad a un diccionario seguro para serializaciÃ³n JSON.
         """
         return self.model_dump(
             mode="json",
@@ -121,15 +128,15 @@ class EntityModel(BaseModel):
 
     def to_insert_dict(self) -> dict[str, Any]:
         """
-        Devuelve un diccionario pensado para operaciones de inserción.
+        Devuelve un diccionario pensado para operaciones de inserciÃ³n.
 
-        Por defecto excluye campos nulos para evitar enviar columnas vacías
+        Por defecto excluye campos nulos para evitar enviar columnas vacÃ­as
         a la capa de persistencia.
         """
         return self.to_dict(exclude_none=False)
 
     def to_update_dict(self, *, include_primary_key: bool = False) -> dict[str, Any]:
-
+        """Return the payload used by update operations."""
         update_data = self.to_dict(exclude_none=False)
 
         if not include_primary_key and self.__primary_key__ in update_data:
@@ -140,9 +147,9 @@ class EntityModel(BaseModel):
     @classmethod
     def build_filter_dict(cls, data: dict[str, Any] | None) -> dict[str, Any]:
         """
-        Normaliza un diccionario de filtros eliminando claves no válidas.
+        Normaliza un diccionario de filtros eliminando claves no vÃ¡lidas.
 
-        Esta utilidad es útil para managers que construyen consultas dinámicas
+        Esta utilidad es Ãºtil para managers que construyen consultas dinÃ¡micas
         a partir de todos los campos posibles del modelo.
         """
         if not data:
@@ -167,7 +174,7 @@ class EntityModel(BaseModel):
 
     def update_from_dict(self, data: dict[str, Any] | None) -> None:
         """
-        Actualiza la instancia actual campo a campo usando validación de Pydantic.
+        Actualiza la instancia actual campo a campo usando validaciÃ³n de Pydantic.
         """
         if not data:
             return
@@ -179,7 +186,7 @@ class EntityModel(BaseModel):
     @staticmethod
     def serialize_value(value: Any) -> Any:
         """
-        Normaliza valores problemáticos antes de devolverlos al frontend.
+        Normaliza valores problemÃ¡ticos antes de devolverlos al frontend.
         """
         if isinstance(value, Decimal):
             return float(value)
@@ -223,7 +230,7 @@ class EntityModel(BaseModel):
     @classmethod
     def serialize_records(cls, records: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
         """
-        Convierte múltiples registros a una estructura compatible con JSON.
+        Convierte mÃºltiples registros a una estructura compatible con JSON.
         """
         if not records:
             return []
@@ -233,10 +240,10 @@ class EntityModel(BaseModel):
     @classmethod
     def config(cls) -> dict[str, dict[str, Any]]:
         """
-        Devuelve la configuración de los campos del modelo en formato dict.
+        Devuelve la configuraciÃ³n de los campos del modelo en formato dict.
 
-        La salida está pensada para frontend dinámico, formularios automáticos,
-        tablas, filtros o validación adicional en cliente.
+        La salida estÃ¡ pensada para frontend dinÃ¡mico, formularios automÃ¡ticos,
+        tablas, filtros o validaciÃ³n adicional en cliente.
 
         Reglas principales:
             - required = False si el campo:
@@ -334,7 +341,7 @@ class EntityModel(BaseModel):
     @staticmethod
     def _is_nullable(annotation: Any) -> bool:
         """
-        Indica si la anotación acepta None.
+        Indica si la anotaciÃ³n acepta None.
         """
         origin = get_origin(annotation)
 
@@ -346,7 +353,7 @@ class EntityModel(BaseModel):
     @staticmethod
     def _map_python_type(annotation: Any) -> str:
         """
-        Traduce el tipo Python/Pydantic a un tipo genérico de configuración.
+        Traduce el tipo Python/Pydantic a un tipo genÃ©rico de configuraciÃ³n.
         """
         resolved_annotation = EntityModel._unwrap_optional(annotation)
         origin = get_origin(resolved_annotation)
@@ -372,7 +379,7 @@ class EntityModel(BaseModel):
     @staticmethod
     def _unwrap_optional(annotation: Any) -> Any:
         """
-        Si la anotación es Optional[T] o T | None, devuelve T.
+        Si la anotaciÃ³n es Optional[T] o T | None, devuelve T.
         """
         origin = get_origin(annotation)
 
@@ -386,14 +393,14 @@ class EntityModel(BaseModel):
     @staticmethod
     def _build_default_title(field_name: str) -> str:
         """
-        Genera un título por defecto legible a partir del nombre del campo.
+        Genera un tÃ­tulo por defecto legible a partir del nombre del campo.
         """
         return field_name.replace("_", " ").strip().title()
 
     @staticmethod
     def _normalize_boolean_config(boolean_config: dict[str, Any] | None) -> dict[str, Any]:
         """
-        Normaliza la configuración booleana del campo.
+        Normaliza la configuraciÃ³n booleana del campo.
 
         Estructura soportada:
             boolean_config = {
@@ -401,7 +408,7 @@ class EntityModel(BaseModel):
                 "display": {"true": "Si", "false": "No"}
             }
 
-        Si no se informa, se genera una configuración por defecto.
+        Si no se informa, se genera una configuraciÃ³n por defecto.
         """
         default_config = {
             "values": {
@@ -409,7 +416,7 @@ class EntityModel(BaseModel):
                 "false": False
             },
             "display": {
-                "true": "Sí",
+                "true": "Si­",
                 "false": "No"
             }
         }
