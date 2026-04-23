@@ -1,5 +1,19 @@
+/**
+ * @module rich-editor
+ * @description Editor enriquecido ligero basado en `contenteditable`.
+ * Sincroniza el contenido visual con un `textarea` auxiliar para facilitar
+ * la integración con formularios HTML tradicionales.
+ */
+
 (function () {
+    /**
+     * Editor enriquecido ligero para formularios HTML.
+     */
     class RichEditor {
+
+        /**
+         * @param {HTMLElement} container - Contenedor raíz del editor.
+         */
         constructor(container) {
             this.container = container;
             this.editor = container.querySelector("[data-rich-editor]");
@@ -24,6 +38,11 @@
             this._initialize();
         }
 
+        /**
+         * Inicializa el editor, sincroniza el valor inicial y enlaza eventos.
+         *
+         * @returns {void}
+         */
         _initialize() {
             this._normalizeInitialValue();
             this._bindEditorEvents();
@@ -31,6 +50,11 @@
             this._refreshPlaceholder();
         }
 
+        /**
+         * Sincroniza el HTML inicial visible con el `textarea` asociado.
+         *
+         * @returns {void}
+         */
         _normalizeInitialValue() {
             const textareaValue = (this.textarea.value || "").trim();
             const editorHtml = (this.editor.innerHTML || "").trim();
@@ -42,6 +66,11 @@
             this._syncTextarea();
         }
 
+        /**
+         * Enlaza los eventos de edición directa sobre el área editable.
+         *
+         * @returns {void}
+         */
         _bindEditorEvents() {
             if (this.isReadonly || this.isDisabled) {
                 return;
@@ -69,6 +98,11 @@
             });
         }
 
+        /**
+         * Enlaza los botones de la barra de herramientas con sus comandos.
+         *
+         * @returns {void}
+         */
         _bindToolbarEvents() {
             if (!this.toolbar || this.isReadonly || this.isDisabled) {
                 return;
@@ -99,6 +133,12 @@
             });
         }
 
+        /**
+         * Ejecuta acciones personalizadas no cubiertas por `execCommand`.
+         *
+         * @param {string} action - Acción personalizada solicitada.
+         * @returns {void}
+         */
         _runCustomAction(action) {
             if (action === "link") {
                 const url = window.prompt("Introduzca la URL del enlace:");
@@ -125,10 +165,20 @@
             }
         }
 
+        /**
+         * Propaga el contenido actual del editor al `textarea` oculto.
+         *
+         * @returns {void}
+         */
         _syncTextarea() {
             this.textarea.value = this.editor.innerHTML.trim();
         }
 
+        /**
+         * Actualiza el estado visual del placeholder según el contenido.
+         *
+         * @returns {void}
+         */
         _refreshPlaceholder() {
             const textContent = (this.editor.textContent || "").trim();
             const hasVisualContent = textContent.length > 0 || this.editor.querySelector("img, video, iframe, table, ul, ol, blockquote");
@@ -140,6 +190,11 @@
             }
         }
 
+        /**
+         * Inicializa todos los editores presentes en el documento.
+         *
+         * @returns {void}
+         */
         static initAll() {
             document.querySelectorAll("[data-rich-editor-container]").forEach((container) => {
                 if (!container.__richEditorInitialized) {

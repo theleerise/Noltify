@@ -1,3 +1,10 @@
+/**
+ * @module alert-message
+ * @description Módulo de notificaciones visuales del frontend.
+ * Centraliza la creación, presentación y retirada de alertas de éxito,
+ * información, advertencia y error, incluyendo mensajes flash del DOM.
+ */
+
 const ALERT_CONTAINER_ID = "app-alert-message-container";
 const ALERT_STYLE_ID = "app-alert-message-styles";
 const FLASH_MESSAGE_SELECTOR = "[data-alert-flash]";
@@ -25,6 +32,12 @@ const TYPE_CONFIG = {
     }
 };
 
+/**
+ * Normaliza el tipo de alerta solicitado a una clave soportada por el sistema.
+ *
+ * @param {string} type - Tipo recibido.
+ * @returns {"success"|"info"|"warning"|"error"} Tipo normalizado.
+ */
 function normalizeType(type) {
     const normalizedType = String(type || "info").trim().toLowerCase().split(/\s+/)[0];
 
@@ -39,6 +52,12 @@ function normalizeType(type) {
     return "info";
 }
 
+/**
+ * Convierte un mensaje arbitrario a una cadena segura para renderizar.
+ *
+ * @param {*} message - Mensaje original.
+ * @returns {string} Mensaje saneado.
+ */
 function sanitizeMessage(message) {
     if (message instanceof Error) {
         return message.message || "Ha ocurrido un error inesperado.";
@@ -51,7 +70,14 @@ function sanitizeMessage(message) {
     return String(message).trim();
 }
 
+/**
+ * Gestiona la pila visual de alertas y su ciclo de vida.
+ */
 class AlertMessageManager {
+
+    /**
+     * @param {{maxVisible?: number, defaultDuration?: number}} [options={}] - Configuración base del gestor.
+     */
     constructor(options = {}) {
         this.maxVisible = Number(options.maxVisible || 4);
         this.defaultDuration = Number(options.defaultDuration || 5000);
@@ -59,6 +85,11 @@ class AlertMessageManager {
         this.initialized = false;
     }
 
+    /**
+     * Inicializa el contenedor, los estilos y consume mensajes flash del DOM.
+     *
+     * @returns {AlertMessageManager} Instancia actual.
+     */
     initialize() {
         if (this.initialized) {
             return this;
@@ -72,6 +103,13 @@ class AlertMessageManager {
         return this;
     }
 
+    /**
+     * Muestra una alerta en pantalla.
+     *
+     * @param {*} message - Texto o error a mostrar.
+     * @param {object} [options={}] - Configuración visual y de comportamiento.
+     * @returns {HTMLElement|null} Elemento de alerta creado o `null`.
+     */
     show(message, options = {}) {
         this.initialize();
 
@@ -139,22 +177,57 @@ class AlertMessageManager {
         return alertElement;
     }
 
+    /**
+     * Muestra una notificación de éxito.
+     *
+     * @param {*} message - Mensaje.
+     * @param {object} [options={}] - Opciones adicionales.
+     * @returns {HTMLElement|null}
+     */
     success(message, options = {}) {
         return this.show(message, { ...options, type: "success" });
     }
 
+    /**
+     * Muestra una notificación informativa.
+     *
+     * @param {*} message - Mensaje.
+     * @param {object} [options={}] - Opciones adicionales.
+     * @returns {HTMLElement|null}
+     */
     info(message, options = {}) {
         return this.show(message, { ...options, type: "info" });
     }
 
+    /**
+     * Muestra una notificación de advertencia.
+     *
+     * @param {*} message - Mensaje.
+     * @param {object} [options={}] - Opciones adicionales.
+     * @returns {HTMLElement|null}
+     */
     warning(message, options = {}) {
         return this.show(message, { ...options, type: "warning" });
     }
 
+    /**
+     * Muestra una notificación de error.
+     *
+     * @param {*} message - Mensaje.
+     * @param {object} [options={}] - Opciones adicionales.
+     * @returns {HTMLElement|null}
+     */
     error(message, options = {}) {
         return this.show(message, { ...options, type: "error" });
     }
 
+    /**
+     * Interpreta una respuesta de backend y la presenta como alerta.
+     *
+     * @param {object} response - Respuesta recibida.
+     * @param {object} [options={}] - Opciones de renderizado.
+     * @returns {HTMLElement|null}
+     */
     notifyResponse(response, options = {}) {
         const type = normalizeType(options.type || (response?.success === false ? "error" : "success"));
         const fallbackMessage = type === "success"
@@ -168,6 +241,13 @@ class AlertMessageManager {
         });
     }
 
+    /**
+     * Centraliza el tratamiento visual de errores.
+     *
+     * @param {*} error - Error a notificar.
+     * @param {object} [options={}] - Opciones de visualización.
+     * @returns {HTMLElement|null}
+     */
     notifyError(error, options = {}) {
         const fallbackMessage = options.fallbackMessage || "Ha ocurrido un error inesperado.";
         const message = sanitizeMessage(error) || fallbackMessage;
@@ -181,6 +261,11 @@ class AlertMessageManager {
         return this.error(message, options);
     }
 
+    /**
+     * Busca mensajes flash pre-renderizados en el DOM y los muestra.
+     *
+     * @returns {void}
+     */
     consumeFlashMessages() {
         document.querySelectorAll(FLASH_MESSAGE_SELECTOR).forEach((element) => {
             const message = element.textContent || "";
@@ -198,6 +283,12 @@ class AlertMessageManager {
         });
     }
 
+    /**
+     * Elimina una alerta concreta de la interfaz.
+     *
+     * @param {HTMLElement} alertElement - Elemento de alerta.
+     * @returns {void}
+     */
     remove(alertElement) {
         if (!alertElement) {
             return;
@@ -216,6 +307,11 @@ class AlertMessageManager {
         }, 180);
     }
 
+    /**
+     * Elimina alertas antiguas cuando se alcanza el máximo visible.
+     *
+     * @returns {void}
+     */
     _trimOverflow() {
         if (!this.container) {
             return;
@@ -226,6 +322,12 @@ class AlertMessageManager {
         }
     }
 
+    /**
+     * Elimina una alerta sin animación ni espera.
+     *
+     * @param {Element|null} alertElement - Elemento de alerta a retirar.
+     * @returns {void}
+     */
     _forceRemove(alertElement) {
         if (!alertElement) {
             return;
@@ -239,6 +341,11 @@ class AlertMessageManager {
         alertElement.remove();
     }
 
+    /**
+     * Garantiza la existencia del contenedor raíz de notificaciones.
+     *
+     * @returns {void}
+     */
     _ensureContainer() {
         let container = document.getElementById(ALERT_CONTAINER_ID);
 
@@ -253,6 +360,11 @@ class AlertMessageManager {
         this.container = container;
     }
 
+    /**
+     * Inyecta los estilos base del sistema de alertas una única vez.
+     *
+     * @returns {void}
+     */
     _ensureStyles() {
         if (document.getElementById(ALERT_STYLE_ID)) {
             return;

@@ -1,3 +1,16 @@
+/**
+ * @module utils
+ * @description Utilidades genéricas compartidas por el frontend.
+ * Reúne pequeñas funciones de apoyo desacopladas del resto de componentes,
+ * como la lectura segura de cookies del navegador.
+ */
+
+/**
+ * Obtiene el valor de una cookie a partir de su nombre.
+ *
+ * @param {string} name - Nombre de la cookie.
+ * @returns {string|null} Valor decodificado de la cookie o `null` si no existe.
+ */
 function getCookie(name) {
     let cookieValue = null;
 

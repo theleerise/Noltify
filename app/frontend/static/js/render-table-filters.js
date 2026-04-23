@@ -1,8 +1,26 @@
+/**
+ * @module render-table-filters
+ * @description Constructor de formularios de filtrado para tablas.
+ * Genera dinámicamente operadores e inputs a partir de los metadatos de las
+ * columnas, normalizando después los valores para su envío al backend.
+ */
+
 import { fetchApiValueRecords } from "./api-value-service.js";
 import { alertMessage } from "./alert-message.js";
 
+/**
+ * Genera y administra un formulario de filtros asociado a una tabla.
+ */
 export class RenderTableFilters {
 
+    /**
+     * @param {object} [options={}] - Configuración del formulario de filtros.
+     * @param {string} options.filtersName - Nombre lógico del filtro.
+     * @param {Object<string, object>} [options.entityConfig={}] - Configuración de columnas.
+     * @param {string[]} [options.columns=[]] - Columnas disponibles.
+     * @param {Function|null} [options.onSubmit=null] - Callback al enviar.
+     * @param {Function|null} [options.onReset=null] - Callback al resetear.
+     */
     constructor(options = {}) {
         this.filtersName = options.filtersName || null;
         this.entityConfig = options.entityConfig || {};
@@ -26,6 +44,12 @@ export class RenderTableFilters {
         this.formId = `${this.filtersName}-internal-form`;
     }
 
+    /**
+     * Localiza el contenedor principal de filtros en el DOM.
+     *
+     * @returns {HTMLElement} Contenedor raíz del componente.
+     * @throws {Error} Si no existe un contenedor válido.
+     */
     _resolveContainer() {
         if (!this.filtersName) {
             throw new Error("Debes informar 'filtersName'.");
@@ -39,14 +63,29 @@ export class RenderTableFilters {
         return container;
     }
 
+    /**
+     * Busca el subcontenedor reservado al formulario de filtros.
+     *
+     * @returns {HTMLElement|null} Contenedor del formulario o `null`.
+     */
     _resolveFormContainer() {
         return this.container.querySelector(`[filters_form="${this.filtersName}-form"]`);
     }
 
+    /**
+     * Busca el subcontenedor reservado a las acciones del formulario.
+     *
+     * @returns {HTMLElement|null} Contenedor de acciones o `null`.
+     */
     _resolveActionsContainer() {
         return this.container.querySelector(`[filters_actions="${this.filtersName}-actions"]`);
     }
 
+    /**
+     * Construye y renderiza el formulario de filtros.
+     *
+     * @returns {RenderTableFilters} Instancia actual.
+     */
     render() {
         if (this.formContainer) {
             this.formContainer.innerHTML = "";
@@ -108,6 +147,11 @@ export class RenderTableFilters {
         return this;
     }
 
+    /**
+     * Lee el formulario y devuelve la estructura de filtros normalizada para backend.
+     *
+     * @returns {Object<string, object>} Mapa de filtros por columna.
+     */
     getFilters() {
         if (!this.form) {
             return {};
@@ -191,6 +235,11 @@ export class RenderTableFilters {
         return filters;
     }
 
+    /**
+     * Limpia el formulario y vuelve a renderizar los inputs dependientes del operador.
+     *
+     * @returns {void}
+     */
     reset() {
         if (!this.form) {
             return;
@@ -219,6 +268,13 @@ export class RenderTableFilters {
         }
     }
 
+    /**
+     * Construye la fila visual completa de un filtro.
+     *
+     * @param {string} columnName - Nombre de la columna.
+     * @param {object} columnConfig - Configuración del filtro.
+     * @returns {HTMLDivElement} Fila generada.
+     */
     _buildFilterField(columnName, columnConfig) {
         const wrapper = document.createElement("div");
         wrapper.className = this.rowClassName;
@@ -265,6 +321,13 @@ export class RenderTableFilters {
         return wrapper;
     }
 
+    /**
+     * Genera el selector de operadores de una columna filtrable.
+     *
+     * @param {string} columnName - Nombre de la columna.
+     * @param {object} columnConfig - Configuración del filtro.
+     * @returns {HTMLSelectElement} Selector de operadores.
+     */
     _buildOperatorSelect(columnName, columnConfig) {
         const select = document.createElement("select");
         select.className = columnConfig.filter?.operatorClassName || "form-select";
@@ -280,6 +343,15 @@ export class RenderTableFilters {
         return select;
     }
 
+    /**
+     * Renderiza el input adecuado según el operador y el tipo de columna.
+     *
+     * @param {string} columnName - Nombre de la columna.
+     * @param {object} columnConfig - Configuración del filtro.
+     * @param {string} operator - Operador seleccionado.
+     * @param {HTMLElement} container - Contenedor donde pintar el input.
+     * @returns {void}
+     */
     _renderInput(columnName, columnConfig, operator, container) {
         container.innerHTML = "";
 
@@ -319,6 +391,14 @@ export class RenderTableFilters {
         );
     }
 
+    /**
+     * Construye un campo simple de entrada para un filtro.
+     *
+     * @param {string} columnName - Nombre de la columna.
+     * @param {object} columnConfig - Configuración del filtro.
+     * @param {string} inputType - Tipo HTML del input.
+     * @returns {HTMLInputElement} Campo generado.
+     */
     _buildSingleInput(columnName, columnConfig, inputType) {
         const input = document.createElement("input");
         input.className = this._getInputClassName(columnConfig);
@@ -337,6 +417,13 @@ export class RenderTableFilters {
         return input;
     }
 
+    /**
+     * Construye un rango doble para filtros tipo `BETWEEN`.
+     *
+     * @param {string} columnName - Nombre de la columna.
+     * @param {object} columnConfig - Configuración del filtro.
+     * @returns {HTMLDivElement} Contenedor del rango.
+     */
     _buildBetweenRange(columnName, columnConfig) {
         const wrapper = document.createElement("div");
         wrapper.className = "row g-2";
@@ -377,6 +464,13 @@ export class RenderTableFilters {
         return wrapper;
     }
 
+    /**
+     * Construye un selector específico para filtros booleanos.
+     *
+     * @param {string} columnName - Nombre de la columna.
+     * @param {object} columnConfig - Configuración del filtro.
+     * @returns {HTMLSelectElement} Selector generado.
+     */
     _buildBooleanSelect(columnName, columnConfig) {
         const select = document.createElement("select");
         select.className = this._getInputClassName(columnConfig, "form-select");
@@ -395,6 +489,13 @@ export class RenderTableFilters {
         return select;
     }
 
+    /**
+     * Construye un selector dependiente de un catálogo remoto.
+     *
+     * @param {string} columnName - Nombre de la columna.
+     * @param {object} columnConfig - Configuración del filtro.
+     * @returns {HTMLSelectElement} Selector generado.
+     */
     _buildApiValueSelect(columnName, columnConfig) {
         const select = document.createElement("select");
         select.className = this._getInputClassName(columnConfig, "form-select");
@@ -410,6 +511,11 @@ export class RenderTableFilters {
         return select;
     }
 
+    /**
+     * Crea el bloque de acciones del formulario de filtros.
+     *
+     * @returns {HTMLDivElement} Contenedor con botones de acción.
+     */
     _buildActions() {
         const wrapper = document.createElement("div");
 
@@ -433,6 +539,12 @@ export class RenderTableFilters {
         return wrapper;
     }
 
+    /**
+     * Devuelve la lista de operadores por defecto según el tipo de dato.
+     *
+     * @param {string} type - Tipo lógico de la columna.
+     * @returns {string[]} Operadores permitidos.
+     */
     _getDefaultOperators(type) {
         const operatorsMap = {
             string: [
@@ -511,6 +623,12 @@ export class RenderTableFilters {
         return operatorsMap[type] || operatorsMap.string;
     }
 
+    /**
+     * Traduce una clave de operador a su etiqueta visible.
+     *
+     * @param {string} operator - Operador interno.
+     * @returns {string} Etiqueta legible.
+     */
     _getOperatorLabel(operator) {
         const labels = {
             LIKE_CONTAINS:
@@ -541,6 +659,11 @@ export class RenderTableFilters {
         return labels[operator] || operator;
     }
 
+    /**
+     * Obtiene únicamente las columnas configuradas como filtrables.
+     *
+     * @returns {string[]} Lista de columnas visibles en el formulario.
+     */
     _getFilterableColumns() {
         const columns = this._getConfiguredColumns();
 
@@ -552,6 +675,11 @@ export class RenderTableFilters {
         );
     }
 
+    /**
+     * Resuelve la lista base de columnas configuradas para el componente.
+     *
+     * @returns {string[]} Columnas disponibles.
+     */
     _getConfiguredColumns() {
         if (Array.isArray(this.columns) && this.columns.length > 0) {
             return this.columns.filter(
@@ -566,14 +694,33 @@ export class RenderTableFilters {
         return Object.keys(this.entityConfig || {});
     }
 
+    /**
+     * Resuelve la clase CSS que debe usar un input del filtro.
+     *
+     * @param {object} columnConfig - Configuración de columna.
+     * @param {string} [defaultClassName="form-control"] - Clase por defecto.
+     * @returns {string} Clase CSS final.
+     */
     _getInputClassName(columnConfig, defaultClassName = "form-control") {
         return columnConfig.filter?.className || defaultClassName;
     }
 
+    /**
+     * Obtiene el placeholder configurado para un filtro.
+     *
+     * @param {object} columnConfig - Configuración de columna.
+     * @returns {string} Placeholder final.
+     */
     _getPlaceholder(columnConfig) {
         return columnConfig.filter?.placeholder || "";
     }
 
+    /**
+     * Determina el tipo HTML de input más adecuado para una columna.
+     *
+     * @param {object} columnConfig - Configuración de columna.
+     * @returns {string} Tipo de input.
+     */
     _resolveInputType(columnConfig) {
         if (columnConfig.filter?.input) {
             return columnConfig.filter.input;
@@ -593,6 +740,12 @@ export class RenderTableFilters {
         }
     }
 
+    /**
+     * Normaliza el tipo de dato para adaptarlo al formato esperado por backend.
+     *
+     * @param {string} fieldType - Tipo original de la columna.
+     * @returns {string} Tipo normalizado.
+     */
     _normalizeFilterType(fieldType) {
         if (fieldType === "datetime") {
             return "date";
@@ -605,6 +758,13 @@ export class RenderTableFilters {
             || "string";
     }
 
+    /**
+     * Convierte el valor introducido al tipo lógico de la columna.
+     *
+     * @param {*} value - Valor bruto del formulario.
+     * @param {object} columnConfig - Configuración de columna.
+     * @returns {*} Valor normalizado.
+     */
     _normalizeInputValue(value, columnConfig) {
 
         if (value === undefined || value === null) {
@@ -631,6 +791,12 @@ export class RenderTableFilters {
         return trimmedValue;
     }
 
+    /**
+     * Convierte un `datetime-local` del navegador al formato esperado por backend.
+     *
+     * @param {string} value - Valor local recibido.
+     * @returns {string} Fecha y hora normalizadas.
+     */
     _normalizeDateTimeLocal(value) {
         if (!value) {
             return value;
@@ -643,6 +809,12 @@ export class RenderTableFilters {
         return normalizedValue;
     }
 
+    /**
+     * Devuelve las opciones por defecto de un selector booleano.
+     *
+     * @param {object} [columnConfig={}] - Configuración de columna.
+     * @returns {Array<{value: string, label: string}>} Opciones disponibles.
+     */
     _getDefaultBooleanOptions(columnConfig = {}) {
         const booleanConfig = this._getBooleanConfig(columnConfig);
 
@@ -653,6 +825,13 @@ export class RenderTableFilters {
         ];
     }
 
+    /**
+     * Convierte un valor lógico booleano al valor CRUD configurado.
+     *
+     * @param {string} logicalValue - Valor lógico (`true` o `false`).
+     * @param {object} [columnConfig={}] - Configuración booleana.
+     * @returns {*} Valor persistible correspondiente.
+     */
     _mapBooleanLogicalValueToCrudValue(logicalValue, columnConfig = {}) {
         const booleanConfig = this._getBooleanConfig(columnConfig);
 
@@ -667,6 +846,12 @@ export class RenderTableFilters {
         return logicalValue;
     }
 
+    /**
+     * Obtiene la configuración efectiva de valores y etiquetas booleanas.
+     *
+     * @param {object} [columnConfig={}] - Configuración de columna.
+     * @returns {{values: {true: *, false: *}, display: {true: string, false: string}}}
+     */
     _getBooleanConfig(columnConfig = {}) {
         const booleanConfig = columnConfig.boolean_config || {};
 
@@ -690,10 +875,24 @@ export class RenderTableFilters {
         };
     }
 
+    /**
+     * Determina si un valor debe considerarse vacío a efectos de filtrado.
+     *
+     * @param {*} value - Valor a evaluar.
+     * @returns {boolean} `true` si no aporta contenido útil.
+     */
     _isEmptyValue(value) {
         return value === undefined || value === null || String(value).trim() === "";
     }
 
+    /**
+     * Carga las opciones remotas de un selector basado en catálogo.
+     *
+     * @async
+     * @param {HTMLSelectElement} selectElement - Selector a poblar.
+     * @param {object} [columnConfig={}] - Configuración de la columna.
+     * @returns {Promise<void>}
+     */
     async _loadApiValueOptions(selectElement, columnConfig = {}) {
         const masterKey = String(columnConfig.master_key || "").trim().toUpperCase();
 
@@ -722,6 +921,14 @@ export class RenderTableFilters {
         }
     }
 
+    /**
+     * Inserta en un selector las opciones recibidas desde la API.
+     *
+     * @param {HTMLSelectElement} selectElement - Selector destino.
+     * @param {object} columnConfig - Configuración de la columna.
+     * @param {Array<object>} [records=[]] - Registros del catálogo.
+     * @returns {void}
+     */
     _populateApiValueSelect(selectElement, columnConfig, records = []) {
         const currentValue = selectElement.value || "";
         const placeholder = columnConfig.filter?.placeholder || "Todos";
@@ -745,6 +952,12 @@ export class RenderTableFilters {
         }
     }
 
+    /**
+     * Deja el selector en un estado de error cuando la carga remota falla.
+     *
+     * @param {HTMLSelectElement} selectElement - Selector afectado.
+     * @returns {void}
+     */
     _populateApiValueError(selectElement) {
         selectElement.innerHTML = "";
 

@@ -1,6 +1,29 @@
+/**
+ * @module modals
+ * @description Conjunto de utilidades para crear modales reutilizables en
+ * Bootstrap y para lanzar diálogos de confirmación orientados a acciones
+ * destructivas, como el borrado de registros.
+ */
+
 import { alertMessage } from "./alert-message.js";
 
+/**
+ * Modal reutilizable basado en Bootstrap con soporte de arrastre y maximización.
+ */
 class CustomModal {
+
+    /**
+     * @param {object} [options={}] - Configuración del modal.
+     * @param {string} options.containerName - ID del contenedor donde se insertará.
+     * @param {string} [options.title=""] - Título del modal.
+     * @param {string} [options.body=""] - HTML del cuerpo.
+     * @param {string} [options.footer=""] - HTML del footer.
+     * @param {string} [options.size=""] - Clase de tamaño Bootstrap.
+     * @param {boolean} [options.closeButton=true] - Indica si debe renderizar botón de cierre.
+     * @param {boolean} [options.destroyOnClose=true] - Indica si debe destruirse al cerrar.
+     * @param {string|boolean} [options.backdrop="static"] - Configuración de backdrop.
+     * @param {boolean} [options.keyboard=false] - Cierre con teclado.
+     */
     constructor({
         containerName,
         title = "",
@@ -44,6 +67,12 @@ class CustomModal {
         this._ensureDraggableStyles();
     }
 
+    /**
+     * Resuelve el contenedor donde debe montarse el modal.
+     *
+     * @returns {HTMLElement} Contenedor encontrado.
+     * @throws {Error} Si el contenedor no existe.
+     */
     _getContainer() {
         const container = document.getElementById(this.containerName);
 
@@ -54,6 +83,11 @@ class CustomModal {
         return container;
     }
 
+    /**
+     * Genera el HTML base del modal según la configuración actual.
+     *
+     * @returns {string} Marcado HTML del modal.
+     */
     _getModalHtml() {
         return `
             <div class="modal fade draggable-custom-modal" id="${this.modalId}" tabindex="-1" aria-hidden="true">
@@ -88,6 +122,11 @@ class CustomModal {
         `;
     }
 
+    /**
+     * Inyecta una única vez los estilos necesarios para arrastre y maximización.
+     *
+     * @returns {void}
+     */
     _ensureDraggableStyles() {
         if (document.getElementById("custom-modal-window-styles")) {
             return;
@@ -166,6 +205,11 @@ class CustomModal {
         document.head.appendChild(style);
     }
 
+    /**
+     * Inserta el modal en el DOM y crea la instancia Bootstrap.
+     *
+     * @returns {void}
+     */
     render() {
         const container = this._getContainer();
         container.insertAdjacentHTML("beforeend", this._getModalHtml());
@@ -192,6 +236,11 @@ class CustomModal {
         });
     }
 
+    /**
+     * Cachea las referencias a los elementos internos de la ventana modal.
+     *
+     * @returns {void}
+     */
     _cacheModalWindowElements() {
         if (!this.modalElement) return;
 
@@ -200,6 +249,11 @@ class CustomModal {
         this.maximizeButton = this.modalElement.querySelector('[data-role="toggle-maximize"]');
     }
 
+    /**
+     * Vincula los eventos de arrastre y maximización del modal.
+     *
+     * @returns {void}
+     */
     _bindModalWindowEvents() {
         if (!this.modalElement || this.modalElement.dataset.windowEventsBound === "true") {
             return;
@@ -221,6 +275,11 @@ class CustomModal {
         });
     }
 
+    /**
+     * Restaura la posición centrada inicial del modal.
+     *
+     * @returns {void}
+     */
     _setDefaultWindowPosition() {
         if (!this.modalDialog) return;
 
@@ -238,6 +297,12 @@ class CustomModal {
         this._updateMaximizeButton();
     }
 
+    /**
+     * Inicia el proceso de arrastre del modal.
+     *
+     * @param {MouseEvent} event - Evento que origina el arrastre.
+     * @returns {void}
+     */
     _startDragging(event) {
         if (!this.modalDialog || this.windowState.isMaximized) {
             return;
@@ -284,6 +349,12 @@ class CustomModal {
         event.preventDefault();
     }
 
+    /**
+     * Actualiza la posición del modal mientras se arrastra.
+     *
+     * @param {MouseEvent} event - Evento de movimiento.
+     * @returns {void}
+     */
     _handleDragMove(event) {
         if (!this.windowState.isDragging || !this.modalDialog) {
             return;
@@ -304,6 +375,11 @@ class CustomModal {
         this.modalDialog.style.top = `${top}px`;
     }
 
+    /**
+     * Finaliza el arrastre y guarda la última posición conocida.
+     *
+     * @returns {void}
+     */
     _stopDragging() {
         if (!this.windowState.isDragging) {
             return;
@@ -317,6 +393,11 @@ class CustomModal {
         document.removeEventListener("mouseup", this._boundStopDragging);
     }
 
+    /**
+     * Alterna el estado entre ventana maximizada y restaurada.
+     *
+     * @returns {void}
+     */
     _toggleMaximize() {
         if (!this.modalDialog) return;
 
@@ -334,6 +415,11 @@ class CustomModal {
         this._updateMaximizeButton();
     }
 
+    /**
+     * Reaplica la posición y dimensiones previas tras salir de maximizado.
+     *
+     * @returns {void}
+     */
     _applyRestoredLayout() {
         if (!this.modalDialog) return;
 
@@ -349,6 +435,11 @@ class CustomModal {
         this.modalDialog.style.height = "";
     }
 
+    /**
+     * Captura la posición y el tamaño actuales del diálogo.
+     *
+     * @returns {{left: number, top: number, width: number, height: number}|null}
+     */
     _captureCurrentDialogPosition() {
         if (!this.modalDialog) {
             return null;
@@ -364,6 +455,11 @@ class CustomModal {
         };
     }
 
+    /**
+     * Sincroniza el icono y textos del botón de maximización.
+     *
+     * @returns {void}
+     */
     _updateMaximizeButton() {
         if (!this.maximizeButton) return;
 
@@ -378,6 +474,11 @@ class CustomModal {
         }
     }
 
+    /**
+     * Limpia el estado temporal de la ventana modal y su estilo inline.
+     *
+     * @returns {void}
+     */
     _resetWindowState() {
         this._stopDragging();
 
@@ -399,6 +500,11 @@ class CustomModal {
         this._updateMaximizeButton();
     }
 
+    /**
+     * Abre el modal. Si aún no existe, lo renderiza previamente.
+     *
+     * @returns {void}
+     */
     open() {
         if (!this.modalElement) {
             this.render();
@@ -407,12 +513,22 @@ class CustomModal {
         this.modalInstance.show();
     }
 
+    /**
+     * Cierra el modal si está inicializado.
+     *
+     * @returns {void}
+     */
     close() {
         if (this.modalInstance) {
             this.modalInstance.hide();
         }
     }
 
+    /**
+     * Libera recursos y elimina el modal del DOM.
+     *
+     * @returns {void}
+     */
     destroy() {
         if (this.modalInstance) {
             this.modalInstance.dispose();
@@ -426,6 +542,12 @@ class CustomModal {
         this.modalInstance = null;
     }
 
+    /**
+     * Sustituye el HTML del cuerpo del modal.
+     *
+     * @param {string} html - Nuevo HTML.
+     * @returns {void}
+     */
     setBody(html) {
         this.body = html;
 
@@ -440,6 +562,12 @@ class CustomModal {
         }
     }
 
+    /**
+     * Sustituye el HTML del pie del modal.
+     *
+     * @param {string} html - Nuevo HTML.
+     * @returns {void}
+     */
     setFooter(html) {
         this.footer = html;
 
@@ -454,11 +582,34 @@ class CustomModal {
         }
     }
 
+    /**
+     * Devuelve el elemento raíz del modal.
+     *
+     * @returns {HTMLElement|null}
+     */
     getElement() {
         return this.modalElement;
     }
 }
 
+/**
+ * Abre un modal de confirmación y ejecuta una petición HTTP de borrado.
+ *
+ * @async
+ * @param {object} [options={}] - Configuración del proceso de borrado.
+ * @param {string} options.containerName - ID del contenedor donde se renderiza el modal.
+ * @param {string} options.url - Endpoint a invocar.
+ * @param {object} [options.headers={}] - Cabeceras HTTP.
+ * @param {string} [options.method="DELETE"] - Método HTTP.
+ * @param {string} [options.title="Eliminar registro"] - Título del modal.
+ * @param {string} [options.message="¿Seguro que deseas eliminar este registro?"] - Mensaje principal.
+ * @param {string} [options.confirmText="Eliminar"] - Texto del botón de confirmación.
+ * @param {string} [options.cancelText="Cancelar"] - Texto del botón de cancelación.
+ * @param {string} [options.size=""] - Clase de tamaño Bootstrap.
+ * @param {Function|null} [options.onSuccess=null] - Callback al eliminar correctamente.
+ * @param {Function|null} [options.onError=null] - Callback si ocurre un error.
+ * @returns {Promise<CustomModal|null>} Modal creado o `null` si no pudo abrirse.
+ */
 export async function deleteModal({
     containerName,
     url,

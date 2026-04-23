@@ -1,5 +1,18 @@
+/**
+ * @module render-order-table
+ * @description Gestor del orden visual y funcional de tablas renderizadas.
+ * Controla el estado de ordenación por columna y sincroniza los indicadores
+ * de cabecera con la lógica de carga o refresco de datos.
+ */
+
+/**
+ * Controla el estado de ordenación de una tabla y actualiza sus indicadores visuales.
+ */
 export default class RenderOrderTable {
 
+    /**
+     * @param {{table: object, mode?: "single"|"multiple"}} [options={}] - Configuración del orden.
+     */
     constructor(options = {}) {
         this.table = options.table || null;
         this.mode = options.mode || "single";
@@ -11,6 +24,11 @@ export default class RenderOrderTable {
         this.orders = {};
     }
 
+    /**
+     * Vincula los eventos de doble clic sobre las cabeceras ordenables.
+     *
+     * @returns {RenderOrderTable} Instancia actual.
+     */
     bind() {
         if (!this.table.theadElement) {
             return this;
@@ -35,6 +53,12 @@ export default class RenderOrderTable {
         return this;
     }
 
+    /**
+     * Alterna el orden de una columna entre ascendente, descendente y sin orden.
+     *
+     * @param {string} columnName - Nombre de columna.
+     * @returns {void}
+     */
     toggleColumnOrder(columnName) {
         const currentOrder = this.orders[columnName] || null;
         let nextOrder = null;
@@ -66,12 +90,23 @@ export default class RenderOrderTable {
         }
     }
 
+    /**
+     * Establece un conjunto de órdenes de forma explícita.
+     *
+     * @param {Object<string, string>} [orders={}] - Mapa columna/orden.
+     * @returns {RenderOrderTable} Instancia actual.
+     */
     setOrders(orders = {}) {
         this.orders = orders || {};
         this.refreshHeaderIndicators();
         return this;
     }
 
+    /**
+     * Elimina todos los criterios de ordenación activos.
+     *
+     * @returns {RenderOrderTable} Instancia actual.
+     */
     clearOrders() {
         this.orders = {};
         this.refreshHeaderIndicators();
@@ -85,6 +120,11 @@ export default class RenderOrderTable {
         return this;
     }
 
+    /**
+     * Refresca el HTML de las cabeceras para representar el estado del orden.
+     *
+     * @returns {void}
+     */
     refreshHeaderIndicators() {
         if (!this.table.theadElement) {
             return;

@@ -1,9 +1,30 @@
+/**
+ * @module render-paginate-table
+ * @description Extensión de `RenderTable` orientada a listados remotos.
+ * Añade carga desde API, mantenimiento de filtros y órdenes, cálculo de
+ * paginación y renderizado del resumen de resultados.
+ */
+
 import RenderTable from "./render-table.js";
 import RenderOrderTable from "./render-order-table.js";
 import { alertMessage } from "./alert-message.js";
 
 
+/**
+ * Tabla paginada que consulta datos remotos y renderiza resumen y paginación.
+ */
 export class RenderPaginateTable extends RenderTable {
+
+    /**
+     * @param {object} [options={}] - Configuración de la tabla paginada.
+     * @param {string} options.url - Endpoint de consulta.
+     * @param {string} [options.method="GET"] - Método HTTP.
+     * @param {number} [options.page=1] - Página inicial.
+     * @param {number} [options.rows=0] - Total de filas conocidas.
+     * @param {number} [options.rowsPerPage=10] - Filas por página.
+     * @param {object} [options.extraParams={}] - Parámetros adicionales.
+     * @param {boolean} [options.autoLoad=true] - Indica si debe cargar automáticamente.
+     */
     constructor(options = {}) {
         super(options);
 
@@ -43,6 +64,13 @@ export class RenderPaginateTable extends RenderTable {
         }
     }
 
+    /**
+     * Resuelve un contenedor opcional a partir de un atributo del DOM.
+     *
+     * @param {string} attrName - Nombre del atributo a buscar.
+     * @param {string} attrValue - Valor esperado del atributo.
+     * @returns {HTMLElement|null} Contenedor encontrado o `null`.
+     */
     _resolveOptionalContainer(attrName, attrValue) {
         if (!attrValue) {
             return null;
@@ -51,26 +79,57 @@ export class RenderPaginateTable extends RenderTable {
         return document.querySelector(`[${attrName}="${attrValue}"]`);
     }
 
+    /**
+     * Define los filtros actuales sin lanzar carga.
+     *
+     * @param {Object<string, object>} [filters={}] - Mapa de filtros.
+     * @returns {RenderPaginateTable} Instancia actual.
+     */
     setFilters(filters = {}) {
         this.filters = filters || {};
         return this;
     }
 
+    /**
+     * Define los órdenes actuales sin lanzar carga.
+     *
+     * @param {Object<string, string>} [orders={}] - Mapa de órdenes.
+     * @returns {RenderPaginateTable} Instancia actual.
+     */
     setOrders(orders = {}) {
         this.orders = orders || {};
         return this;
     }
 
+    /**
+     * Establece la página activa sin lanzar carga.
+     *
+     * @param {number} [page=1] - Página objetivo.
+     * @returns {RenderPaginateTable} Instancia actual.
+     */
     setPage(page = 1) {
         this.page = Number(page) || 1;
         return this;
     }
 
+    /**
+     * Define parámetros adicionales para futuras consultas.
+     *
+     * @param {object} [extraParams={}] - Parámetros extra.
+     * @returns {RenderPaginateTable} Instancia actual.
+     */
     setExtraParams(extraParams = {}) {
         this.extraParams = extraParams || {};
         return this;
     }
 
+    /**
+     * Carga datos desde el servidor y renderiza tabla, resumen y paginación.
+     *
+     * @async
+     * @param {{page?: number|null, filters?: object|null, orders?: object|null, extraParams?: object|null}} [options={}] - Estado a aplicar antes de la consulta.
+     * @returns {Promise<object>} Respuesta JSON de la API.
+     */
     async load({ page = null, filters = null, orders = null, extraParams = null } = {}) {
         if (page !== null) {
             this.page = Number(page) || 1;
@@ -141,6 +200,12 @@ export class RenderPaginateTable extends RenderTable {
         }
     }
 
+    /**
+     * Recarga la tabla conservando página, filtros, órdenes y parámetros actuales.
+     *
+     * @async
+     * @returns {Promise<object>}
+     */
     async reload() {
         return this.load({
             page: this.page,
@@ -150,6 +215,13 @@ export class RenderPaginateTable extends RenderTable {
         });
     }
 
+    /**
+     * Navega a una página concreta.
+     *
+     * @async
+     * @param {number} page - Página destino.
+     * @returns {Promise<object>|undefined}
+     */
     async goToPage(page) {
         const targetPage = Number(page) || 1;
 
@@ -166,6 +238,13 @@ export class RenderPaginateTable extends RenderTable {
         });
     }
 
+    /**
+     * Aplica filtros y reinicia la paginación a la primera página.
+     *
+     * @async
+     * @param {Object<string, object>} [filters={}] - Filtros a aplicar.
+     * @returns {Promise<object>}
+     */
     async applyFilters(filters = {}) {
         this.filters = filters || {};
         this.page = 1;
@@ -176,6 +255,13 @@ export class RenderPaginateTable extends RenderTable {
         });
     }
 
+    /**
+     * Aplica un nuevo orden y reinicia la paginación a la primera página.
+     *
+     * @async
+     * @param {Object<string, string>} [orders={}] - Órdenes a aplicar.
+     * @returns {Promise<object>}
+     */
     async applyOrders(orders = {}) {
         this.orders = orders || {};
         this.page = 1;
@@ -186,6 +272,12 @@ export class RenderPaginateTable extends RenderTable {
         });
     }
 
+    /**
+     * Ejecuta la petición remota según el método HTTP configurado.
+     *
+     * @async
+     * @returns {Promise<object>} Respuesta normalizada de la API.
+     */
     async _fetchData() {
         if (this.method === "GET") {
             const url = this._buildGetUrl();
@@ -211,6 +303,11 @@ export class RenderPaginateTable extends RenderTable {
         return this._handleResponse(response);
     }
 
+    /**
+     * Construye la URL final para peticiones GET con filtros y paginación.
+     *
+     * @returns {string} URL lista para consultar.
+     */
     _buildGetUrl() {
         const urlObject = new URL(this.url, window.location.origin);
 
@@ -237,6 +334,11 @@ export class RenderPaginateTable extends RenderTable {
         return urlObject.toString();
     }
 
+    /**
+     * Compone el payload base de consulta con filtros, órdenes y extras.
+     *
+     * @returns {object} Carga útil de la petición.
+     */
     _buildPayload() {
         return {
             filters: this.filters || {},
@@ -246,6 +348,14 @@ export class RenderPaginateTable extends RenderTable {
         };
     }
 
+    /**
+     * Interpreta la respuesta HTTP y valida que el JSON sea correcto.
+     *
+     * @async
+     * @param {Response} response - Respuesta recibida de `fetch`.
+     * @returns {Promise<object>} JSON parseado.
+     * @throws {Error} Cuando la respuesta no es válida o llega con error.
+     */
     async _handleResponse(response) {
         let responseJson = null;
 
@@ -262,6 +372,11 @@ export class RenderPaginateTable extends RenderTable {
         return responseJson;
     }
 
+    /**
+     * Renderiza los controles de paginación.
+     *
+     * @returns {void}
+     */
     renderPagination() {
         if (!this.paginationContainer) {
             return;
@@ -302,6 +417,11 @@ export class RenderPaginateTable extends RenderTable {
         this.paginationContainer.appendChild(wrapper);
     }
 
+    /**
+     * Renderiza el resumen textual del rango visible y del total de registros.
+     *
+     * @returns {void}
+     */
     renderSummary() {
         if (!this.summaryContainer) {
             return;
@@ -317,6 +437,14 @@ export class RenderPaginateTable extends RenderTable {
         `;
     }
 
+    /**
+     * Crea un botón de navegación de paginación.
+     *
+     * @param {string} label - Texto visible del botón.
+     * @param {number} page - Página destino.
+     * @param {boolean} [disabled=false] - Indica si debe estar deshabilitado.
+     * @returns {HTMLButtonElement} Botón generado.
+     */
     _createPaginationButton(label, page, disabled = false) {
         const button = document.createElement("button");
         button.type = "button";
@@ -333,6 +461,11 @@ export class RenderPaginateTable extends RenderTable {
         return button;
     }
 
+    /**
+     * Calcula el conjunto de páginas que deben mostrarse en la paginación.
+     *
+     * @returns {number[]} Lista ordenada de páginas visibles.
+     */
     _getPagesToRender() {
         const totalPages = this.totalPages;
         const currentPage = this.page;

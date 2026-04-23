@@ -1,6 +1,29 @@
+/**
+ * @module modal-form-manager
+ * @description Gestor integral de formularios embebidos en modales Bootstrap.
+ * Se encarga de cargar el HTML remoto, inicializar el formulario, precargar
+ * datos, aplicar configuración por campo, validar la entrada y enviar los
+ * cambios al backend.
+ */
+
 import { alertMessage } from "./alert-message.js";
 
+/**
+ * Gestiona el ciclo de vida de un formulario embebido en un modal, incluyendo
+ * modos de alta, edición y visualización.
+ */
 export default class ModalFormManager {
+
+    /**
+     * @param {object} [options={}] - Configuración del gestor.
+     * @param {string} options.containerName - ID del contenedor donde se montará el modal.
+     * @param {Object<string, object>} [options.entityConfig={}] - Configuración de campos.
+     * @param {string|null} [options.formUrl=null] - URL del HTML del formulario.
+     * @param {object} [options.dataUrls={}] - URLs o factories para cargar datos.
+     * @param {string|Function|null} [options.submitUrl=null] - URL o factory de guardado.
+     * @param {object} [options.headers={}] - Cabeceras HTTP adicionales.
+     * @param {"new"|"edit"|"show"} [options.mode="new"] - Modo inicial.
+     */
     constructor(options = {}) {
         this.containerName = options.containerName;
         this.container = document.querySelector(`#${this.containerName}`);
@@ -67,6 +90,13 @@ export default class ModalFormManager {
         this._ensureModal();
     }
 
+    /**
+     * Abre el modal en modo alta.
+     *
+     * @async
+     * @param {object|null} [paramsUrl=null] - Parámetros query adicionales para cargar el HTML.
+     * @returns {Promise<void>}
+     */
     async openNew(paramsUrl = null) {
         try {
             this.mode = "new";
@@ -95,6 +125,14 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Abre el modal en modo edición y carga los datos del registro.
+     *
+     * @async
+     * @param {*} id - Identificador del registro.
+     * @param {object|null} [paramsUrl=null] - Parámetros query adicionales para cargar el HTML.
+     * @returns {Promise<void>}
+     */
     async openEdit(id, paramsUrl = null) {
         try {
             this.mode = "edit";
@@ -121,6 +159,14 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Abre el modal en modo solo lectura y carga los datos del registro.
+     *
+     * @async
+     * @param {*} id - Identificador del registro.
+     * @param {object|null} [paramsUrl=null] - Parámetros query adicionales para cargar el HTML.
+     * @returns {Promise<void>}
+     */
     async openShow(id, paramsUrl = null) {
         try {
             this.mode = "show";
@@ -148,18 +194,34 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Cierra el modal actual.
+     *
+     * @returns {void}
+     */
     close() {
         if (this.modal) {
             this.modal.hide();
         }
     }
 
+    /**
+     * Restaura el formulario al estado inicial capturado.
+     *
+     * @returns {void}
+     */
     reset() {
         if (!this.formElement) return;
         this.setData(this.initialData);
         this.formElement.classList.remove("was-validated");
     }
 
+    /**
+     * Activa o desactiva el modo solo lectura del formulario.
+     *
+     * @param {boolean} [flag=true] - Estado deseado.
+     * @returns {void}
+     */
     setReadOnly(flag = true) {
         if (!this.formElement) return;
 
@@ -191,6 +253,12 @@ export default class ModalFormManager {
         });
     }
 
+    /**
+     * Escribe datos en los campos del formulario.
+     *
+     * @param {object} [data={}] - Datos a precargar.
+     * @returns {void}
+     */
     setData(data = {}) {
         if (!this.formElement) return;
 
@@ -206,6 +274,11 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Lee el formulario y devuelve sus datos normalizados según `entityConfig`.
+     *
+     * @returns {object} Datos del formulario.
+     */
     getData() {
         if (!this.formElement) return {};
 
@@ -233,11 +306,23 @@ export default class ModalFormManager {
         return this._normalizeDataByConfig(data);
     }
 
+    /**
+     * Determina si el formulario ha cambiado respecto a la instantánea inicial.
+     *
+     * @returns {boolean}
+     */
     hasChanges() {
         const currentData = this.getData();
         return JSON.stringify(currentData) !== JSON.stringify(this.initialData);
     }
 
+    /**
+     * Valida y envía el formulario al backend.
+     *
+     * @async
+     * @param {string|null} [method=null] - Método HTTP explícito.
+     * @returns {Promise<object|undefined>} Respuesta del backend.
+     */
     async save(method = null) {
         try {
             if (!this.formElement) {
@@ -325,6 +410,13 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Carga el HTML remoto del formulario y lo monta dentro del modal.
+     *
+     * @async
+     * @param {object|null} [paramsUrl=null] - Parámetros extra para la URL.
+     * @returns {Promise<void>}
+     */
     async _loadFormHtml(paramsUrl = null) {
         if (!this.formUrl) {
             throw new Error("No se ha definido formUrl");
@@ -369,6 +461,13 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Ejecuta los scripts embebidos dentro del HTML cargado en el modal.
+     *
+     * @async
+     * @param {HTMLElement} scopeElement - Nodo que contiene los scripts.
+     * @returns {Promise<void>}
+     */
     async _executeEmbeddedScripts(scopeElement) {
         const scripts = Array.from(scopeElement.querySelectorAll("script"));
 
@@ -392,6 +491,14 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Recupera los datos remotos necesarios según el modo del formulario.
+     *
+     * @async
+     * @param {"new"|"edit"|"show"} mode - Modo de trabajo activo.
+     * @param {*} [id=null] - Identificador del registro.
+     * @returns {Promise<object|null>} Datos cargados o `null`.
+     */
     async _loadData(mode, id = null) {
         let url = null;
 
@@ -428,6 +535,11 @@ export default class ModalFormManager {
         return json?.data || json;
     }
 
+    /**
+     * Aplica al formulario la configuración declarativa de cada campo.
+     *
+     * @returns {void}
+     */
     _applyConfigToForm() {
         if (!this.formElement) return;
 
@@ -501,6 +613,11 @@ export default class ModalFormManager {
         });
     }
 
+    /**
+     * Escribe los valores por defecto configurados para modo alta.
+     *
+     * @returns {void}
+     */
     _applyDefaults() {
         if (!this.formElement) return;
 
@@ -516,6 +633,12 @@ export default class ModalFormManager {
         });
     }
 
+    /**
+     * Normaliza los datos del formulario según el tipo declarado por campo.
+     *
+     * @param {object} data - Datos crudos leídos del formulario.
+     * @returns {object} Datos listos para enviar.
+     */
     _normalizeDataByConfig(data) {
         const normalized = {};
 
@@ -557,6 +680,12 @@ export default class ModalFormManager {
         return normalized;
     }
 
+    /**
+     * Busca un campo del formulario por nombre, `data-field` o id estándar.
+     *
+     * @param {string} fieldName - Nombre lógico del campo.
+     * @returns {HTMLElement|null} Campo encontrado o `null`.
+     */
     _findField(fieldName) {
         if (!this.formElement) return null;
 
@@ -565,6 +694,13 @@ export default class ModalFormManager {
             || this.formElement.querySelector(`#id_${fieldName}`);
     }
 
+    /**
+     * Lee el valor de un campo teniendo en cuenta su tipo y configuración.
+     *
+     * @param {HTMLElement} field - Campo origen.
+     * @param {string|null} [fieldName=null] - Nombre lógico del campo.
+     * @returns {*} Valor normalizado leído del formulario.
+     */
     _readFieldValue(field, fieldName = null) {
         if (!field) return null;
 
@@ -633,6 +769,14 @@ export default class ModalFormManager {
         return null;
     }
 
+    /**
+     * Escribe un valor en un campo respetando su tipo y comportamiento especial.
+     *
+     * @param {HTMLElement} field - Campo destino.
+     * @param {*} value - Valor a escribir.
+     * @param {string|null} [fieldName=null] - Nombre lógico del campo.
+     * @returns {void}
+     */
     _writeFieldValue(field, value, fieldName = null) {
         const tagName = field.tagName.toLowerCase();
         const type = (field.type || "").toLowerCase();
@@ -706,6 +850,12 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Convierte una fecha al formato compatible con `datetime-local`.
+     *
+     * @param {*} value - Valor de fecha original.
+     * @returns {string} Fecha local serializada o cadena vacía.
+     */
     _toDatetimeLocal(value) {
         if (!value) return "";
         const date = new Date(value);
@@ -723,10 +873,21 @@ export default class ModalFormManager {
         return `${year}-${month}-${day}T${hours}:${minutes}`;
     }
 
+    /**
+     * Captura una instantánea de los datos actuales para detectar cambios.
+     *
+     * @returns {void}
+     */
     _snapshotInitialData() {
         this.initialData = this.getData();
     }
 
+    /**
+     * Construye un `FormData` con datos serializados y ficheros adjuntos.
+     *
+     * @param {object} payload - Datos principales del formulario.
+     * @returns {FormData} Carga multiparte lista para enviar.
+     */
     _buildMultipartPayload(payload) {
         const formData = new FormData();
         formData.append("mode", this.mode);
@@ -751,6 +912,11 @@ export default class ModalFormManager {
         return formData;
     }
 
+    /**
+     * Comprueba si el formulario contiene archivos seleccionados.
+     *
+     * @returns {boolean} `true` si hay ficheros listos para subir.
+     */
     _hasSelectedFiles() {
         if (!this.formElement) return false;
 
@@ -758,11 +924,24 @@ export default class ModalFormManager {
             .some((field) => field.files && field.files.length > 0);
     }
 
+    /**
+     * Determina si un campo corresponde a una entrada de tipo archivo.
+     *
+     * @param {HTMLElement} field - Campo a evaluar.
+     * @returns {boolean} `true` si es un input file.
+     */
     _isFileField(field) {
         return field?.tagName?.toLowerCase() === "input"
             && (field.type || "").toLowerCase() === "file";
     }
 
+    /**
+     * Muestra u oculta el wrapper visual de un campo concreto.
+     *
+     * @param {string} fieldName - Nombre lógico del campo.
+     * @param {boolean} visible - Estado visual deseado.
+     * @returns {void}
+     */
     _toggleFieldVisibility(fieldName, visible) {
         const wrapper = this.formElement?.querySelector(`[data-field-wrapper="${fieldName}"]`);
         if (!wrapper) return;
@@ -770,6 +949,11 @@ export default class ModalFormManager {
         wrapper.classList.toggle("d-none", !visible);
     }
 
+    /**
+     * Enlaza los eventos internos de envío, guardado y reseteo del modal.
+     *
+     * @returns {void}
+     */
     _bindInternalEvents() {
         if (!this.formElement) return;
 
@@ -791,6 +975,11 @@ export default class ModalFormManager {
         });
     }
 
+    /**
+     * Ajusta la visibilidad de acciones del pie según el modo del formulario.
+     *
+     * @returns {void}
+     */
     _toggleFooterByMode() {
         const footer = this.modalElement.querySelector(".modal-footer");
         const saveButton = this.modalElement.querySelector('[data-role="save"]');
@@ -814,6 +1003,11 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Actualiza el título del modal según el modo activo.
+     *
+     * @returns {void}
+     */
     _updateModalTitle() {
         const titleElement = this.modalElement.querySelector(".modal-title");
         if (!titleElement) return;
@@ -833,10 +1027,20 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Muestra el modal en pantalla.
+     *
+     * @returns {void}
+     */
     _showModal() {
         this.modal.show();
     }
 
+    /**
+     * Inyecta los estilos necesarios para arrastre y maximización del modal.
+     *
+     * @returns {void}
+     */
     _ensureDraggableStyles() {
         if (document.getElementById("modal-form-manager-window-styles")) {
             return;
@@ -915,6 +1119,11 @@ export default class ModalFormManager {
         document.head.appendChild(style);
     }
 
+    /**
+     * Garantiza que la estructura HTML del modal exista e inicializa Bootstrap.
+     *
+     * @returns {void}
+     */
     _ensureModal() {
         if (document.getElementById(this.modalConfig.id)) {
             this.modalElement = document.getElementById(this.modalConfig.id);
@@ -974,6 +1183,11 @@ export default class ModalFormManager {
         this._bindModalWindowEvents();
     }
 
+    /**
+     * Cachea las referencias a los elementos estructurales de la ventana modal.
+     *
+     * @returns {void}
+     */
     _cacheModalWindowElements() {
         if (!this.modalElement) return;
 
@@ -982,6 +1196,11 @@ export default class ModalFormManager {
         this.maximizeButton = this.modalElement.querySelector('[data-role="toggle-maximize"]');
     }
 
+    /**
+     * Vincula los eventos de arrastre, maximización y cierre del modal.
+     *
+     * @returns {void}
+     */
     _bindModalWindowEvents() {
         if (!this.modalElement || this.modalElement.dataset.windowEventsBound === "true") {
             return;
@@ -1011,6 +1230,11 @@ export default class ModalFormManager {
         });
     }
 
+    /**
+     * Restaura la posición inicial centrada del modal.
+     *
+     * @returns {void}
+     */
     _setDefaultWindowPosition() {
         if (!this.modalDialog) return;
 
@@ -1028,6 +1252,12 @@ export default class ModalFormManager {
         this._updateMaximizeButton();
     }
 
+    /**
+     * Inicia el arrastre manual de la ventana modal.
+     *
+     * @param {MouseEvent} event - Evento de ratón inicial.
+     * @returns {void}
+     */
     _startDragging(event) {
         if (!this.modalDialog || this.windowState.isMaximized) {
             return;
@@ -1074,6 +1304,12 @@ export default class ModalFormManager {
         event.preventDefault();
     }
 
+    /**
+     * Recalcula la posición del modal mientras se mueve por arrastre.
+     *
+     * @param {MouseEvent} event - Evento de movimiento.
+     * @returns {void}
+     */
     _handleDragMove(event) {
         if (!this.windowState.isDragging || !this.modalDialog) {
             return;
@@ -1094,6 +1330,11 @@ export default class ModalFormManager {
         this.modalDialog.style.top = `${top}px`;
     }
 
+    /**
+     * Finaliza el arrastre y guarda la posición restaurable.
+     *
+     * @returns {void}
+     */
     _stopDragging() {
         if (!this.windowState.isDragging) {
             return;
@@ -1107,6 +1348,11 @@ export default class ModalFormManager {
         document.removeEventListener("mouseup", this._boundStopDragging);
     }
 
+    /**
+     * Alterna entre estado maximizado y restaurado del modal.
+     *
+     * @returns {void}
+     */
     _toggleMaximize() {
         if (!this.modalDialog) return;
 
@@ -1124,6 +1370,11 @@ export default class ModalFormManager {
         this._updateMaximizeButton();
     }
 
+    /**
+     * Reaplica la posición previa tras abandonar el modo maximizado.
+     *
+     * @returns {void}
+     */
     _applyRestoredLayout() {
         if (!this.modalDialog) return;
 
@@ -1139,6 +1390,11 @@ export default class ModalFormManager {
         this.modalDialog.style.height = "";
     }
 
+    /**
+     * Captura la posición y dimensiones actuales del diálogo modal.
+     *
+     * @returns {{left: number, top: number, width: number, height: number}|null}
+     */
     _captureCurrentDialogPosition() {
         if (!this.modalDialog) {
             return null;
@@ -1154,6 +1410,11 @@ export default class ModalFormManager {
         };
     }
 
+    /**
+     * Actualiza el icono y los textos accesibles del botón de maximización.
+     *
+     * @returns {void}
+     */
     _updateMaximizeButton() {
         if (!this.maximizeButton) return;
 
@@ -1168,6 +1429,11 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Limpia el estado temporal de la ventana y elimina estilos inline.
+     *
+     * @returns {void}
+     */
     _resetWindowState() {
         this._stopDragging();
 
@@ -1189,6 +1455,13 @@ export default class ModalFormManager {
         this._updateMaximizeButton();
     }
 
+    /**
+     * Intenta parsear una respuesta JSON devolviendo `null` si falla.
+     *
+     * @async
+     * @param {Response} response - Respuesta HTTP recibida.
+     * @returns {Promise<object|null>} JSON parseado o `null`.
+     */
     async _safeJson(response) {
         try {
             return await response.json();
@@ -1197,6 +1470,14 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Aplica el comportamiento especial requerido por campos booleanos.
+     *
+     * @param {HTMLElement} field - Campo a configurar.
+     * @param {string} fieldName - Nombre lógico del campo.
+     * @param {object} fieldConfig - Configuración declarativa del campo.
+     * @returns {void}
+     */
     _applyBooleanFieldConfig(field, fieldName, fieldConfig) {
         const tagName = field.tagName.toLowerCase();
         const type = (field.type || "").toLowerCase();
@@ -1213,6 +1494,13 @@ export default class ModalFormManager {
         }
     }
 
+    /**
+     * Rellena o actualiza las opciones visibles de un selector booleano.
+     *
+     * @param {HTMLSelectElement} selectElement - Selector destino.
+     * @param {object} booleanConfig - Configuración efectiva booleana.
+     * @returns {void}
+     */
     _populateBooleanSelectOptions(selectElement, booleanConfig) {
         if (!selectElement) return;
 
@@ -1247,6 +1535,12 @@ export default class ModalFormManager {
         selectElement.appendChild(falseOption);
     }
 
+    /**
+     * Normaliza los valores de un grupo de radios booleanos a `true` o `false`.
+     *
+     * @param {string} fieldName - Nombre del grupo de radios.
+     * @returns {void}
+     */
     _normalizeBooleanRadioValues(fieldName) {
         const radios = this.formElement.querySelectorAll(`input[name="${fieldName}"]`);
 
@@ -1259,6 +1553,13 @@ export default class ModalFormManager {
         });
     }
 
+    /**
+     * Convierte un valor lógico al valor persistible configurado.
+     *
+     * @param {*} value - Valor de entrada.
+     * @param {object} [fieldConfig={}] - Configuración booleana del campo.
+     * @returns {*} Valor normalizado para payload.
+     */
     _normalizeBooleanValue(value, fieldConfig = {}) {
         if (value === null || value === undefined || value === "") {
             return null;
@@ -1278,6 +1579,13 @@ export default class ModalFormManager {
         return value;
     }
 
+    /**
+     * Resuelve un valor arbitrario a su equivalente lógico booleano.
+     *
+     * @param {*} value - Valor a interpretar.
+     * @param {object} [fieldConfig={}] - Configuración booleana del campo.
+     * @returns {"true"|"false"|null} Valor lógico normalizado.
+     */
     _resolveBooleanLogicalValue(value, fieldConfig = {}) {
         if (value === null || value === undefined || value === "") {
             return null;
@@ -1304,6 +1612,12 @@ export default class ModalFormManager {
         return this._normalizeBooleanLogicalValue(value);
     }
 
+    /**
+     * Interpreta cadenas y variantes habituales como booleanos lógicos.
+     *
+     * @param {*} value - Valor a normalizar.
+     * @returns {"true"|"false"|null} Resultado lógico normalizado.
+     */
     _normalizeBooleanLogicalValue(value) {
         if (value === null || value === undefined || value === "") {
             return null;
@@ -1335,6 +1649,12 @@ export default class ModalFormManager {
         return null;
     }
 
+    /**
+     * Obtiene la configuración efectiva de valores y etiquetas booleanas.
+     *
+     * @param {object} [fieldConfig={}] - Configuración declarativa del campo.
+     * @returns {{values: {true: *, false: *}, display: {true: string, false: string}}}
+     */
     _getBooleanConfig(fieldConfig = {}) {
         const booleanConfig = fieldConfig.boolean_config || {};
 
@@ -1358,6 +1678,13 @@ export default class ModalFormManager {
         };
     }
 
+    /**
+     * Compara dos valores de forma tolerante para detectar equivalencia.
+     *
+     * @param {*} leftValue - Primer valor.
+     * @param {*} rightValue - Segundo valor.
+     * @returns {boolean} `true` si representan lo mismo.
+     */
     _isSameValue(leftValue, rightValue) {
         if (leftValue === rightValue) {
             return true;

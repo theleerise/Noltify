@@ -1,6 +1,20 @@
+/**
+ * @module api-value-service
+ * @description Servicio auxiliar para consultar catálogos remotos de valores
+ * maestros, reutilizar los resultados en caché y traducir identificadores
+ * almacenados a etiquetas legibles para la interfaz.
+ */
+
 const apiValueRecordsCache = new Map();
 const apiValuePromiseCache = new Map();
 
+/**
+ * Construye la URL final para consultar los valores de un master.
+ *
+ * @param {string} masterKey - Clave del master a consultar.
+ * @param {string} [baseUrl="/api_value/data/"] - URL base del endpoint.
+ * @returns {string} URL normalizada lista para usar en una petición HTTP.
+ */
 function buildApiValueUrl(masterKey, baseUrl = "/api_value/data/") {
     const normalizedBaseUrl = String(baseUrl || "/api_value/data/").replace(/\/+$/, "");
     const normalizedMasterKey = encodeURIComponent(String(masterKey || "").trim());
@@ -8,6 +22,16 @@ function buildApiValueUrl(masterKey, baseUrl = "/api_value/data/") {
     return `${normalizedBaseUrl}/${normalizedMasterKey}`;
 }
 
+/**
+ * Recupera los registros de un master remoto utilizando caché en memoria tanto
+ * para resultados resueltos como para peticiones en curso.
+ *
+ * @async
+ * @param {string} masterKey - Clave lógica del master.
+ * @param {{baseUrl?: string}} [options={}] - Opciones de consulta.
+ * @returns {Promise<Array<object>>} Lista de registros devueltos por la API.
+ * @throws {Error} Cuando la API responde con error.
+ */
 async function fetchApiValueRecords(masterKey, options = {}) {
     const normalizedMasterKey = String(masterKey || "").trim().toUpperCase();
 
@@ -63,6 +87,14 @@ async function fetchApiValueRecords(masterKey, options = {}) {
     }
 }
 
+/**
+ * Busca la etiqueta legible asociada a un valor dentro de una colección de
+ * registros de api value.
+ *
+ * @param {Array<object>} records - Registros disponibles.
+ * @param {*} rawValue - Valor bruto que se quiere resolver.
+ * @returns {string|null} Texto mostrado al usuario o `null` si no existe coincidencia.
+ */
 function getApiValueLabel(records, rawValue) {
     if (rawValue === undefined || rawValue === null || rawValue === "") {
         return "";
