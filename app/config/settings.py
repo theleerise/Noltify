@@ -1,3 +1,8 @@
+"""
+Configuración principal de Django para la aplicación.
+
+Este módulo centraliza los ajustes globales del proyecto, incluyendo base de datos, middleware, plantillas y aplicaciones instaladas.
+"""
 import os
 from pathlib import Path
 
@@ -24,6 +29,17 @@ MEDIA_ROOT_DIR = PROJECT_DIR / "media"
 # ---------------------------------------------------------
 
 def load_local_env(env_path: Path) -> None:
+    """
+    Realiza la operación definida por `load_local_env`.
+
+    Este método encapsula la lógica principal asociada a este punto del flujo de la aplicación.
+
+    Args:
+        env_path: Valor de entrada utilizado por la operación.
+
+    Returns:
+        _type_: Resultado generado por la operación ejecutada.
+    """
     if not env_path.exists():
         return
 

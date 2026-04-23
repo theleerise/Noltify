@@ -1,3 +1,9 @@
+"""
+Configuración de rutas para app user.
+
+Este módulo define las URLs que exponen las vistas asociadas al contexto correspondiente dentro de la aplicación.
+"""
+
 from django.urls import path
 from app.backend.views.app_user import app_user_views
 

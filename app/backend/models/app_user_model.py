@@ -21,8 +21,8 @@ class AppUserModel(EntityModel):
     email: str = Field(..., title="Email", description="Correo electronico del usuario")
     password_hash: str | None = Field(
         default=None,
-        title="Contrasena",
-        description="Contrasena de acceso del usuario. En edicion, dejala vacia para conservar la actual.",
+        title="Contraseña",
+        description="Contraseña de acceso del usuario. En edicion, dejala vacia para conservar la actual.",
         input_type="password",
         required_on_create=True,
         autocomplete="new-password",

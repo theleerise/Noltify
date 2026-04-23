@@ -1,3 +1,9 @@
+"""
+Configuración principal de rutas del proyecto.
+
+Este módulo registra las URLs globales de la aplicación y delega en los módulos especficos de cada contexto funcional.
+"""
+
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings

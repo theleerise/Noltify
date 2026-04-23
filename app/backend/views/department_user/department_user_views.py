@@ -1,3 +1,8 @@
+"""
+Vistas relacionadas con department user.
+
+Este módulo agrupa las funciones encargadas de procesar peticiones HTTP y devolver respuestas HTML o JSON para el contexto indicado.
+"""
 import json
 
 from django.http import JsonResponse
@@ -35,6 +40,17 @@ delete = _views["delete"]
 @require_http_methods(["GET"])
 @require_app_session
 def profile_data(request):
+    """
+    Realiza la operación definida por `profile_data`.
+
+    Este método encapsula la lógica principal asociada a este punto del flujo de la aplicación.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Resultado generado por la operación ejecutada.
+    """
     try:
         session_user = getattr(request, "app_user", None) or {}
         current_user_id = int(session_user.get("id"))

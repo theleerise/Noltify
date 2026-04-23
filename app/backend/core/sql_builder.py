@@ -1,4 +1,9 @@
-"""Utilities for composing dynamic SQL filters, sorting, and wrappers."""
+"""
+Herramientas para construir filtros, ordenación y envoltorios SQL dinámicos.
+
+Este módulo permite generar setencias auxiliares para conteo, paginación y
+filtrado a partir de configuraciones enviadas desde el frontend.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +12,16 @@ from typing import Any
 
 
 def get_query_row_count(sql: str) -> str:
-    """Wrap a query so it returns the number of rows it would produce."""
+    """
+    Construye una consulta que devuelve el número total de filas de otra consulta.
+
+    Args:
+        sql (str): Consulta base sobre la que se desea realizar el conteo.
+
+    Returns:
+        str: Sentencia SQL que envuelve la consulta original y devuelve el total
+        de registros.
+    """
     query = f"""
         SELECT COUNT(*) AS ROWS
         FROM (
@@ -18,7 +32,19 @@ def get_query_row_count(sql: str) -> str:
 
 
 def get_query_paginator(sql: str) -> str:
-    """Wrap a query with `LIMIT` and `OFFSET` pagination placeholders."""
+    """
+    Construye una consulta paginada a partir de una consulta base.
+
+    La consulta resultante incorpora los parámetros `LIMIT` y `OFFSET`
+    necesarios para recuperar únicamente un subconjunto de filas.
+
+    Args:
+        sql (str): Consulta base que se desea paginar.
+
+    Returns:
+        str: Sentencia SQL envuelta y preparada para recibir los parámetros de
+        paginación.
+    """
     query = f"""
         SELECT *
         FROM (
@@ -31,7 +57,18 @@ def get_query_paginator(sql: str) -> str:
 
 
 def get_query_base_wrapper(sql: str) -> str:
-    """Wrap a query in a neutral `WHERE 1=1` block for extra conditions."""
+    """
+    Envuelve una consulta SQL para facilitar la adición de condiciones extra.
+
+    Este método añade una capa externa con `WHERE 1=1`, lo que simplifica la
+    concatenación posterior de filtros dinámicos.
+
+    Args:
+        sql (str): Consulta base que se desea envolver.
+
+    Returns:
+        str: Consulta SQL preparada para recibir condiciones adicionales.
+    """
     query = f"""
         SELECT *
         FROM (
@@ -43,7 +80,12 @@ def get_query_base_wrapper(sql: str) -> str:
 
 
 class QueryBuilder:
-    """Build SQL `WHERE` and `ORDER BY` clauses from frontend filter payloads."""
+    """
+    Clase encargada de construir cláusulas SQL dinámicas de filtrado y ordenación.
+
+    Su objetivo es transformar la configuración enviada desde el frontend en
+    fragmentos SQL seguros y compatibles con los managers de la aplicación.
+    """
 
     FILTER_EQUAL = "EQUAL"
     FILTER_NOT_EQUAL = "NOT_EQUAL"
@@ -70,7 +112,19 @@ class QueryBuilder:
     TYPE_BOOLEAN = "boolean"
 
     def build(self, base_sql: str, filters: dict[str, dict[str, Any]] | None = None) -> tuple[str, dict[str, Any]]:
-        """Append validated filter conditions to a base SQL query."""
+        """
+        Construye una consulta SQL con condiciones dinámicas de filtrado.
+
+        Args:
+            base_sql (str): Consulta SQL base sobre la que se añadirán los
+                filtros.
+            filters (dict[str, dict[str, Any]] | None): Configuración de filtros
+                enviada por el cliente.
+
+        Returns:
+            tuple[str, dict[str, Any]]: Consulta final construida y diccionario
+            de parámetros necesarios para ejecutarla.
+        """
         filters = filters or {}
 
         sql_lines = [base_sql.strip()]
@@ -111,7 +165,18 @@ class QueryBuilder:
         base_sql: str,
         order_by: dict[str, str] | None = None
     ) -> str:
-        """Append a validated `ORDER BY` clause to a base SQL query."""
+        """
+        Añade una cláusula `ORDER BY` válida a una consulta base.
+
+        Args:
+            base_sql (str): Consulta SQL sobre la que se aplicará el orden.
+            order_by (dict[str, str] | None): Diccionario que relaciona cada
+                columna con su dirección de ordenación.
+
+        Returns:
+            str: Consulta SQL final con la cláusula `ORDER BY` incorporada si
+            corresponde.
+        """
         order_by = order_by or {}
 
         sql_lines = [base_sql.strip()]
@@ -126,13 +191,13 @@ class QueryBuilder:
 
             if normalized_direction not in (self.ORDER_ASC, self.ORDER_DESC):
                 raise ValueError(
-                    f"La direcciÃ³n de orden '{direction}' no es vÃ¡lida para la columna '{column_name}'. "
+                    f"La dirección de orden '{direction}' no es válida para la columna '{column_name}'. "
                     f"Solo se permite ASC o DESC."
                 )
 
             if not self._is_safe_sql_identifier(normalized_column):
                 raise ValueError(
-                    f"El nombre de columna '{column_name}' no es vÃ¡lido para ORDER BY."
+                    f"El nombre de columna '{column_name}' no es válido para ORDER BY."
                 )
 
             order_clauses.append(f"{normalized_column} {normalized_direction}")
@@ -150,7 +215,22 @@ class QueryBuilder:
         filter_values: Any,
         boolean_config: dict[str, Any] | None = None
     ) -> tuple[str | None, dict[str, Any]]:
-        """Build the SQL fragment and parameters for one filter definition."""
+        """
+        Construye la condición SQL y sus parámetros para un filtro concreto.
+
+        Args:
+            column_name (str): Nombre de la columna a filtrar.
+            field_type (str | None): Tipo lógico del campo enviado por el
+                frontend.
+            filter_operator (str): Operador de filtrado que debe aplicarse.
+            filter_values (Any): Valor o valores asociados al filtro.
+            boolean_config (dict[str, Any] | None): Configuración adicional para
+                interpretar valores booleanos.
+
+        Returns:
+            tuple[str | None, dict[str, Any]]: Fragmento SQL de la condición y
+            diccionario de parámetros asociados.
+        """
         normalized_operator = str(filter_operator).upper()
         normalized_column = column_name.upper()
         normalized_param = column_name.lower()
@@ -318,7 +398,23 @@ class QueryBuilder:
         is_not_in: bool = False,
         boolean_config: dict[str, Any] | None = None
     ) -> tuple[str | None, dict[str, Any]]:
-        """Build an `IN` or `NOT IN` condition with independent placeholders."""
+        """
+        Construye una condición SQL de tipo `IN` o `NOT IN`.
+
+        Args:
+            column_name (str): Nombre normalizado de la columna.
+            param_name (str): Prefijo que se utilizará para los parámetros.
+            field_type (str | None): Tipo del campo que se está procesando.
+            filter_values (Any): Colección de valores a incluir en la condición.
+            is_not_in (bool): Indica si debe construirse `NOT IN` en lugar de
+                `IN`.
+            boolean_config (dict[str, Any] | None): Configuración auxiliar para
+                conversión de booleanos.
+
+        Returns:
+            tuple[str | None, dict[str, Any]]: Condición SQL generada y
+            parámetros asociados.
+        """
         if not isinstance(filter_values, (tuple, list)) or len(filter_values) == 0:
             return None, {}
 
@@ -347,7 +443,18 @@ class QueryBuilder:
         value: Any,
         boolean_config: dict[str, Any] | None = None
     ) -> Any:
-        """Convert an arbitrary filter value to the expected Python type."""
+        """
+        Convierte un valor recibido al tipo esperado por el filtro.
+
+        Args:
+            field_type (str | None): Tipo lógico del campo.
+            value (Any): Valor recibido desde el filtro.
+            boolean_config (dict[str, Any] | None): Configuración auxiliar para
+                valores booleanos.
+
+        Returns:
+            Any: Valor convertido al tipo adecuado para la consulta SQL.
+        """
         if value is None:
             return None
 
@@ -381,7 +488,17 @@ class QueryBuilder:
         value: Any,
         boolean_config: dict[str, Any] | None = None
     ) -> Any:
-        """Normalize boolean filter values using explicit or default mappings."""
+        """
+        Convierte un valor recibido a un booleano o al valor booleano configurado.
+
+        Args:
+            value (Any): Valor que se desea interpretar como booleano.
+            boolean_config (dict[str, Any] | None): Configuración opcional para
+                mapear valores verdaderos y falsos personalizados.
+
+        Returns:
+            Any: Valor booleano normalizado según la configuración disponible.
+        """
         if boolean_config:
             normalized_config = self._normalize_boolean_config(boolean_config)
 
@@ -396,7 +513,7 @@ class QueryBuilder:
 
         normalized_value = str(value).strip().lower()
 
-        if normalized_value in ("true", "1", "yes", "y", "s", "si", "sí­"):
+        if normalized_value in ("true", "1", "yes", "y", "s", "si", "sí"):
             return True
 
         if normalized_value in ("false", "0", "no", "n"):
@@ -409,7 +526,16 @@ class QueryBuilder:
         value: Any,
         boolean_config: dict[str, Any]
     ) -> bool:
-        """Return whether a raw value should be interpreted as boolean `true`."""
+        """
+        Comprueba si un valor debe interpretarse como verdadero.
+
+        Args:
+            value (Any): Valor que se desea comprobar.
+            boolean_config (dict[str, Any]): Configuración booleana normalizada.
+
+        Returns:
+            bool: `True` si el valor represeta el estado verdadero.
+        """
         return (
             value is True
             or self._same_value(value, boolean_config["values"]["true"])
@@ -421,7 +547,16 @@ class QueryBuilder:
         value: Any,
         boolean_config: dict[str, Any]
     ) -> bool:
-        """Return whether a raw value should be interpreted as boolean `false`."""
+        """
+        Comprueba si un valor debe interpretarse como falso.
+
+        Args:
+            value (Any): Valor que se desea comprobar.
+            boolean_config (dict[str, Any]): Configuración booleana normalizada.
+
+        Returns:
+            bool: `True` si el valor represeta el estado falso.
+        """
         return (
             value is False
             or self._same_value(value, boolean_config["values"]["false"])
@@ -432,7 +567,16 @@ class QueryBuilder:
         self,
         boolean_config: dict[str, Any] | None
     ) -> dict[str, Any]:
-        """Fill missing boolean conversion metadata with default values."""
+        """
+        Completa la configuración booleana con valores por defecto.
+
+        Args:
+            boolean_config (dict[str, Any] | None): Configuración recibida para
+                interpretar valores booleanos.
+
+        Returns:
+            dict[str, Any]: Configuración booleana completa y normalizada.
+        """
         boolean_config = boolean_config or {}
 
         values = boolean_config.get("values") or {}
@@ -450,7 +594,16 @@ class QueryBuilder:
         }
 
     def _same_value(self, left_value: Any, right_value: Any) -> bool:
-        """Compare two values using direct and normalized string equality."""
+        """
+        Compara dos valores utilizando igualdad directa y normalización textual.
+
+        Args:
+            left_value (Any): Valor izquierdo de la comparación.
+            right_value (Any): Valor derecho de la comparación.
+
+        Returns:
+            bool: `True` si ambos valores pueden considerarse equivalentes.
+        """
         if left_value == right_value:
             return True
 
@@ -460,7 +613,15 @@ class QueryBuilder:
         return str(left_value).strip().lower() == str(right_value).strip().lower()
 
     def _convert_date(self, value: Any) -> datetime:
-        """Parse a supported date or datetime value into a `datetime` object."""
+        """
+        Convierte un valor recibido a un objeto `datetime`.
+
+        Args:
+            value (Any): Valor de fecha o texto que se desea convertir.
+
+        Returns:
+            datetime: Fecha convertida al formato interno esperado.
+        """
         if isinstance(value, datetime):
             return value
 
@@ -479,7 +640,15 @@ class QueryBuilder:
         raise ValueError(f"No se puede convertir el valor '{value}' a fecha.")
 
     def _is_empty(self, value: Any) -> bool:
-        """Return whether a filter value should be treated as empty."""
+        """
+        Indica si un valor debe tratarse como vacío dentro del filtrado.
+
+        Args:
+            value (Any): Valor que se desea evaluar.
+
+        Returns:
+            bool: `True` si el valor debe considerarse vacío.
+        """
         if value is None:
             return True
 
@@ -492,7 +661,15 @@ class QueryBuilder:
         return False
 
     def _is_safe_sql_identifier(self, value: str) -> bool:
-        """Validate that a string is safe to use as a SQL identifier."""
+        """
+        Comprueba si un identificador SQL contiene únicamente caracteres seguros.
+
+        Args:
+            value (str): Nombre de columna o identificador que se desea validar.
+
+        Returns:
+            bool: `True` si el identificador solo contiene caracteres permitidos.
+        """
         allowed_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
 
         if not value:

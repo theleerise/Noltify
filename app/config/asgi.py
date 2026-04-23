@@ -1,3 +1,9 @@
+"""
+Punto de entrada ASGI del proyecto.
+
+Este módulo expone la aplicación ASGI utilizada por servidores compatibles para desplegar el proyecto.
+"""
+
 import os
 
 from django.core.asgi import get_asgi_application

@@ -1,3 +1,8 @@
+"""
+Vistas relacionadas con app user.
+
+Este módulo agrupa las funciones encargadas de procesar peticiones HTTP y devolver respuestas HTML o JSON para el contexto indicado.
+"""
 import json
 from copy import deepcopy
 
@@ -43,7 +48,28 @@ delete = _views["delete"]
 
 
 class _PasswordValidationUser:
+    """
+    Clase auxiliar utilizada para validar contraseñas en el contexto del usuario.
+
+    Esta estructura expone los atributos mínimos que requieren los validadores
+    de contraseñas de Django para comprobar reglas relacionadas con los datos
+    personales del usuario.
+    """
     def __init__(self, username: str | None, email: str | None, first_name: str | None, last_name: str | None):
+        """
+        Realiza la operación definida por `__init__`.
+
+        Este método encapsula la lógica principal asociada a este punto del flujo de la aplicación.
+
+        Args:
+            username: Valor de entrada utilizado por la operación.
+            email: Valor de entrada utilizado por la operación.
+            first_name: Valor de entrada utilizado por la operación.
+            last_name: Valor de entrada utilizado por la operación.
+
+        Returns:
+            _type_: Resultado generado por la operación ejecutada.
+        """
         self.username = username or ""
         self.email = email or ""
         self.first_name = first_name or ""
@@ -51,11 +77,33 @@ class _PasswordValidationUser:
 
 
 def _request_user_is_superuser(request) -> bool:
+    """
+    Realiza la operación definida por `_request_user_is_superuser`.
+
+    Este método encapsula la lógica principal asociada a este punto del flujo de la aplicación.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Resultado generado por la operación ejecutada.
+    """
     session_user = getattr(request, "app_user", None) or {}
     return bool(session_user.get("is_superuser"))
 
 
 def _normalize_bool(value) -> bool:
+    """
+    Normaliza el valor procesado por `_normalize_bool`.
+
+    La función transforma la entrada a un formato consistente para su uso posterior.
+
+    Args:
+        value: Valor de entrada utilizado por la operación.
+
+    Returns:
+        _type_: Valor normalizado listo para seguir siendo utilizado por la aplicación.
+    """
     if isinstance(value, bool):
         return value
     if value is None:
@@ -66,6 +114,17 @@ def _normalize_bool(value) -> bool:
 
 
 def _build_app_user_entity_model(request) -> dict:
+    """
+    Construye la estructura necesaria para `_build_app_user_entity_model`.
+
+    La función prepara datos o configuración auxiliar reutilizable por otras operaciones del módulo.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Estructura resultante construida a partir de los parmetros recibidos.
+    """
     entity_model = deepcopy(AppUserModel.config())
     if not _request_user_is_superuser(request) and "is_superuser" in entity_model:
         entity_model["is_superuser"]["hidden_form"] = True
@@ -75,6 +134,17 @@ def _build_app_user_entity_model(request) -> dict:
 @require_http_methods(["GET"])
 @require_any_permission("APP_USER_LIST", "APP_USER_INSERT", "APP_USER_UPDATE")
 def form_view(request):
+    """
+    Procesa la petición asociada a `form_view`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     context_page = {
         "entity_model": _build_app_user_entity_model(request),
         "entity_model_department_user": json.dumps(DepartmentUserModel.config()),
@@ -87,6 +157,17 @@ def form_view(request):
 
 
 def _get_profile_user(request):
+    """
+    Recupera la información necesaria para `_get_profile_user`.
+
+    La función concentra una lectura o resolucin de datos reutilizable dentro del módulo.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Valor resuelto a partir de la lógica interna de la función.
+    """
     session_user = getattr(request, "app_user", None) or {}
     if not session_user.get("id"):
         return None, None
@@ -102,6 +183,18 @@ def _get_profile_user(request):
 
 
 def _build_profile_form_data(profile_user: dict | None, overrides: dict | None = None) -> dict:
+    """
+    Construye la estructura necesaria para `_build_profile_form_data`.
+
+    La función prepara datos o configuración auxiliar reutilizable por otras operaciones del módulo.
+
+    Args:
+        profile_user: Valor de entrada utilizado por la operación.
+        overrides: Valor de entrada utilizado por la operación.
+
+    Returns:
+        _type_: Estructura resultante construida a partir de los parmetros recibidos.
+    """
     base_data = {
         "username": (profile_user or {}).get("username") or "",
         "email": (profile_user or {}).get("email") or "",
@@ -118,6 +211,19 @@ def _build_profile_form_data(profile_user: dict | None, overrides: dict | None =
 
 
 def _build_profile_context(request, *, form_data: dict | None = None, form_errors: dict | None = None):
+    """
+    Construye la estructura necesaria para `_build_profile_context`.
+
+    La función prepara datos o configuración auxiliar reutilizable por otras operaciones del módulo.
+
+    Args:
+        request: Objeto request actual de Django.
+        form_data: Valor de entrada utilizado por la operación.
+        form_errors: Valor de entrada utilizado por la operación.
+
+    Returns:
+        _type_: Estructura resultante construida a partir de los parmetros recibidos.
+    """
     profile_user, profile_user_id = _get_profile_user(request)
 
     full_name = ""
@@ -140,6 +246,19 @@ def _build_profile_context(request, *, form_data: dict | None = None, form_error
 
 
 def _validate_superuser_assignment(request, data: dict, existing_user: dict | None = None):
+    """
+    Valida la información necesaria para `_validate_superuser_assignment`.
+
+    La función comprueba reglas de negocio y devuelve el resultado necesario para continuar el flujo.
+
+    Args:
+        request: Objeto request actual de Django.
+        data: Valor de entrada utilizado por la operación.
+        existing_user: Valor de entrada utilizado por la operación.
+
+    Returns:
+        _type_: Resultado de la validacin realizada sobre la entrada recibida.
+    """
     current_is_superuser = bool(existing_user.get("is_superuser", False)) if existing_user else False
 
     if existing_user and "is_superuser" not in data:
@@ -166,6 +285,19 @@ def _validate_superuser_assignment(request, data: dict, existing_user: dict | No
 
 
 def _validate_profile_input(manager: AppUserManager, profile_user: dict, post_data) -> tuple[dict, dict]:
+    """
+    Valida la información necesaria para `_validate_profile_input`.
+
+    La función comprueba reglas de negocio y devuelve el resultado necesario para continuar el flujo.
+
+    Args:
+        manager: Valor de entrada utilizado por la operación.
+        profile_user: Valor de entrada utilizado por la operación.
+        post_data: Valor de entrada utilizado por la operación.
+
+    Returns:
+        _type_: Resultado de la validacin realizada sobre la entrada recibida.
+    """
     profile_user_id = int(profile_user["id"])
     username = (post_data.get("username") or "").strip()
     email = (post_data.get("email") or "").strip()
@@ -202,14 +334,14 @@ def _validate_profile_input(manager: AppUserManager, profile_user: dict, post_da
 
     if wants_password_change:
         if not current_password:
-            errors["current_password"] = "Debes informar tu contrasena actual para cambiar la contrasena."
+            errors["current_password"] = "Debes informar tu contraseña actual para cambiar la contrasea."
         elif not check_password(current_password, profile_user.get("password_hash") or ""):
-            errors["current_password"] = "La contrasena actual no es correcta."
+            errors["current_password"] = "La contraseña actual no es correcta."
 
         if not new_password:
-            errors["new_password"] = "Debes indicar la nueva contrasena."
+            errors["new_password"] = "Debes indicar la nueva contraseña."
         elif new_password != confirm_password:
-            errors["confirm_password"] = "La confirmacion de contrasena no coincide."
+            errors["confirm_password"] = "La confirmacion de contraseña no coincide."
         else:
             validation_user = _PasswordValidationUser(
                 username=username,
@@ -241,6 +373,17 @@ def _validate_profile_input(manager: AppUserManager, profile_user: dict, post_da
 @require_http_methods(["POST"])
 @require_any_permission("APP_USER_INSERT")
 def create(request):
+    """
+    Procesa la petición asociada a `create`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     try:
         request_data = get_request_json(request)
         data = request_data.get("data", {})
@@ -268,6 +411,18 @@ def create(request):
 @require_http_methods(["PUT"])
 @require_any_permission("APP_USER_UPDATE")
 def update(request, id: int):
+    """
+    Procesa la petición asociada a `update`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+        id: Identificador del recurso sobre el que se opera.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     try:
         request_data = get_request_json(request)
         data = request_data.get("data", {})
@@ -298,12 +453,34 @@ def update(request, id: int):
 @require_http_methods(["GET"])
 @require_app_session
 def profile_view(request):
+    """
+    Procesa la petición asociada a `profile_view`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     return render(request, "app_user/profile.html", _build_profile_context(request))
 
 
 @require_http_methods(["POST"])
 @require_app_session
 def profile_update_view(request):
+    """
+    Procesa la petición asociada a `profile_update_view`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     manager = AppUserManager()
     profile_user, _ = _get_profile_user(request)
 
@@ -331,6 +508,17 @@ def profile_update_view(request):
 @require_http_methods(["POST"])
 @require_app_session
 def profile_deactivate_view(request):
+    """
+    Procesa la petición asociada a `profile_deactivate_view`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     manager = AppUserManager()
     profile_user, profile_user_id = _get_profile_user(request)
 
@@ -354,9 +542,9 @@ def profile_deactivate_view(request):
         form_errors["confirm_deactivate"] = "Escribe DESACTIVAR para confirmar la baja."
 
     if not current_password:
-        form_errors["current_password"] = "Debes informar tu contrasena actual para darte de baja."
+        form_errors["current_password"] = "Debes informar tu contrasea actual para darte de baja."
     elif not check_password(current_password, profile_user.get("password_hash") or ""):
-        form_errors["current_password"] = "La contrasena actual no es correcta."
+        form_errors["current_password"] = "La contrasea actual no es correcta."
 
     if form_errors:
         context_page = _build_profile_context(request, form_data=form_data, form_errors=form_errors)

@@ -1,12 +1,29 @@
+﻿"""
+Manager de acceso a datos para api value.
+
+Este módulo concentra las consultas y operaciones de persistencia asociadas a la entidad o relación correspondiente.
+"""
+
 from backend.core.database_manager import DatabaseManager
 from backend.models.department_model import DepartmentModel
 
 
 class ApiValueManager(DatabaseManager):
+    """
+    Manager encargado de encapsular las operaciones de acceso a datos de la entidad asociada.
+
+    Esta clase centraliza las consultas SQL, los ajustes previos a inserción o actualización y cualquier comportamiento adicional requerido por la entidad.
+    """
 
     QUERY_PREFIX = "_query_"
 
     def __init__(self):
+        """
+        Inicializa el manager con la configuración base de la entidad.
+
+        Returns:
+            None: El método deja preparada la clase base con el modelo, la clave primaria y la configuración de paginación necesarias.
+        """
         super().__init__(DepartmentModel, "id", rows_page=10)
 
     def get_master(self, master_name: str) -> str:
@@ -36,7 +53,13 @@ class ApiValueManager(DatabaseManager):
 
     def has_master(self, master_name: str) -> bool:
         """
-        Indica si existe un master registrado.
+        Indica si existe un master registrado con el nombre indicado.
+
+        Args:
+            master_name (str): Nombre del master que se desea comprobar.
+
+        Returns:
+            bool: `True` si existe una consulta registrada para ese master.
         """
         if not isinstance(master_name, str) or not master_name.strip():
             return False
@@ -50,6 +73,10 @@ class ApiValueManager(DatabaseManager):
     def list_masters(self) -> list[str]:
         """
         Devuelve el listado de masters registrados en la clase.
+
+        Returns:
+            list[str]: Lista ordenada con los nombres de todos los masters
+            disponibles.
         """
         masters = []
 
@@ -173,3 +200,4 @@ class ApiValueManager(DatabaseManager):
             ) WHERE 1=1
         """
         return query
+

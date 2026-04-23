@@ -1,3 +1,8 @@
+"""
+Vistas relacionadas con permission.
+
+Este módulo agrupa las funciones encargadas de procesar peticiones HTTP y devolver respuestas HTML o JSON para el contexto indicado.
+"""
 import json
 
 from django.shortcuts import render
@@ -34,6 +39,17 @@ delete = require_superuser()(_views["delete"])
 @require_http_methods(["GET"])
 @require_superuser()
 def form_view(request):
+    """
+    Procesa la petición asociada a `form_view`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     context_page = {
         "entity_model": PermissionModel.config(),
         "entity_model_permission_user": json.dumps(PermissionUserModel.config()),

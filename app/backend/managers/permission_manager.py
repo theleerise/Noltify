@@ -1,3 +1,9 @@
+﻿"""
+Manager de acceso a datos para permission.
+
+Este módulo concentra las consultas y operaciones de persistencia asociadas a la entidad o relación correspondiente.
+"""
+
 from datetime import datetime
 
 from backend.core.database_manager import DatabaseManager
@@ -5,8 +11,19 @@ from backend.models.permission_model import PermissionModel
 
 
 class PermissionManager(DatabaseManager):
+    """
+    Manager encargado de encapsular las operaciones de acceso a datos de la entidad asociada.
+
+    Esta clase centraliza las consultas SQL, los ajustes previos a inserción o actualización y cualquier comportamiento adicional requerido por la entidad.
+    """
 
     def __init__(self):
+        """
+        Inicializa el manager con la configuración base de la entidad.
+
+        Returns:
+            None: El método deja preparada la clase base con el modelo, la clave primaria y la configuración de paginación necesarias.
+        """
         super().__init__(PermissionModel, "id", rows_page=10)
 
     def _select_query(self) -> str:
@@ -77,3 +94,4 @@ class PermissionManager(DatabaseManager):
     def _apply_timestamp_audit_on_update(data: dict) -> dict:
         data["updated_at"] = datetime.now()
         return data
+

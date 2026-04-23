@@ -1,8 +1,9 @@
-"""Base entity model shared by backend domain models.
+"""
+Modelo base de entidad compartido por los modelos del backend.
 
-The class defined here extends Pydantic to standardize validation, JSON
-serialization, frontend field metadata generation, and common CRUD-oriented
-transformations used across the project.
+Este módulo extiende Pydantic para unificar la validación, la serialización, la
+generación de metadata para frontend y las transformaciones habituales
+utilizadas en operaciones CRUD del proyecto.
 """
 
 from __future__ import annotations
@@ -136,7 +137,17 @@ class EntityModel(BaseModel):
         return self.to_dict(exclude_none=False)
 
     def to_update_dict(self, *, include_primary_key: bool = False) -> dict[str, Any]:
-        """Return the payload used by update operations."""
+        """
+        Devuelve el diccionario que debe utilizarse en operaciones de actualización.
+
+        Args:
+            include_primary_key (bool): Indica si la clave primaria debe
+                mantenerse dentro del resultado final.
+
+        Returns:
+            dict[str, Any]: Diccionario preparado para una operación de
+            actualización.
+        """
         update_data = self.to_dict(exclude_none=False)
 
         if not include_primary_key and self.__primary_key__ in update_data:

@@ -1,9 +1,22 @@
+"""
+Punto de entrada para comandos de gestión del proyecto.
+
+Este módulo configura el entorno de Django y delega la ejecución en la utilidad de lnea de comandos correspondiente.
+"""
 import os
 import sys
 from pathlib import Path
 
 
 def main() -> None:
+    """
+    Inicia la ejecución del comando principal del proyecto.
+
+    Configura el entorno necesario y delega la ejecución al mecanismo de gestión correspondiente.
+
+    Returns:
+        _type_: None: El método ejecuta el comando solicitado dentro del entorno configurado.
+    """
     project_root = Path(__file__).resolve().parent
     app_path = project_root / "app"
 

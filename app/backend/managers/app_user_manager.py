@@ -1,3 +1,9 @@
+﻿"""
+Manager de acceso a datos para app user.
+
+Este módulo concentra las consultas y operaciones de persistencia asociadas a la entidad o relación correspondiente.
+"""
+
 from datetime import datetime
 
 from django.contrib.auth.hashers import make_password
@@ -7,8 +13,19 @@ from backend.models.app_user_model import AppUserModel
 
 
 class AppUserManager(DatabaseManager):
+    """
+    Manager encargado de encapsular las operaciones de acceso a datos de la entidad asociada.
+
+    Esta clase centraliza las consultas SQL, los ajustes previos a inserción o actualización y cualquier comportamiento adicional requerido por la entidad.
+    """
 
     def __init__(self):
+        """
+        Inicializa el manager con la configuración base de la entidad.
+
+        Returns:
+            None: El método deja preparada la clase base con el modelo, la clave primaria y la configuración de paginación necesarias.
+        """
         super().__init__(AppUserModel, "id", rows_page=10)
 
     def _select_query(self) -> str:
@@ -77,6 +94,17 @@ class AppUserManager(DatabaseManager):
         """
 
     def get_by_login(self, login_value: str):
+        """
+        Busca un usuario activo por nombre de usuario o correo electrónico.
+
+        Args:
+            login_value (str): Valor introducido por el usuario durante el
+                proceso de autenticación.
+
+        Returns:
+            _type_: Registro del usuario encontrado o `None` si no existe una
+            coincidencia válida.
+        """
         normalized_login = (login_value or "").strip()
         if not normalized_login:
             return None
@@ -106,6 +134,17 @@ class AppUserManager(DatabaseManager):
         return self.fetchone(sql=sql, params={"login_value": normalized_login}, data_model=False)
 
     def get_by_username(self, username: str, *, exclude_id: int | None = None):
+        """
+        Busca un usuario por nombre de usuario.
+
+        Args:
+            username (str): Nombre de usuario que se desea localizar.
+            exclude_id (int | None): Identificador que debe excluirse de la
+                búsqueda, útil en validaciones de edición.
+
+        Returns:
+            _type_: Registro encontrado o `None` si no existe coincidencia.
+        """
         normalized_username = (username or "").strip()
         if not normalized_username:
             return None
@@ -136,6 +175,17 @@ class AppUserManager(DatabaseManager):
         return self.fetchone(sql=sql, params=params, data_model=False)
 
     def get_by_email(self, email: str, *, exclude_id: int | None = None):
+        """
+        Busca un usuario por correo electrónico.
+
+        Args:
+            email (str): Correo electrónico que se desea localizar.
+            exclude_id (int | None): Identificador que debe excluirse del
+                resultado, útil en validaciones de edición.
+
+        Returns:
+            _type_: Registro encontrado o `None` si no existe coincidencia.
+        """
         normalized_email = (email or "").strip()
         if not normalized_email:
             return None
@@ -166,6 +216,15 @@ class AppUserManager(DatabaseManager):
         return self.fetchone(sql=sql, params=params, data_model=False)
 
     def insert_query(self, data: dict):
+        """
+        Inserta un nuevo usuario aplicando las transformaciones previas necesarias.
+
+        Args:
+            data (dict): Datos del usuario que se desea crear.
+
+        Returns:
+            None: El usuario queda persistido en base de datos.
+        """
         final_data = self._before_insert(data)
         self.execute_query_data(
             sql=self._insert_query(),
@@ -174,6 +233,15 @@ class AppUserManager(DatabaseManager):
         self._after_insert(final_data)
 
     def update_query(self, data: dict):
+        """
+        Actualiza un usuario existente aplicando reglas específicas de contraseña.
+
+        Args:
+            data (dict): Datos del usuario que se desea actualizar.
+
+        Returns:
+            None: El usuario queda actualizado en base de datos.
+        """
         final_data = self._before_update(data)
         include_password = "password_hash" in final_data
 
@@ -185,14 +253,38 @@ class AppUserManager(DatabaseManager):
         self._after_update(final_data)
 
     def _before_insert(self, data: dict) -> dict:
+        """
+        Prepara los datos antes de insertar un usuario.
+
+        Este método valida la contraseña, la cifra y añade la información de
+        auditoría temporal antes de persistir el registro.
+
+        Args:
+            data (dict): Datos recibidos para la creación del usuario.
+
+        Returns:
+            dict: Diccionario final preparado para la inserción.
+        """
         password = self._normalize_password(data.get("password_hash"))
         if not password:
-            raise ValueError("La contrasena es obligatoria para crear un usuario.")
+            raise ValueError("La contraseña es obligatoria para crear un usuario.")
 
         data["password_hash"] = make_password(password)
         return self._apply_timestamp_audit_on_insert(data)
 
     def _before_update(self, data: dict) -> dict:
+        """
+        Prepara los datos antes de actualizar un usuario.
+
+        Si se recibe una nueva contraseña, la cifra. En caso contrario, elimina
+        el campo para no sobrescribir el valor existente.
+
+        Args:
+            data (dict): Datos recibidos para la actualización del usuario.
+
+        Returns:
+            dict: Diccionario final preparado para la actualización.
+        """
         password = self._normalize_password(data.get("password_hash"))
 
         if password:
@@ -204,6 +296,15 @@ class AppUserManager(DatabaseManager):
 
     @staticmethod
     def _normalize_password(password: str | None) -> str | None:
+        """
+        Normaliza el valor de contraseña recibido antes de procesarlo.
+
+        Args:
+            password (str | None): Contraseña recibida desde la capa superior.
+
+        Returns:
+            str | None: Contraseña limpia o `None` si no contiene un valor útil.
+        """
         if password is None:
             return None
 
@@ -212,6 +313,15 @@ class AppUserManager(DatabaseManager):
 
     @staticmethod
     def _apply_timestamp_audit_on_insert(data: dict) -> dict:
+        """
+        Añade las fechas de creación y actualización a un usuario nuevo.
+
+        Args:
+            data (dict): Datos del usuario que se desea insertar.
+
+        Returns:
+            dict: Diccionario con las marcas temporales incorporadas.
+        """
         now = datetime.now()
         data["created_at"] = now
         data["updated_at"] = now
@@ -219,5 +329,15 @@ class AppUserManager(DatabaseManager):
 
     @staticmethod
     def _apply_timestamp_audit_on_update(data: dict) -> dict:
+        """
+        Actualiza la fecha de modificación de un usuario.
+
+        Args:
+            data (dict): Datos del usuario que se desea actualizar.
+
+        Returns:
+            dict: Diccionario con la fecha de actualización renovada.
+        """
         data["updated_at"] = datetime.now()
         return data
+

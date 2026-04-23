@@ -1,3 +1,9 @@
+"""
+Configuración de rutas para role.
+
+Este módulo define las URLs que exponen las vistas asociadas al contexto correspondiente dentro de la aplicación.
+"""
+
 from django.urls import path
 from app.backend.views.role import role_views
 

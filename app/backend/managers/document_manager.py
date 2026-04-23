@@ -1,3 +1,9 @@
+﻿"""
+Manager de acceso a datos para document.
+
+Este módulo concentra las consultas y operaciones de persistencia asociadas a la entidad o relación correspondiente.
+"""
+
 from datetime import datetime
 
 from backend.core.database_manager import DatabaseManager
@@ -6,8 +12,19 @@ from backend.models.document_model import DocumentModel
 
 
 class DocumentManager(DatabaseManager):
+    """
+    Manager encargado de encapsular las operaciones de acceso a datos de la entidad asociada.
+
+    Esta clase centraliza las consultas SQL, los ajustes previos a inserción o actualización y cualquier comportamiento adicional requerido por la entidad.
+    """
 
     def __init__(self):
+        """
+        Inicializa el manager con la configuración base de la entidad.
+
+        Returns:
+            None: El método deja preparada la clase base con el modelo, la clave primaria y la configuración de paginación necesarias.
+        """
         super().__init__(DocumentModel, "id", rows_page=10)
 
     def _select_query(self) -> str:
@@ -75,15 +92,46 @@ class DocumentManager(DatabaseManager):
         """
 
     def _before_insert(self, data: dict) -> dict:
+        """
+        Ajusta los datos antes de insertar un documento.
+
+        Args:
+            data (dict): Información del documento que se desea persistir.
+
+        Returns:
+            dict: Diccionario final con las marcas temporales necesarias para la
+            inserción.
+        """
         return self._apply_timestamp_audit_on_insert(data)
 
     def _before_update(self, data: dict) -> dict:
+        """
+        Ajusta los datos antes de actualizar un documento existente.
+
+        Además de actualizar la auditoría temporal, elimina el campo
+        `uploaded_by` para evitar que se modifique durante una edición.
+
+        Args:
+            data (dict): Datos recibidos para la actualización.
+
+        Returns:
+            dict: Diccionario final preparado para la operación de actualización.
+        """
         data = self._apply_timestamp_audit_on_update(data)
         data.pop("uploaded_by", None)
         return data
 
     @staticmethod
     def _apply_timestamp_audit_on_insert(data: dict) -> dict:
+        """
+        Añade las fechas de creación y actualización a un documento nuevo.
+
+        Args:
+            data (dict): Datos del documento que se va a insertar.
+
+        Returns:
+            dict: Diccionario con las marcas temporales incorporadas.
+        """
         now = datetime.now()
         data["created_at"] = now
         data["updated_at"] = now
@@ -91,6 +139,15 @@ class DocumentManager(DatabaseManager):
 
     @staticmethod
     def _apply_timestamp_audit_on_update(data: dict) -> dict:
+        """
+        Actualiza la fecha de modificación de un documento.
+
+        Args:
+            data (dict): Datos del documento que se va a actualizar.
+
+        Returns:
+            dict: Diccionario con la fecha de actualización renovada.
+        """
         data["updated_at"] = datetime.now()
         return data
     
@@ -118,6 +175,21 @@ class DocumentManager(DatabaseManager):
         )
 
     def get_accessible_document(self, document_id: int, user_id: int) -> dict | None:
+        """
+        Recupera un documento únicamente si el usuario tiene acceso a él.
+
+        El acceso se considera válido cuando el documento pertenece al usuario,
+        ha sido asignado de forma directa, está disponible por departamento o
+        forma parte del ámbito general visible.
+
+        Args:
+            document_id (int): Identificador del documento solicitado.
+            user_id (int): Identificador del usuario que intenta acceder.
+
+        Returns:
+            dict | None: Registro del documento si el usuario puede acceder o
+            `None` si no cumple las condiciones de visibilidad.
+        """
         sql = """
             SELECT DISTINCT
                   DOC.ID
@@ -167,6 +239,16 @@ class DocumentManager(DatabaseManager):
         )
 
     def get_user_departments(self, user_id: int) -> list[dict]:
+        """
+        Recupera los departamentos activos a los que pertenece un usuario.
+
+        Args:
+            user_id (int): Identificador del usuario del que se quieren obtener
+                los departamentos.
+
+        Returns:
+            list[dict]: Lista de departamentos activos asociados al usuario.
+        """
         sql = """
             SELECT DISTINCT
                   DE.ID
@@ -187,6 +269,17 @@ class DocumentManager(DatabaseManager):
         )
 
     def user_belongs_to_department(self, user_id: int, department_id: int) -> bool:
+        """
+        Comprueba si un usuario pertenece a un departamento concreto.
+
+        Args:
+            user_id (int): Identificador del usuario que se desea comprobar.
+            department_id (int): Identificador del departamento a validar.
+
+        Returns:
+            bool: `True` si existe la relación usuario-departamento, `False` en
+            caso contrario.
+        """
         sql = """
             SELECT 1 AS EXISTS_ROW
             FROM PUBLIC.DEPARTMENT_USER
@@ -215,6 +308,26 @@ class DocumentManager(DatabaseManager):
         order_by: dict[str, str] | None = None,
         department_id: int | None = None,
     ) -> dict:
+        """
+        Recupera una página de documentos visibles según un ámbito determinado.
+
+        El ámbito puede represetar documentos generales, por departamento, del
+        propio usuario o asignados explícitamente al usuario.
+
+        Args:
+            scope (str): Tipo de ámbito sobre el que se realizará la consulta.
+            user_id (int): Identificador del usuario para resolver el contexto
+                de visibilidad.
+            page (int): Página que se desea recuperar.
+            order_by (dict[str, str] | None): Configuración de ordenación del
+                listado.
+            department_id (int | None): Departamento aplicado cuando el ámbito
+                depende de un departamento concreto.
+
+        Returns:
+            dict: Estructura paginada con los documentos visibles según el
+            ámbito indicado.
+        """
         sql = self._build_general_documents_query(
             scope=scope,
             user_id=user_id,
@@ -235,6 +348,21 @@ class DocumentManager(DatabaseManager):
         user_id: int,
         department_id: int | None = None,
     ) -> str:
+        """
+        Construye la consulta base de documentos visibles para un ámbito.
+
+        Args:
+            scope (str): Ámbito de visibilidad que determina el filtro
+                principal.
+            user_id (int): Identificador del usuario utilizado para resolver
+                pertenencias y asignaciones.
+            department_id (int | None): Identificador del departamento cuando el
+                ámbito es departamental.
+
+        Returns:
+            str: Consulta SQL lista para usarse en listados paginados de
+            documentos.
+        """
         if scope == "department":
             if department_id is None:
                 raise ValueError("Debes indicar un departamento para consultar documentos por departamento.")
@@ -298,6 +426,21 @@ class DocumentManager(DatabaseManager):
         uploaded_by: int,
         department_id: int | None = None,
     ) -> dict:
+        """
+        Crea un documento vinculado a un usuario y opcionalmente a un departamento.
+
+        El método inserta el documento principal y, si se informa un
+        departamento, registra también la asociación en la tabla relacional.
+
+        Args:
+            document_data (dict): Datos del documento que se desea crear.
+            uploaded_by (int): Identificador del usuario que realiza la carga.
+            department_id (int | None): Departamento al que se asociará el
+                documento, si corresponde.
+
+        Returns:
+            dict: Diccionario con el identificador del documento recién creado.
+        """
         final_data = self._before_insert({
             **document_data,
             "uploaded_by": uploaded_by,
@@ -365,6 +508,17 @@ class DocumentManager(DatabaseManager):
         return {"id": document_id}
 
     def get_owned_document(self, document_id: int, uploaded_by: int) -> dict | None:
+        """
+        Recupera un documento solo si pertenece al usuario indicado.
+
+        Args:
+            document_id (int): Identificador del documento que se desea obtener.
+            uploaded_by (int): Identificador del usuario propietario esperado.
+
+        Returns:
+            dict | None: Registro del documento si pertenece al usuario o
+            `None` si no existe esa correspondencia.
+        """
         sql = """
             SELECT
                   ID
@@ -391,3 +545,4 @@ class DocumentManager(DatabaseManager):
             },
             data_model=False,
         )
+

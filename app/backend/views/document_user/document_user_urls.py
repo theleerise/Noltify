@@ -1,3 +1,9 @@
+"""
+Configuración de rutas para document user.
+
+Este módulo define las URLs que exponen las vistas asociadas al contexto correspondiente dentro de la aplicación.
+"""
+
 from django.urls import path
 from app.backend.views.document_user import document_user_views
 

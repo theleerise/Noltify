@@ -1,3 +1,9 @@
+"""
+Configuración de rutas para publication user.
+
+Este módulo define las URLs que exponen las vistas asociadas al contexto correspondiente dentro de la aplicación.
+"""
+
 from django.urls import path
 from app.backend.views.publication_user import publication_user_views
 

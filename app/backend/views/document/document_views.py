@@ -1,3 +1,8 @@
+"""
+Vistas relacionadas con document.
+
+Este módulo agrupa las funciones encargadas de procesar peticiones HTTP y devolver respuestas HTML o JSON para el contexto indicado.
+"""
 import json
 
 from django.http import HttpResponse, JsonResponse
@@ -34,12 +39,34 @@ delete = require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["delete"])
 
 
 def _is_admin_variant(request) -> bool:
+    """
+    Realiza la operación definida por `_is_admin_variant`.
+
+    Este método encapsula la lógica principal asociada a este punto del flujo de la aplicación.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Resultado generado por la operación ejecutada.
+    """
     return (request.GET.get("variant") or "admin").strip().lower() == "admin"
 
 
 @require_http_methods(["GET"])
 @require_any_permission("DOCUMENT_LIST", "DOCUMENT_INSERT", "DOCUMENT_UPDATE")
 def form_view(request):
+    """
+    Procesa la petición asociada a `form_view`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     if _is_admin_variant(request):
         admin_response = require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(lambda req: None)(request)
         if admin_response is not None:
@@ -60,6 +87,17 @@ def form_view(request):
 
 @require_http_methods(["GET"])
 def new_view(request):
+    """
+    Procesa la petición asociada a `new_view`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     if _is_admin_variant(request):
         return require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["new_view"])(request)
 
@@ -68,6 +106,18 @@ def new_view(request):
 
 @require_http_methods(["GET"])
 def edit_view(request, id: int):
+    """
+    Procesa la petición asociada a `edit_view`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+        id: Identificador del recurso sobre el que se opera.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     if _is_admin_variant(request):
         return require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)(_views["edit_view"])(request, id=id)
 
@@ -88,6 +138,17 @@ def edit_view(request, id: int):
 
 
 def _get_multipart_document_data(request) -> dict:
+    """
+    Recupera la información necesaria para `_get_multipart_document_data`.
+
+    La función concentra una lectura o resolucin de datos reutilizable dentro del módulo.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Valor resuelto a partir de la lógica interna de la función.
+    """
     raw_data = request.POST.get("data", "{}")
 
     try:
@@ -106,6 +167,17 @@ def _get_multipart_document_data(request) -> dict:
 
 
 def _get_current_user_id(request) -> int | None:
+    """
+    Recupera la información necesaria para `_get_current_user_id`.
+
+    La función concentra una lectura o resolucin de datos reutilizable dentro del módulo.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Valor resuelto a partir de la lógica interna de la función.
+    """
     session_user = getattr(request, "app_user", None) or {}
 
     try:
@@ -115,10 +187,32 @@ def _get_current_user_id(request) -> int | None:
 
 
 def _get_general_scope(request) -> str:
+    """
+    Recupera la información necesaria para `_get_general_scope`.
+
+    La función concentra una lectura o resolucin de datos reutilizable dentro del módulo.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Valor resuelto a partir de la lógica interna de la función.
+    """
     return (request.GET.get("scope") or "").strip().lower()
 
 
 def _get_document_request_data(request) -> dict:
+    """
+    Recupera la información necesaria para `_get_document_request_data`.
+
+    La función concentra una lectura o resolucin de datos reutilizable dentro del módulo.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Valor resuelto a partir de la lógica interna de la función.
+    """
     content_type = request.content_type or ""
 
     if content_type.startswith("multipart/form-data"):
@@ -132,6 +226,17 @@ def _get_document_request_data(request) -> dict:
 @require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)
 @require_any_permission("DOCUMENT_INSERT")
 def create(request):
+    """
+    Procesa la petición asociada a `create`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     try:
         current_user_id = _get_current_user_id(request)
         if not current_user_id:
@@ -159,6 +264,18 @@ def create(request):
 @require_any_role(*DOCUMENT_ADMIN_ROLE_CODES)
 @require_any_permission("DOCUMENT_UPDATE")
 def update(request, id: int):
+    """
+    Procesa la petición asociada a `update`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+        id: Identificador del recurso sobre el que se opera.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     try:
         mgr = DocumentManager()
         existing_record = mgr.get_by_id(record_id=id, data_model=False)
@@ -192,6 +309,18 @@ def update(request, id: int):
 @require_http_methods(["GET"])
 @require_any_permission("DOCUMENT_LIST")
 def document_file(request, id: int):
+    """
+    Realiza la operación definida por `document_file`.
+
+    Este método encapsula la lógica principal asociada a este punto del flujo de la aplicación.
+
+    Args:
+        request: Objeto request actual de Django.
+        id: Identificador del recurso sobre el que se opera.
+
+    Returns:
+        _type_: Resultado generado por la operación ejecutada.
+    """
     try:
         mgr = DocumentManager()
         document = mgr.get_document(id)
@@ -218,6 +347,17 @@ def document_file(request, id: int):
 @require_http_methods(["GET"])
 @require_any_permission("DOCUMENT_LIST")
 def general_view(request):
+    """
+    Procesa la petición asociada a `general_view`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     current_user_id = _get_current_user_id(request)
     if not current_user_id:
         return get_error_response("No se pudo identificar al usuario de sesion", status=401)
@@ -246,6 +386,17 @@ def general_view(request):
 @require_http_methods(["GET"])
 @require_any_permission("DOCUMENT_LIST")
 def general_data(request):
+    """
+    Realiza la operación definida por `general_data`.
+
+    Este método encapsula la lógica principal asociada a este punto del flujo de la aplicación.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Resultado generado por la operación ejecutada.
+    """
     try:
         current_user_id = _get_current_user_id(request)
         if not current_user_id:
@@ -289,6 +440,17 @@ def general_data(request):
 @require_http_methods(["POST"])
 @require_any_permission("DOCUMENT_INSERT")
 def general_create(request):
+    """
+    Realiza la operación definida por `general_create`.
+
+    Este método encapsula la lógica principal asociada a este punto del flujo de la aplicación.
+
+    Args:
+        request: Objeto request actual de Django.
+
+    Returns:
+        _type_: Resultado generado por la operación ejecutada.
+    """
     try:
         current_user_id = _get_current_user_id(request)
         if not current_user_id:
@@ -344,6 +506,18 @@ def general_create(request):
 @require_http_methods(["PUT"])
 @require_any_permission("DOCUMENT_UPDATE")
 def general_update(request, id: int):
+    """
+    Realiza la operación definida por `general_update`.
+
+    Este método encapsula la lógica principal asociada a este punto del flujo de la aplicación.
+
+    Args:
+        request: Objeto request actual de Django.
+        id: Identificador del recurso sobre el que se opera.
+
+    Returns:
+        _type_: Resultado generado por la operación ejecutada.
+    """
     try:
         current_user_id = _get_current_user_id(request)
         if not current_user_id:
@@ -380,6 +554,18 @@ def general_update(request, id: int):
 @require_http_methods(["DELETE"])
 @require_any_permission("DOCUMENT_DELETE")
 def general_delete(request, id: int):
+    """
+    Realiza la operación definida por `general_delete`.
+
+    Este método encapsula la lógica principal asociada a este punto del flujo de la aplicación.
+
+    Args:
+        request: Objeto request actual de Django.
+        id: Identificador del recurso sobre el que se opera.
+
+    Returns:
+        _type_: Resultado generado por la operación ejecutada.
+    """
     try:
         current_user_id = _get_current_user_id(request)
         if not current_user_id:

@@ -1,3 +1,8 @@
+"""
+Vistas relacionadas con api value.
+
+Este módulo agrupa las funciones encargadas de procesar peticiones HTTP y devolver respuestas HTML o JSON para el contexto indicado.
+"""
 import json
 
 from django.http import JsonResponse
@@ -11,6 +16,18 @@ from backend.models.api_value_model import ApiValueModel
 @require_http_methods(["GET"])
 @require_app_session
 def data(request, master):
+    """
+    Procesa la petición asociada a `data`.
+
+    La función valida la entrada necesaria y devuelve la respuesta HTTP correspondiente segn el contexto de negocio.
+
+    Args:
+        request: Objeto request actual de Django.
+        master: Valor de entrada utilizado por la operación.
+
+    Returns:
+        _type_: Respuesta HTTP o JSON generada para la petición actual.
+    """
     try:
         request_data = request.GET.dict()
 
@@ -40,6 +57,18 @@ def data(request, master):
 @require_http_methods(["GET"])
 @require_app_session
 def data_page(request, master):
+    """
+    Realiza la operación definida por `data_page`.
+
+    Este método encapsula la lógica principal asociada a este punto del flujo de la aplicación.
+
+    Args:
+        request: Objeto request actual de Django.
+        master: Valor de entrada utilizado por la operación.
+
+    Returns:
+        _type_: Resultado generado por la operación ejecutada.
+    """
     try:
         request_data = request.GET.dict()
 
